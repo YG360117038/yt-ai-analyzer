@@ -1,5 +1,20 @@
 const BACKEND_URL = (typeof CONFIG !== 'undefined' && CONFIG.BACKEND_URL) || "http://localhost:3000";
 
+// Mermaid initialize (CSP uyumlu - inline script yerine)
+if (typeof mermaid !== 'undefined') {
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+}
+
+// Auth header'li fetch helper
+async function authFetch(url, options = {}) {
+    const token = await SupabaseAuth.getToken();
+    if (!token) {
+        throw new Error('AUTH_REQUIRED');
+    }
+    const headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+    return fetch(url, { ...options, headers });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('id');
@@ -69,11 +84,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             setStep(2);
             updateProgress("AI Analizi Yapiliyor...", 40);
 
-            const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+            const response = await authFetch(`${BACKEND_URL}/api/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(videoData)
             });
+
+            if (response.status === 403) {
+                const err = await response.json().catch(() => ({}));
+                if (err.requiresUpgrade) {
+                    showPaywall();
+                    return;
+                }
+            }
+
+            if (response.status === 401) {
+                statusText.innerText = "Lutfen once giris yapin.";
+                statusText.style.color = "#ff0000";
+                return;
+            }
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
@@ -123,11 +152,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==================== LOAD EXISTING ====================
     async function loadAnalysis(id) {
         try {
-            const response = await fetch(`${BACKEND_URL}/api/analysis/${id}`);
+            const response = await authFetch(`${BACKEND_URL}/api/analysis/${id}`);
             if (!response.ok) throw new Error("Analiz yuklenemedi.");
             const data = await response.json();
             renderAnalysis(data);
         } catch (error) {
+            if (error.message === 'AUTH_REQUIRED') {
+                showToast("Lutfen giris yapin.");
+                return;
+            }
             console.error("Yukleme hatasi:", error);
             showToast("Analiz yuklenirken hata olustu.");
         }
@@ -545,7 +578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim)">Yukleniyor...</div>';
 
         try {
-            const response = await fetch(`${BACKEND_URL}/api/analyses`);
+            const response = await authFetch(`${BACKEND_URL}/api/analyses`);
             if (!response.ok) throw new Error("Gecmis yuklenemedi.");
             const data = await response.json();
 
@@ -590,7 +623,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     e.stopPropagation();
                     if (!confirm('Bu analizi silmek istediginize emin misiniz?')) return;
                     try {
-                        await fetch(`${BACKEND_URL}/api/analysis/${item.id}`, { method: 'DELETE' });
+                        await authFetch(`${BACKEND_URL}/api/analysis/${item.id}`, { method: 'DELETE' });
                         card.remove();
                         showToast("Analiz silindi.");
                     } catch (err) {
@@ -781,5 +814,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         toast.innerText = message;
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // ==================== PAYWALL ====================
+    function showPaywall() {
+        loadingScreen.style.display = 'none';
+        const overlay = document.getElementById('paywall-overlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+        }
+    }
+
+    // Upgrade butonu
+    const upgradeBtn = document.getElementById('upgrade-btn');
+    if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', async () => {
+            upgradeBtn.disabled = true;
+            upgradeBtn.innerText = 'Yukleniyor...';
+
+            try {
+                const response = await authFetch(`${BACKEND_URL}/api/payment/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || 'Odeme olusturulamadi.');
+                }
+
+                const { token } = await response.json();
+                // PayTR odeme sayfasini yeni sekmede ac
+                chrome.tabs.create({
+                    url: `https://www.paytr.com/odeme/guvenli/${token}`
+                });
+            } catch (e) {
+                console.error('Odeme hatasi:', e);
+                showToast('Odeme olusturulurken hata olustu.');
+                upgradeBtn.disabled = false;
+                upgradeBtn.innerText = "Pro'ya Yukselt";
+            }
+        });
     }
 });

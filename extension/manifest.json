@@ -8,12 +8,14 @@
     "tabs",
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "identity"
   ],
   "host_permissions": [
     "https://*.youtube.com/*",
     "http://localhost:3000/*",
-    "https://*.onrender.com/*"
+    "https://*.onrender.com/*",
+    "https://*.supabase.co/*"
   ],
   "background": {
     "service_worker": "src/background/index.js"
