@@ -102,17 +102,47 @@ app.post('/api/payment/callback', async (req, res) => {
 
 // ==================== AUTHENTICATED ROUTES ====================
 
+// Profil yoksa otomatik olustur
+async function getOrCreateProfile(user) {
+    let { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+    if (error || !profile) {
+        console.log('Profil bulunamadi, otomatik olusturuluyor:', user.id);
+        const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .upsert({
+                id: user.id,
+                email: user.email,
+                display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanici',
+                avatar_url: user.user_metadata?.avatar_url || null,
+                plan: 'free',
+                analysis_count: 0,
+                subscription_status: null,
+                subscription_end: null
+            }, { onConflict: 'id' })
+            .select()
+            .single();
+
+        if (insertError) {
+            console.error('Profil olusturma hatasi:', insertError);
+            return null;
+        }
+        profile = newProfile;
+    }
+    return profile;
+}
+
 // Kullanici Profili
 app.get('/api/user/profile', authMiddleware, async (req, res) => {
     try {
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', req.user.id)
-            .single();
+        const profile = await getOrCreateProfile(req.user);
 
-        if (error || !profile) {
-            return res.status(404).json({ error: 'Profil bulunamadi.' });
+        if (!profile) {
+            return res.status(500).json({ error: 'Profil olusturulamadi.' });
         }
 
         res.json({
@@ -127,6 +157,7 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
             freeLimit: 3
         });
     } catch (error) {
+        console.error('Profile endpoint error:', error);
         res.status(500).json({ error: error.message });
     }
 });

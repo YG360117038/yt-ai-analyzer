@@ -9,14 +9,35 @@ const FREE_LIMIT = 3;
 
 async function usageCheck(req, res, next) {
     try {
-        const { data: profile, error } = await supabase
+        let { data: profile, error } = await supabase
             .from('profiles')
             .select('plan, analysis_count, subscription_status, subscription_end')
             .eq('id', req.user.id)
             .single();
 
+        // Profil yoksa otomatik olustur
         if (error || !profile) {
-            return res.status(404).json({ error: 'Kullanici profili bulunamadi.' });
+            console.log('usageCheck: Profil bulunamadi, olusturuluyor:', req.user.id);
+            const { data: newProfile, error: insertError } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: req.user.id,
+                    email: req.user.email,
+                    display_name: req.user.user_metadata?.full_name || req.user.email?.split('@')[0] || 'Kullanici',
+                    avatar_url: req.user.user_metadata?.avatar_url || null,
+                    plan: 'free',
+                    analysis_count: 0,
+                    subscription_status: null,
+                    subscription_end: null
+                }, { onConflict: 'id' })
+                .select()
+                .single();
+
+            if (insertError || !newProfile) {
+                console.error('Profil olusturma hatasi:', insertError);
+                return res.status(500).json({ error: 'Profil olusturulamadi.' });
+            }
+            profile = newProfile;
         }
 
         // Pro kullanici - aktif abonelik kontrolu
