@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube AI Prompt Analyzer",
+  "version": "1.0",
+  "description": "YouTube videolarını AI ile analiz eder ve içerik stratejileri oluşturur.",
+  "permissions": [
+    "contextMenus",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "http://localhost:3000/*",
+    "https://*.onrender.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.js"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.youtube.com/watch*"
+      ],
+      "js": [
+        "src/content/scraper.js"
+      ]
+    }
+  ]
+}
