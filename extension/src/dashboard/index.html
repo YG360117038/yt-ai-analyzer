@@ -601,6 +601,126 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Storyboard */
+        .storyboard-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .storyboard-item:hover { border-color: var(--border-hover); }
+
+        .storyboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .scene-number {
+            background: var(--primary);
+            color: #fff;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .scene-time {
+            font-size: 12px;
+            color: var(--text-dim);
+            background: rgba(255,255,255,0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .storyboard-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .storyboard-detail {
+            font-size: 12px;
+        }
+
+        .storyboard-detail .label {
+            color: var(--text-dim);
+            display: block;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 10px;
+        }
+
+        .storyboard-detail .value { color: var(--text-mid); }
+
+        .ai-prompt-box {
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ai-prompt-box:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.12);
+        }
+
+        .ai-prompt-box .prompt-label {
+            font-size: 10px;
+            color: var(--purple);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ai-prompt-box .prompt-text {
+            font-size: 13px;
+            color: var(--text-mid);
+            line-height: 1.6;
+        }
+
+        /* Video style info */
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .style-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .style-item .style-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .style-item .style-value {
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 500;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({ startOnLoad: false, theme: 'dark' });</script>
@@ -645,6 +765,9 @@
         </div>
         <div class="nav-item" data-tab="characters">
             <span class="nav-icon">&#127917;</span> Karakter Donusumu
+        </div>
+        <div class="nav-item" data-tab="video">
+            <span class="nav-icon">&#127916;</span> Video Production
         </div>
 
         <div class="nav-section">Diger</div>
@@ -709,6 +832,11 @@
         <!-- Tab: Characters -->
         <div id="tab-characters" class="tab-content">
             <div id="characters-content" class="grid"></div>
+        </div>
+
+        <!-- Tab: Video Production -->
+        <div id="tab-video" class="tab-content">
+            <div id="video-content" class="grid"></div>
         </div>
 
         <!-- Tab: History -->

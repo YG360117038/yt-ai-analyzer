@@ -150,12 +150,105 @@ async function analyzeVideo(videoData) {
         "monetization_ideas": [
             "Bu içerikten para kazanma fikri 1",
             "fikir 2", "fikir 3"
+        ],
+
+        "video_production": {
+            "storyboard": [
+                {
+                    "sahne": 1,
+                    "sure": "0:00-0:05",
+                    "aciklama": "Sahnenin detayli aciklamasi",
+                    "kamera": "Kamera acisi ve hareketi (close-up, wide shot, dolly vs.)",
+                    "ses": "Arka plan muzigi veya ses efekti",
+                    "metin": "Ekranda gosterilecek metin (varsa)",
+                    "ai_video_prompt": "Bu sahneyi Runway/Luma/Kling ile olusturmak icin Ingilizce prompt. Ornek: Cinematic wide shot of a person walking through a neon-lit city at night, 4K, dramatic lighting, slow motion"
+                },
+                {
+                    "sahne": 2,
+                    "sure": "0:05-0:15",
+                    "aciklama": "...",
+                    "kamera": "...",
+                    "ses": "...",
+                    "metin": "...",
+                    "ai_video_prompt": "..."
+                },
+                {
+                    "sahne": 3,
+                    "sure": "0:15-0:30",
+                    "aciklama": "...",
+                    "kamera": "...",
+                    "ses": "...",
+                    "metin": "...",
+                    "ai_video_prompt": "..."
+                },
+                {
+                    "sahne": 4,
+                    "sure": "0:30-0:45",
+                    "aciklama": "...",
+                    "kamera": "...",
+                    "ses": "...",
+                    "metin": "...",
+                    "ai_video_prompt": "..."
+                },
+                {
+                    "sahne": 5,
+                    "sure": "0:45-1:00",
+                    "aciklama": "...",
+                    "kamera": "...",
+                    "ses": "...",
+                    "metin": "...",
+                    "ai_video_prompt": "..."
+                }
+            ],
+            "overall_style": "Videonun genel gorsel stili (sinematik, minimal, enerjik, retro vs.)",
+            "color_palette": "Onerilen renk paleti (ornek: koyu mavi tonlari, sicak turuncu vurgular)",
+            "music_mood": "Arka plan muzigi tarz onerisi (ornek: epik orkestral, lo-fi chill, enerjik EDM)",
+            "transition_style": "Sahneler arasi gecis tipi (cut, fade, zoom, glitch vs.)",
+            "aspect_ratio_recommendation": "Onerilen en-boy orani ve neden (16:9 YouTube, 9:16 Shorts/TikTok, 1:1 Instagram)"
+        },
+
+        "ai_video_prompts": {
+            "runway_prompts": [
+                "Bu videonun konusunu Runway ML ile olusturmak icin detayli Ingilizce prompt 1 (sahne detayi, kamera, isik, stil belirt)",
+                "prompt 2",
+                "prompt 3"
+            ],
+            "luma_prompts": [
+                "Bu videonun konusunu Luma AI ile olusturmak icin detayli Ingilizce prompt 1",
+                "prompt 2",
+                "prompt 3"
+            ],
+            "kling_prompts": [
+                "Bu videonun konusunu Kling AI ile olusturmak icin detayli Ingilizce prompt 1",
+                "prompt 2",
+                "prompt 3"
+            ],
+            "shorts_reels_prompts": [
+                "Bu icerikten 15-60 saniyelik kisa video (Shorts/Reels/TikTok) icin AI video prompt'u 1",
+                "prompt 2",
+                "prompt 3"
+            ],
+            "thumbnail_dalle_prompts": [
+                "Bu video icin DALL-E/Midjourney ile thumbnail olusturmak icin detayli Ingilizce prompt 1",
+                "prompt 2",
+                "prompt 3"
+            ]
+        },
+
+        "b_roll_suggestions": [
+            "B-roll onerisi 1 (sahne aciklamasi + AI prompt)",
+            "B-roll onerisi 2",
+            "B-roll onerisi 3",
+            "B-roll onerisi 4",
+            "B-roll onerisi 5"
         ]
     }
 
     ÖNEMLİ KURALLAR:
-    - Tüm yanıtları TÜRKÇE olarak hazırla.
+    - Tüm yanıtları TÜRKÇE olarak hazırla (SADECE ai_video_prompts, runway_prompts, luma_prompts, kling_prompts, shorts_reels_prompts, thumbnail_dalle_prompts ve storyboard icindeki ai_video_prompt alanlari INGILIZCE olacak cunku AI video servisleri Ingilizce calisir).
     - Gerçek, uygulanabilir, özgün analizler yap. Genel/klişe yanıtlar verme.
+    - AI video prompt'lari cok detayli olmali: sahne aciklamasi, kamera acisi, isik durumu, renk tonu, hareket, stil, kalite (4K, cinematic vs.) icermeli.
+    - Storyboard tam 5 sahne icermeli, her sahne icin ai_video_prompt INGILIZCE ve kullanima hazir olmali.
     - Mermaid kodu geçerli ve render edilebilir olmalı.
     - Heatmap dizisi tam olarak 20 eleman içermeli ve 0-100 arası değerler olmalı.
     - JSON çıktısı parse edilebilir olmalı, ekstra karakter veya açıklama ekleme.

@@ -166,10 +166,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             prompts: document.getElementById('prompts-content'),
             notebook: document.getElementById('notebook-content'),
             scripts: document.getElementById('scripts-content'),
-            characters: document.getElementById('characters-content')
+            characters: document.getElementById('characters-content'),
+            video: document.getElementById('video-content')
         };
 
-        Object.values(containers).forEach(c => c.innerHTML = '');
+        Object.values(containers).forEach(c => { if (c) c.innerHTML = ''; });
 
         // Mermaid
         if (results.video_flow_mermaid) {
@@ -226,12 +227,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             'calm_educational': 'characters',
             'documentary': 'characters',
             'motivational': 'characters',
-            'controversial': 'characters'
+            'controversial': 'characters',
+
+            // Video Production tab
+            'video_production': 'video_custom',
+            'ai_video_prompts': 'video',
+            'b_roll_suggestions': 'video'
         };
 
         Object.entries(results).forEach(([key, value]) => {
             const category = categoryMap[key] || 'analysis';
             if (category === 'skip') return;
+
+            // Video production ozel render
+            if (category === 'video_custom') {
+                renderVideoProduction(value, containers.video);
+                return;
+            }
 
             const container = containers[category];
             if (!container) return;
@@ -247,9 +259,101 @@ document.addEventListener('DOMContentLoaded', async () => {
             'similar_video_prompts', 'viral_hook_prompts', 'title_variations',
             'seo_descriptions', 'high_ctr_titles', 'thumbnail_text_ideas',
             'hook_variations', 'seo_tags', 'content_repurpose_ideas',
-            'monetization_ideas'
+            'monetization_ideas', 'runway_prompts', 'luma_prompts',
+            'kling_prompts', 'shorts_reels_prompts', 'thumbnail_dalle_prompts',
+            'b_roll_suggestions'
         ];
         return promptKeys.includes(key);
+    }
+
+    // ==================== VIDEO PRODUCTION ====================
+    function renderVideoProduction(data, container) {
+        if (!container || !data) return;
+
+        // Style info
+        if (data.overall_style || data.color_palette || data.music_mood) {
+            const styleCard = document.createElement('div');
+            styleCard.className = 'card card-full';
+            styleCard.innerHTML = `
+                <div class="card-header">
+                    <h3>Video Stil Rehberi</h3>
+                </div>
+                <div class="style-grid">
+                    ${data.overall_style ? `<div class="style-item"><div class="style-label">Gorsel Stil</div><div class="style-value">${data.overall_style}</div></div>` : ''}
+                    ${data.color_palette ? `<div class="style-item"><div class="style-label">Renk Paleti</div><div class="style-value">${data.color_palette}</div></div>` : ''}
+                    ${data.music_mood ? `<div class="style-item"><div class="style-label">Muzik Tarzi</div><div class="style-value">${data.music_mood}</div></div>` : ''}
+                    ${data.transition_style ? `<div class="style-item"><div class="style-label">Gecis Efekti</div><div class="style-value">${data.transition_style}</div></div>` : ''}
+                    ${data.aspect_ratio_recommendation ? `<div class="style-item"><div class="style-label">En-Boy Orani</div><div class="style-value">${data.aspect_ratio_recommendation}</div></div>` : ''}
+                </div>
+            `;
+            container.appendChild(styleCard);
+        }
+
+        // Storyboard
+        if (data.storyboard && Array.isArray(data.storyboard)) {
+            const storyCard = document.createElement('div');
+            storyCard.className = 'card card-full';
+            storyCard.innerHTML = `<div class="card-header"><h3>Storyboard - Sahne Sahne</h3><button class="copy-btn" id="copy-all-scenes">Tum Prompt'lari Kopyala</button></div>`;
+
+            const storyContent = document.createElement('div');
+
+            data.storyboard.forEach((scene, i) => {
+                const item = document.createElement('div');
+                item.className = 'storyboard-item';
+                item.innerHTML = `
+                    <div class="storyboard-header">
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div class="scene-number">${scene.sahne || (i + 1)}</div>
+                            <strong style="font-size:14px;color:var(--text)">${scene.aciklama || ''}</strong>
+                        </div>
+                        <span class="scene-time">${scene.sure || ''}</span>
+                    </div>
+                    <div class="storyboard-details">
+                        <div class="storyboard-detail"><span class="label">Kamera</span><span class="value">${scene.kamera || '-'}</span></div>
+                        <div class="storyboard-detail"><span class="label">Ses/Muzik</span><span class="value">${scene.ses || '-'}</span></div>
+                        ${scene.metin ? `<div class="storyboard-detail"><span class="label">Ekran Metni</span><span class="value">${scene.metin}</span></div>` : ''}
+                    </div>
+                    ${scene.ai_video_prompt ? `
+                        <div class="ai-prompt-box" data-prompt="${encodeURIComponent(scene.ai_video_prompt)}">
+                            <div class="prompt-label"><span>AI VIDEO PROMPT</span><span style="font-size:10px;opacity:0.6">tikla kopyala</span></div>
+                            <div class="prompt-text">${scene.ai_video_prompt}</div>
+                        </div>
+                    ` : ''}
+                `;
+                storyContent.appendChild(item);
+            });
+
+            storyCard.appendChild(storyContent);
+            container.appendChild(storyCard);
+
+            // Prompt kopyalama eventleri
+            storyCard.querySelectorAll('.ai-prompt-box').forEach(box => {
+                box.addEventListener('click', () => {
+                    const prompt = decodeURIComponent(box.dataset.prompt);
+                    copyToClipboard(prompt);
+                    showToast("AI Video prompt kopyalandi!");
+                });
+            });
+
+            // Tum promptlari kopyala
+            const copyAllBtn = storyCard.querySelector('#copy-all-scenes');
+            if (copyAllBtn) {
+                copyAllBtn.addEventListener('click', () => {
+                    const allPrompts = data.storyboard
+                        .filter(s => s.ai_video_prompt)
+                        .map((s, i) => `Scene ${i + 1} (${s.sure || ''}):\n${s.ai_video_prompt}`)
+                        .join('\n\n');
+                    copyToClipboard(allPrompts);
+                    showToast("Tum sahne prompt'lari kopyalandi!");
+                    copyAllBtn.innerText = 'Kopyalandi!';
+                    copyAllBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyAllBtn.innerText = 'Tum Prompt\'lari Kopyala';
+                        copyAllBtn.classList.remove('copied');
+                    }, 2000);
+                });
+            }
+        }
     }
 
     // ==================== SCORE BANNER ====================
@@ -603,7 +707,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             'conflict': 'Problem/Catisma',
             'resolution': 'Cozum',
             'template': 'Sablon',
-            'verdict': 'Degerlendirme'
+            'verdict': 'Degerlendirme',
+            'video_production': 'Video Production',
+            'ai_video_prompts': 'AI Video Prompt\'lari',
+            'runway_prompts': 'Runway ML Prompt\'lari',
+            'luma_prompts': 'Luma AI Prompt\'lari',
+            'kling_prompts': 'Kling AI Prompt\'lari',
+            'shorts_reels_prompts': 'Shorts/Reels/TikTok Prompt\'lari',
+            'thumbnail_dalle_prompts': 'Thumbnail AI Prompt\'lari',
+            'b_roll_suggestions': 'B-Roll Onerileri',
+            'storyboard': 'Storyboard',
+            'overall_style': 'Gorsel Stil',
+            'color_palette': 'Renk Paleti',
+            'music_mood': 'Muzik Tarzi',
+            'transition_style': 'Gecis Efekti',
+            'aspect_ratio_recommendation': 'En-Boy Orani'
         };
         const cleanKey = key.replace(/^[0-9]+\.\s*/, '').toLowerCase().trim().replace(/ /g, '_');
         return labels[cleanKey] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
