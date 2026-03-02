@@ -49,6 +49,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (e) {
                 console.error('Profil yuklenemedi:', e);
+                // Debug: hangi adimda hata oldugunu logla
+                try {
+                    const backendUrl = (typeof CONFIG !== 'undefined' && CONFIG.BACKEND_URL) || 'http://localhost:3000';
+                    const debugRes = await fetch(`${backendUrl}/api/debug/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const debugData = await debugRes.json();
+                    console.error('PROFIL DEBUG:', JSON.stringify(debugData, null, 2));
+                } catch (de) {
+                    console.error('Debug endpoint hatasi:', de);
+                }
                 subStatus.innerText = 'Giris yapildi';
                 usageLimit.innerText = '-';
             }
