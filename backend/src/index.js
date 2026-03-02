@@ -41,6 +41,15 @@ app.get('/api/health', async (req, res) => {
         PAYTR_MERCHANT_ID: !!process.env.PAYTR_MERCHANT_ID
     };
 
+    // JWT role kontrolu - anon mu service_role mu?
+    let keyRole = 'unknown';
+    try {
+        const payload = JSON.parse(Buffer.from((process.env.SUPABASE_SERVICE_ROLE_KEY || '').split('.')[1], 'base64').toString());
+        keyRole = payload.role || 'no role claim';
+    } catch (e) {
+        keyRole = 'parse error';
+    }
+
     // Test supabase connection
     let dbTest = 'not tested';
     try {
@@ -54,6 +63,7 @@ app.get('/api/health', async (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         env: envCheck,
+        keyRole,
         dbTest
     });
 });
