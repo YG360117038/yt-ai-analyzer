@@ -5,7 +5,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 async function analyzeVideo(videoData) {
     const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
-        generationConfig: { responseMimeType: "application/json" }
+        generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.7
+        }
     });
 
     const prompt = `
@@ -261,6 +264,14 @@ async function analyzeVideo(videoData) {
     console.log("Raw AI Response length:", text.length);
 
     try {
+        // Direkt parse dene (responseMimeType: "application/json" ile gelmeli)
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.log("Direct parse failed, extracting JSON...");
+        }
+
+        // JSON blogu cikar
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             throw new Error("AI yanitinda gecerli bir JSON bulunamadi.");
@@ -268,25 +279,53 @@ async function analyzeVideo(videoData) {
 
         let jsonString = jsonMatch[0];
 
+        // 1. ilk deneme
         try {
             return JSON.parse(jsonString);
         } catch (e) {
-            console.log("Initial parse failed, attempting clean...");
-            jsonString = jsonString
-                .replace(/,(\s*[\]\}])/g, '$1')
-                .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
-                .replace(/\\n/g, "\\n")
-                .replace(/\\r/g, "\\r");
+            console.log("Initial parse failed, cleaning...", e.message);
+        }
 
-            try {
-                return JSON.parse(jsonString);
-            } catch (e2) {
-                console.error("Deep clean failed:", e2.message);
-                throw new Error("AI yaniti islenemedi. Lutfen tekrar deneyin.");
+        // 2. Temizlik
+        jsonString = jsonString
+            .replace(/,(\s*[\]\}])/g, '$1')           // trailing comma
+            .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ')   // kontrol karakterleri
+            .replace(/\t/g, ' ')                        // tab
+            .replace(/\n/g, '\\n')                      // newline in string
+            .replace(/\r/g, '')                          // carriage return
+            .replace(/\\'/g, "'")                        // escaped single quote
+            .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // unquoted keys
+            .replace(/""+/g, '"');                        // double quotes
+
+        try {
+            return JSON.parse(jsonString);
+        } catch (e2) {
+            console.log("Clean parse failed, trying repair...", e2.message);
+        }
+
+        // 3. Son care: bracket dengeleme
+        let braceCount = 0;
+        let lastValidIdx = 0;
+        for (let i = 0; i < jsonString.length; i++) {
+            if (jsonString[i] === '{') braceCount++;
+            if (jsonString[i] === '}') {
+                braceCount--;
+                if (braceCount === 0) { lastValidIdx = i; break; }
             }
         }
+        if (lastValidIdx > 0) {
+            jsonString = jsonString.substring(0, lastValidIdx + 1);
+        }
+
+        try {
+            return JSON.parse(jsonString);
+        } catch (e3) {
+            console.error("All parse attempts failed:", e3.message);
+            console.error("JSON snippet (first 1000):", jsonString.substring(0, 1000));
+            throw new Error("AI yaniti islenemedi. Lutfen tekrar deneyin.");
+        }
     } catch (parseError) {
-        console.error("JSON Parse Error. Snippet:", text.substring(0, 500));
+        console.error("JSON Parse Error:", parseError.message);
         throw new Error("AI yaniti islenirken hata: " + parseError.message);
     }
 }
