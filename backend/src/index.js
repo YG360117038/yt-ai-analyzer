@@ -172,6 +172,50 @@ async function getOrCreateProfile(user) {
     return freshProfile;
 }
 
+// Debug: Profil olusturma adimlarini test et
+app.get('/api/debug/profile', authMiddleware, async (req, res) => {
+    const steps = {};
+    try {
+        // Adim 1: Select
+        const { data: existing, error: selectErr } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', req.user.id)
+            .single();
+        steps.step1_select = { data: existing ? 'FOUND' : null, error: selectErr?.message, code: selectErr?.code };
+
+        // Adim 2: Upsert
+        const { data: upsertData, error: upsertErr } = await supabase
+            .from('profiles')
+            .upsert({
+                id: req.user.id,
+                email: req.user.email,
+                display_name: req.user.user_metadata?.full_name || 'Test',
+                avatar_url: null,
+                plan: 'free',
+                analysis_count: 0,
+                subscription_status: null,
+                subscription_end: null
+            }, { onConflict: 'id' });
+        steps.step2_upsert = { data: upsertData, error: upsertErr?.message, code: upsertErr?.code, details: upsertErr?.details, hint: upsertErr?.hint };
+
+        // Adim 3: Tekrar oku
+        const { data: reread, error: rereadErr } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', req.user.id)
+            .single();
+        steps.step3_reread = { data: reread ? 'FOUND' : null, error: rereadErr?.message, code: rereadErr?.code };
+
+        steps.user_id = req.user.id;
+        steps.user_email = req.user.email;
+
+        res.json(steps);
+    } catch (e) {
+        res.status(500).json({ ...steps, exception: e.message });
+    }
+});
+
 // Kullanici Profili
 app.get('/api/user/profile', authMiddleware, async (req, res) => {
     try {
