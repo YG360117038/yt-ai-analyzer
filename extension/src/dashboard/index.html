@@ -189,10 +189,14 @@
             border-radius: 12px;
             padding: 18px;
             text-align: center;
-            transition: border-color 0.2s;
+            transition: all 0.25s ease;
         }
 
-        .score-item:hover { border-color: var(--border-hover); }
+        .score-item:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
 
         .score-value {
             font-size: 32px;
@@ -211,6 +215,20 @@
         .score-mid { color: var(--orange); }
         .score-low { color: var(--primary); }
 
+        /* Skeleton loading */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, var(--card-bg) 25%, #1c1c1c 50%, var(--card-bg) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 12px;
+        }
+        .skeleton-score { height: 90px; }
+        .skeleton-card { height: 200px; margin-bottom: 16px; }
+
         /* ===== GRID ===== */
         .grid {
             display: grid;
@@ -223,14 +241,18 @@
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 24px;
-            transition: border-color 0.2s;
+            transition: all 0.25s ease;
             display: flex;
             flex-direction: column;
             gap: 16px;
             position: relative;
         }
 
-        .card:hover { border-color: var(--border-hover); }
+        .card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 24px rgba(255, 0, 0, 0.04);
+            transform: translateY(-2px);
+        }
 
         .card-header {
             display: flex;
@@ -442,7 +464,12 @@
             gap: 14px;
         }
 
-        .history-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+        .history-card:hover {
+            border-color: rgba(255, 0, 0, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        .history-card:hover .info h4 { color: var(--primary); transition: color 0.2s; }
 
         .history-card img {
             width: 120px;
@@ -791,6 +818,9 @@
         <div class="nav-section">Diger</div>
         <div class="nav-item" data-tab="history">
             <span class="nav-icon">&#128196;</span> Gecmis Analizler
+        </div>
+        <div class="nav-item" id="admin-link" style="display:none" onclick="window.open(chrome.runtime.getURL('src/admin/index.html'))">
+            <span class="nav-icon">&#9881;</span> Admin Panel
         </div>
     </div>
 

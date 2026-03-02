@@ -11,9 +11,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     const googleLoginBtn = document.getElementById('google-login-btn');
     const logoutBtn = document.getElementById('logout-btn');
     const subStatus = document.getElementById('sub-status');
-    const usageLimit = document.getElementById('usage-limit');
+
+    // Ring elementleri
+    const ringProgress = document.getElementById('ring-progress');
+    const ringValue = document.getElementById('ring-value');
+    const ringRemainingText = document.getElementById('ring-remaining-text');
+    const ringUsedText = document.getElementById('ring-used-text');
+    const usageSection = document.getElementById('usage-section');
 
     let isLoggedIn = false;
+
+    function updateRing(remaining, total, isPro) {
+        const circumference = 2 * Math.PI * 34; // 213.6
+
+        if (isPro) {
+            ringValue.textContent = '\u221E';
+            ringValue.style.color = '#2ea043';
+            ringRemainingText.textContent = 'Sinirsiz';
+            ringUsedText.textContent = 'Pro Plan';
+            // Tam dolu ring
+            setTimeout(() => { ringProgress.style.strokeDashoffset = 0; }, 300);
+        } else {
+            ringValue.textContent = remaining;
+            ringRemainingText.textContent = `${remaining} kalan hak`;
+            ringUsedText.textContent = `${total - remaining} kullanildi`;
+
+            if (remaining <= 0) {
+                ringValue.style.color = '#ff4d4d';
+            } else if (remaining === 1) {
+                ringValue.style.color = '#d29922';
+            }
+
+            const offset = circumference - (remaining / total) * circumference;
+            setTimeout(() => { ringProgress.style.strokeDashoffset = offset; }, 300);
+        }
+    }
 
     // Auth durumunu kontrol et
     async function checkAuth() {
@@ -38,37 +70,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (profile.plan === 'pro') {
                     subStatus.innerText = 'Pro';
                     subStatus.style.color = '#2ea043';
-                    usageLimit.innerText = 'Sinirsiz';
+                    updateRing(0, 0, true);
                 } else {
                     const remaining = profile.freeLimit - profile.analysisCount;
                     subStatus.innerText = 'Ucretsiz';
-                    usageLimit.innerText = `${remaining} / ${profile.freeLimit}`;
-                    if (remaining <= 0) {
-                        usageLimit.style.color = '#ff4d4d';
-                    }
+                    updateRing(Math.max(0, remaining), profile.freeLimit, false);
                 }
             } catch (e) {
                 console.error('Profil yuklenemedi:', e);
-                // Debug: hangi adimda hata oldugunu logla
-                try {
-                    const backendUrl = (typeof CONFIG !== 'undefined' && CONFIG.BACKEND_URL) || 'http://localhost:3000';
-                    const debugRes = await fetch(`${backendUrl}/api/debug/profile`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const debugData = await debugRes.json();
-                    console.error('PROFIL DEBUG:', JSON.stringify(debugData, null, 2));
-                } catch (de) {
-                    console.error('Debug endpoint hatasi:', de);
-                }
                 subStatus.innerText = 'Giris yapildi';
-                usageLimit.innerText = '-';
+                usageSection.style.display = 'none';
             }
         } else {
             isLoggedIn = false;
             loggedOutView.style.display = 'block';
             loggedInView.style.display = 'none';
             subStatus.innerText = '-';
-            usageLimit.innerText = '-';
+            usageSection.style.display = 'none';
         }
     }
 
@@ -109,7 +127,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             await SupabaseAuth.signInWithGoogle();
             await checkAuth();
 
-            // YouTube sayfasindaysak butonu aktif et
             if (isYouTube) {
                 analyzeBtn.disabled = false;
                 loginWarning.style.display = 'none';
@@ -135,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loggedInView.style.display = 'none';
         analyzeBtn.disabled = true;
         subStatus.innerText = '-';
-        usageLimit.innerText = '-';
+        usageSection.style.display = 'none';
         if (isYouTube) {
             loginWarning.style.display = 'block';
             loginWarning.classList.add('active');

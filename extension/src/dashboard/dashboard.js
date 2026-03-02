@@ -48,6 +48,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    // Admin link kontrolu
+    try {
+        const token = await SupabaseAuth.getToken();
+        if (token) {
+            const profile = await SupabaseAuth.getProfile(token);
+            const adminEmails = ['onurtncs@gmail.com'];
+            if (profile && adminEmails.includes(profile.email)) {
+                const adminLink = document.getElementById('admin-link');
+                if (adminLink) adminLink.style.display = 'flex';
+            }
+        }
+    } catch (e) { /* admin check failed, skip */ }
+
     // ==================== INIT ====================
     if (mode === 'new') {
         startNewAnalysis();
@@ -389,6 +402,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // ==================== ANIMATED COUNTER ====================
+    function animateCounter(el, start, end, duration, delay) {
+        setTimeout(() => {
+            const startTime = performance.now();
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                el.textContent = Math.round(start + (end - start) * eased);
+                if (progress < 1) requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+        }, delay);
+    }
+
     // ==================== SCORE BANNER ====================
     function renderScoreBanner(score) {
         const banner = document.getElementById('score-banner');
@@ -403,15 +431,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             { label: 'Icerik Kalitesi', value: score.content_quality }
         ];
 
-        items.forEach(item => {
+        items.forEach((item, index) => {
             const val = parseInt(item.value) || 0;
+            const colorClass = val >= 70 ? 'score-high' : val >= 40 ? 'score-mid' : 'score-low';
             const div = document.createElement('div');
             div.className = 'score-item';
             div.innerHTML = `
-                <div class="score-value ${val >= 70 ? 'score-high' : val >= 40 ? 'score-mid' : 'score-low'}">${val}</div>
+                <div class="score-value ${colorClass}" data-target="${val}">0</div>
                 <div class="score-label">${item.label}</div>
             `;
             banner.appendChild(div);
+        });
+
+        // Animasyonlu sayac
+        requestAnimationFrame(() => {
+            banner.querySelectorAll('.score-value[data-target]').forEach((el, i) => {
+                const target = parseInt(el.dataset.target);
+                animateCounter(el, 0, target, 1200, i * 150);
+            });
         });
 
         if (score.verdict) {
@@ -575,7 +612,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==================== HISTORY ====================
     async function loadHistory() {
         const container = document.getElementById('history-content');
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim)">Yukleniyor...</div>';
+        // Skeleton loading
+        container.innerHTML = `<div class="history-grid">
+            ${Array(6).fill('<div class="skeleton skeleton-card" style="height:100px;border-radius:12px"></div>').join('')}
+        </div>`;
 
         try {
             const response = await authFetch(`${BACKEND_URL}/api/analyses`);

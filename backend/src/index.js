@@ -370,6 +370,85 @@ app.delete('/api/analysis/:id', authMiddleware, async (req, res) => {
     }
 });
 
+// ==================== ADMIN ROUTES ====================
+
+const ADMIN_EMAILS = ['onurtncs@gmail.com'];
+
+function adminMiddleware(req, res, next) {
+    if (!req.user || !ADMIN_EMAILS.includes(req.user.email)) {
+        return res.status(403).json({ error: 'Admin yetkisi gerekli.' });
+    }
+    next();
+}
+
+// Admin: Istatistikler
+app.get('/api/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+        const { count: totalAnalyses } = await supabase.from('analyses').select('*', { count: 'exact', head: true });
+        const { count: proUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'pro');
+        const { data: recentAnalyses } = await supabase.from('analyses')
+            .select('id, video_id, video_metadata, created_at, user_id')
+            .order('created_at', { ascending: false }).limit(10);
+
+        res.json({ totalUsers, totalAnalyses, proUsers, recentAnalyses });
+    } catch (error) {
+        console.error('Admin stats error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin: Kullanici listesi
+app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('profiles')
+            .select('id, email, display_name, plan, analysis_count, subscription_status')
+            .order('analysis_count', { ascending: false });
+
+        if (error) throw error;
+        res.json({ users: data });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin: Tum analizler
+app.get('/api/admin/analyses', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+
+        const { data: analyses, count } = await supabase.from('analyses')
+            .select('id, video_id, video_metadata, user_id, created_at', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        // Kullanici emaillerini al
+        const userIds = [...new Set((analyses || []).map(a => a.user_id))];
+        let emailMap = {};
+        if (userIds.length > 0) {
+            const { data: profiles } = await supabase.from('profiles')
+                .select('id, email').in('id', userIds);
+            emailMap = Object.fromEntries((profiles || []).map(p => [p.id, p.email]));
+        }
+
+        res.json({
+            analyses: (analyses || []).map(a => ({
+                id: a.id,
+                videoId: a.video_id,
+                videoTitle: a.video_metadata?.title || 'Basliksiz',
+                channelName: a.video_metadata?.channelName || '',
+                thumbnail: a.video_metadata?.thumbnail || '',
+                userEmail: emailMap[a.user_id] || 'Bilinmiyor',
+                createdAt: a.created_at
+            })),
+            total: count
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ==================== PAYMENT ROUTES ====================
 
 // PayTR Odeme Tokeni Olustur
