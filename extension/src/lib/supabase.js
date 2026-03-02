@@ -104,15 +104,29 @@ const SupabaseAuth = {
         return data.access_token;
     },
 
-    // Kullanici profilini backend'den al
-    async getProfile(token) {
+    // Kullanici profilini backend'den al (retry ile)
+    async getProfile(token, retries = 2) {
         const backendUrl = (typeof CONFIG !== 'undefined' && CONFIG.BACKEND_URL) || 'http://localhost:3000';
-        const response = await fetch(`${backendUrl}/api/user/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
 
-        if (!response.ok) throw new Error('Profil alinamadi.');
-        return response.json();
+        for (let i = 0; i <= retries; i++) {
+            try {
+                const response = await fetch(`${backendUrl}/api/user/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) return response.json();
+
+                // Son denemede hata firlat
+                if (i === retries) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || 'Profil alinamadi.');
+                }
+            } catch (e) {
+                if (i === retries) throw e;
+            }
+            // Tekrar denemeden once kisa bekle
+            await new Promise(r => setTimeout(r, 1000));
+        }
     },
 
     // Cikis yap

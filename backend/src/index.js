@@ -4,7 +4,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { authMiddleware } = require('./middlewares/auth');
-const { usageCheck } = require('./middlewares/usageCheck');
+const { createUsageCheck } = require('./middlewares/usageCheck');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -127,38 +127,49 @@ app.post('/api/payment/callback', async (req, res) => {
 
 // Profil yoksa otomatik olustur
 async function getOrCreateProfile(user) {
+    // 1. Once profili bul
     let { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-    if (error || !profile) {
-        console.log('Profil bulunamadi, otomatik olusturuluyor:', user.id, 'select error:', error?.message, error?.code);
-        const upsertData = {
-            id: user.id,
-            email: user.email,
-            display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanici',
-            avatar_url: user.user_metadata?.avatar_url || null,
-            plan: 'free',
-            analysis_count: 0,
-            subscription_status: null,
-            subscription_end: null
-        };
-        console.log('Upsert data:', JSON.stringify(upsertData));
-        const { data: newProfile, error: insertError } = await supabase
-            .from('profiles')
-            .upsert(upsertData, { onConflict: 'id' })
-            .select()
-            .single();
+    if (profile) return profile;
 
-        if (insertError) {
-            console.error('Profil olusturma hatasi DETAY:', JSON.stringify(insertError));
-            return { _error: insertError };
-        }
-        profile = newProfile;
+    // 2. Profil yok - olustur
+    console.log('Profil bulunamadi, olusturuluyor:', user.id);
+    const upsertData = {
+        id: user.id,
+        email: user.email,
+        display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanici',
+        avatar_url: user.user_metadata?.avatar_url || null,
+        plan: 'free',
+        analysis_count: 0,
+        subscription_status: null,
+        subscription_end: null
+    };
+
+    const { error: insertError } = await supabase
+        .from('profiles')
+        .upsert(upsertData, { onConflict: 'id' });
+
+    if (insertError) {
+        console.error('Profil upsert hatasi:', JSON.stringify(insertError));
     }
-    return profile;
+
+    // 3. Upsert sonrasi tekrar oku (select chain bazen bos donuyor)
+    const { data: freshProfile, error: readError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+    if (readError || !freshProfile) {
+        console.error('Profil upsert sonrasi okunamadi:', readError?.message);
+        return { _error: readError || { message: 'Profil olusturuldu ama okunamadi' } };
+    }
+
+    return freshProfile;
 }
 
 // Kullanici Profili
@@ -191,6 +202,8 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
 });
 
 // Yeni Analiz Yap (auth + usage check)
+const usageCheck = createUsageCheck(supabase, getOrCreateProfile);
+
 app.post('/api/analyze', authMiddleware, usageCheck, async (req, res) => {
     console.log("Received analysis request for video:", req.body.videoId);
     try {
