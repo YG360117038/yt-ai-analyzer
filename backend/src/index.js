@@ -30,9 +30,32 @@ app.use((req, res, next) => {
 
 // ==================== PUBLIC ROUTES ====================
 
-// Health Check
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health Check + Debug
+app.get('/api/health', async (req, res) => {
+    const envCheck = {
+        SUPABASE_URL: !!process.env.SUPABASE_URL,
+        SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        SUPABASE_SERVICE_ROLE_KEY_LENGTH: (process.env.SUPABASE_SERVICE_ROLE_KEY || '').length,
+        SUPABASE_SERVICE_ROLE_KEY_START: (process.env.SUPABASE_SERVICE_ROLE_KEY || '').substring(0, 10),
+        GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
+        PAYTR_MERCHANT_ID: !!process.env.PAYTR_MERCHANT_ID
+    };
+
+    // Test supabase connection
+    let dbTest = 'not tested';
+    try {
+        const { data, error } = await supabase.from('profiles').select('count').limit(1);
+        dbTest = error ? `ERROR: ${error.message} (code: ${error.code})` : 'OK';
+    } catch (e) {
+        dbTest = `EXCEPTION: ${e.message}`;
+    }
+
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        env: envCheck,
+        dbTest
+    });
 });
 
 // PayTR Callback (public - hash ile dogrulama)
@@ -111,25 +134,27 @@ async function getOrCreateProfile(user) {
         .single();
 
     if (error || !profile) {
-        console.log('Profil bulunamadi, otomatik olusturuluyor:', user.id);
+        console.log('Profil bulunamadi, otomatik olusturuluyor:', user.id, 'select error:', error?.message, error?.code);
+        const upsertData = {
+            id: user.id,
+            email: user.email,
+            display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanici',
+            avatar_url: user.user_metadata?.avatar_url || null,
+            plan: 'free',
+            analysis_count: 0,
+            subscription_status: null,
+            subscription_end: null
+        };
+        console.log('Upsert data:', JSON.stringify(upsertData));
         const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
-            .upsert({
-                id: user.id,
-                email: user.email,
-                display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanici',
-                avatar_url: user.user_metadata?.avatar_url || null,
-                plan: 'free',
-                analysis_count: 0,
-                subscription_status: null,
-                subscription_end: null
-            }, { onConflict: 'id' })
+            .upsert(upsertData, { onConflict: 'id' })
             .select()
             .single();
 
         if (insertError) {
-            console.error('Profil olusturma hatasi:', insertError);
-            return null;
+            console.error('Profil olusturma hatasi DETAY:', JSON.stringify(insertError));
+            return { _error: insertError };
         }
         profile = newProfile;
     }
@@ -142,7 +167,10 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
         const profile = await getOrCreateProfile(req.user);
 
         if (!profile) {
-            return res.status(500).json({ error: 'Profil olusturulamadi.' });
+            return res.status(500).json({ error: 'Profil olusturulamadi.', detail: 'null profile' });
+        }
+        if (profile._error) {
+            return res.status(500).json({ error: 'Profil olusturulamadi.', detail: profile._error });
         }
 
         res.json({
