@@ -1,10 +1,43 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Anthropic = require("@anthropic-ai/sdk").default;
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const MAX_RETRIES = 2;
+const anthropic = process.env.CLAUDE_API_KEY ? new Anthropic({ apiKey: process.env.CLAUDE_API_KEY }) : null;
 
 async function analyzeVideo(videoData) {
+    const prompt = buildPrompt(videoData);
+
+    // 1. Gemini dene
+    try {
+        console.log("Trying Gemini...");
+        const result = await analyzeWithGemini(prompt);
+        if (result) {
+            console.log("Gemini basarili!");
+            return result;
+        }
+    } catch (e) {
+        console.error("Gemini failed:", e.message);
+    }
+
+    // 2. Claude fallback
+    if (anthropic) {
+        try {
+            console.log("Gemini basarisiz, Claude deneniyor...");
+            const result = await analyzeWithClaude(prompt);
+            if (result) {
+                console.log("Claude basarili!");
+                return result;
+            }
+        } catch (e) {
+            console.error("Claude failed:", e.message);
+        }
+    }
+
+    throw new Error("AI analizi basarisiz oldu. Lutfen tekrar deneyin.");
+}
+
+// ==================== GEMINI ====================
+async function analyzeWithGemini(prompt) {
     const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
         generationConfig: {
@@ -14,7 +47,57 @@ async function analyzeVideo(videoData) {
         }
     });
 
-    const prompt = `
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            if (attempt > 0) console.log(`Gemini retry ${attempt}...`);
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+
+            console.log(`Gemini response length: ${text.length}`);
+
+            const candidate = result.response.candidates?.[0];
+            if (candidate?.finishReason === 'MAX_TOKENS') {
+                console.warn('Gemini yanit kesildi (MAX_TOKENS)');
+                if (attempt === 0) continue;
+            }
+
+            const parsed = parseAIResponse(text);
+            if (parsed) return parsed;
+        } catch (e) {
+            console.error(`Gemini attempt ${attempt + 1}:`, e.message);
+        }
+    }
+    return null;
+}
+
+// ==================== CLAUDE ====================
+async function analyzeWithClaude(prompt) {
+    const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 16000,
+        messages: [
+            {
+                role: "user",
+                content: prompt + "\n\nONEMLI: Sadece JSON ciktisi ver, baska hicbir sey yazma. Markdown code block kullanma."
+            }
+        ]
+    });
+
+    const text = message.content[0]?.text;
+    if (!text) throw new Error("Claude bos yanit dondurdu");
+
+    console.log(`Claude response length: ${text.length}`);
+    const parsed = parseAIResponse(text);
+    if (parsed) return parsed;
+
+    throw new Error("Claude yaniti parse edilemedi");
+}
+
+// ==================== PROMPT ====================
+function buildPrompt(videoData) {
+    return `
     Sen dünyanın en iyi YouTube içerik stratejisti ve AI prompt mühendisisin.
     Aşağıdaki YouTube video verilerini derinlemesine analiz et ve kapsamlı bir strateji raporu hazırla.
 
@@ -255,68 +338,30 @@ async function analyzeVideo(videoData) {
     - Gerçek, uygulanabilir, özgün analizler yap. Genel/klişe yanıtlar verme.
     - AI video prompt'lari cok detayli olmali: sahne aciklamasi, kamera acisi, isik durumu, renk tonu, hareket, stil, kalite (4K, cinematic vs.) icermeli.
     - Storyboard tam 5 sahne icermeli, her sahne icin ai_video_prompt INGILIZCE ve kullanima hazir olmali.
+    - Video suresi ${videoData.duration || "bilinmiyor"} - storyboard sahnelerini bu sureye gore olustur.
     - Mermaid kodu geçerli ve render edilebilir olmalı.
     - Heatmap dizisi tam olarak 20 eleman içermeli ve 0-100 arası değerler olmalı.
     - JSON çıktısı parse edilebilir olmalı, ekstra karakter veya açıklama ekleme.
     `;
-
-    let lastError = null;
-
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            if (attempt > 0) {
-                console.log(`Retry attempt ${attempt}/${MAX_RETRIES}...`);
-            }
-
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-
-            console.log(`AI Response length: ${text.length} (attempt ${attempt + 1})`);
-
-            // finishReason kontrolu - yanit kesilmis mi?
-            const candidate = result.response.candidates?.[0];
-            if (candidate?.finishReason === 'MAX_TOKENS') {
-                console.warn('Yanit MAX_TOKENS ile kesildi, retry...');
-                if (attempt < MAX_RETRIES) continue;
-            }
-
-            const parsed = parseAIResponse(text);
-            if (parsed) return parsed;
-
-            lastError = new Error("JSON parse basarisiz");
-        } catch (e) {
-            console.error(`Attempt ${attempt + 1} failed:`, e.message);
-            lastError = e;
-        }
-    }
-
-    throw new Error("AI yaniti islenirken hata: " + (lastError?.message || "Bilinmeyen hata"));
 }
 
+// ==================== JSON PARSER ====================
 function parseAIResponse(text) {
     // 1. Direkt parse
     try {
         return JSON.parse(text);
-    } catch (e) {
-        console.log("Direct parse failed");
-    }
+    } catch (e) {}
 
     // 2. JSON blogu cikar
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-        console.error("No JSON block found in response");
-        return null;
-    }
+    if (!jsonMatch) return null;
 
     let jsonString = jsonMatch[0];
 
     // 3. Direkt dene
     try {
         return JSON.parse(jsonString);
-    } catch (e) {
-        console.log("Extracted JSON parse failed, cleaning...");
-    }
+    } catch (e) {}
 
     // 4. Temizlik
     jsonString = jsonString
@@ -327,9 +372,7 @@ function parseAIResponse(text) {
 
     try {
         return JSON.parse(jsonString);
-    } catch (e) {
-        console.log("Clean parse failed, trying bracket fix...");
-    }
+    } catch (e) {}
 
     // 5. Bracket dengeleme
     let braceCount = 0;
@@ -349,7 +392,6 @@ function parseAIResponse(text) {
         return JSON.parse(jsonString);
     } catch (e) {
         console.error("All parse attempts failed:", e.message);
-        console.error("First 500 chars:", jsonString.substring(0, 500));
         return null;
     }
 }
