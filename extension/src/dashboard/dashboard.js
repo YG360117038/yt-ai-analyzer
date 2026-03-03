@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const token = await SupabaseAuth.getToken();
         if (token) {
             const profile = await SupabaseAuth.getProfile(token);
-            const adminEmails = ['onurtncs@gmail.com'];
+            const adminEmails = ['onurtncs@gmail.com', 'kozmikcase@gmail.com'];
             if (profile && adminEmails.includes(profile.email)) {
                 const adminLink = document.getElementById('admin-link');
                 if (adminLink) adminLink.style.display = 'flex';

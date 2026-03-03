@@ -2,12 +2,15 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+const MAX_RETRIES = 2;
+
 async function analyzeVideo(videoData) {
     const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
         generationConfig: {
             responseMimeType: "application/json",
-            temperature: 0.7
+            temperature: 0.7,
+            maxOutputTokens: 65536
         }
     });
 
@@ -257,76 +260,97 @@ async function analyzeVideo(videoData) {
     - JSON çıktısı parse edilebilir olmalı, ekstra karakter veya açıklama ekleme.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    let lastError = null;
 
-    console.log("Raw AI Response length:", text.length);
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            if (attempt > 0) {
+                console.log(`Retry attempt ${attempt}/${MAX_RETRIES}...`);
+            }
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+
+            console.log(`AI Response length: ${text.length} (attempt ${attempt + 1})`);
+
+            // finishReason kontrolu - yanit kesilmis mi?
+            const candidate = result.response.candidates?.[0];
+            if (candidate?.finishReason === 'MAX_TOKENS') {
+                console.warn('Yanit MAX_TOKENS ile kesildi, retry...');
+                if (attempt < MAX_RETRIES) continue;
+            }
+
+            const parsed = parseAIResponse(text);
+            if (parsed) return parsed;
+
+            lastError = new Error("JSON parse basarisiz");
+        } catch (e) {
+            console.error(`Attempt ${attempt + 1} failed:`, e.message);
+            lastError = e;
+        }
+    }
+
+    throw new Error("AI yaniti islenirken hata: " + (lastError?.message || "Bilinmeyen hata"));
+}
+
+function parseAIResponse(text) {
+    // 1. Direkt parse
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.log("Direct parse failed");
+    }
+
+    // 2. JSON blogu cikar
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        console.error("No JSON block found in response");
+        return null;
+    }
+
+    let jsonString = jsonMatch[0];
+
+    // 3. Direkt dene
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        console.log("Extracted JSON parse failed, cleaning...");
+    }
+
+    // 4. Temizlik
+    jsonString = jsonString
+        .replace(/,(\s*[\]\}])/g, '$1')
+        .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\r/g, '');
 
     try {
-        // Direkt parse dene (responseMimeType: "application/json" ile gelmeli)
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.log("Direct parse failed, extracting JSON...");
-        }
+        return JSON.parse(jsonString);
+    } catch (e) {
+        console.log("Clean parse failed, trying bracket fix...");
+    }
 
-        // JSON blogu cikar
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-            throw new Error("AI yanitinda gecerli bir JSON bulunamadi.");
+    // 5. Bracket dengeleme
+    let braceCount = 0;
+    let lastValidIdx = 0;
+    for (let i = 0; i < jsonString.length; i++) {
+        if (jsonString[i] === '{') braceCount++;
+        if (jsonString[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) { lastValidIdx = i; break; }
         }
+    }
+    if (lastValidIdx > 0) {
+        jsonString = jsonString.substring(0, lastValidIdx + 1);
+    }
 
-        let jsonString = jsonMatch[0];
-
-        // 1. ilk deneme
-        try {
-            return JSON.parse(jsonString);
-        } catch (e) {
-            console.log("Initial parse failed, cleaning...", e.message);
-        }
-
-        // 2. Temizlik
-        jsonString = jsonString
-            .replace(/,(\s*[\]\}])/g, '$1')           // trailing comma
-            .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ')   // kontrol karakterleri
-            .replace(/\t/g, ' ')                        // tab
-            .replace(/\n/g, '\\n')                      // newline in string
-            .replace(/\r/g, '')                          // carriage return
-            .replace(/\\'/g, "'")                        // escaped single quote
-            .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // unquoted keys
-            .replace(/""+/g, '"');                        // double quotes
-
-        try {
-            return JSON.parse(jsonString);
-        } catch (e2) {
-            console.log("Clean parse failed, trying repair...", e2.message);
-        }
-
-        // 3. Son care: bracket dengeleme
-        let braceCount = 0;
-        let lastValidIdx = 0;
-        for (let i = 0; i < jsonString.length; i++) {
-            if (jsonString[i] === '{') braceCount++;
-            if (jsonString[i] === '}') {
-                braceCount--;
-                if (braceCount === 0) { lastValidIdx = i; break; }
-            }
-        }
-        if (lastValidIdx > 0) {
-            jsonString = jsonString.substring(0, lastValidIdx + 1);
-        }
-
-        try {
-            return JSON.parse(jsonString);
-        } catch (e3) {
-            console.error("All parse attempts failed:", e3.message);
-            console.error("JSON snippet (first 1000):", jsonString.substring(0, 1000));
-            throw new Error("AI yaniti islenemedi. Lutfen tekrar deneyin.");
-        }
-    } catch (parseError) {
-        console.error("JSON Parse Error:", parseError.message);
-        throw new Error("AI yaniti islenirken hata: " + parseError.message);
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        console.error("All parse attempts failed:", e.message);
+        console.error("First 500 chars:", jsonString.substring(0, 500));
+        return null;
     }
 }
 

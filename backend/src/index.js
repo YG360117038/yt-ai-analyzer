@@ -372,7 +372,7 @@ app.delete('/api/analysis/:id', authMiddleware, async (req, res) => {
 
 // ==================== ADMIN ROUTES ====================
 
-const ADMIN_EMAILS = ['onurtncs@gmail.com'];
+const ADMIN_EMAILS = ['onurtncs@gmail.com', 'kozmikcase@gmail.com'];
 
 function adminMiddleware(req, res, next) {
     if (!req.user || !ADMIN_EMAILS.includes(req.user.email)) {
