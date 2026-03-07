@@ -8,6 +8,7 @@ const { authMiddleware } = require('./middlewares/auth');
 const { createUsageCheck } = require('./middlewares/usageCheck');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // ==================== ENV VALIDATION ====================

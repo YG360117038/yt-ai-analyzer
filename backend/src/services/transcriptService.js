@@ -57,7 +57,7 @@ async function fetchTranscript(videoId) {
         ];
 
         await new Promise((resolve, reject) => {
-            const proc = spawn('python', args);
+            const proc = spawn('python3', args);
             let stderr = '';
             proc.stdout.on('data', () => {}); // drain stdout
             proc.stderr.on('data', d => { stderr += d.toString(); });
