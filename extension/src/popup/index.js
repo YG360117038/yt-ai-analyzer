@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize i18n
+    await I18N.init();
+    I18N.applyToDOM();
+
     const analyzeBtn = document.getElementById('analyze-btn');
     const dashboardBtn = document.getElementById('dashboard-btn');
     const videoPreview = document.getElementById('video-preview');
@@ -19,31 +23,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ringUsedText = document.getElementById('ring-used-text');
     const usageSection = document.getElementById('usage-section');
 
+    const proUpgradeBanner = document.getElementById('pro-upgrade-banner');
+
     let isLoggedIn = false;
+    let isLoginInProgress = false;
 
-    function updateRing(remaining, total, isPro) {
-        const circumference = 2 * Math.PI * 34; // 213.6
-
+    function updateRing(isPro) {
         if (isPro) {
             ringValue.textContent = '\u221E';
             ringValue.style.color = '#2ea043';
-            ringRemainingText.textContent = 'Sinirsiz';
-            ringUsedText.textContent = 'Pro Plan';
-            // Tam dolu ring
+            ringRemainingText.textContent = I18N.t('unlimited', 'Sinirsiz');
+            ringUsedText.textContent = I18N.t('pro_plan');
             setTimeout(() => { ringProgress.style.strokeDashoffset = 0; }, 300);
         } else {
-            ringValue.textContent = remaining;
-            ringRemainingText.textContent = `${remaining} kalan hak`;
-            ringUsedText.textContent = `${total - remaining} kullanildi`;
-
-            if (remaining <= 0) {
-                ringValue.style.color = '#ff4d4d';
-            } else if (remaining === 1) {
-                ringValue.style.color = '#d29922';
-            }
-
-            const offset = circumference - (remaining / total) * circumference;
-            setTimeout(() => { ringProgress.style.strokeDashoffset = offset; }, 300);
+            ringValue.textContent = 'Free';
+            ringValue.style.fontSize = '18px';
+            ringRemainingText.textContent = I18N.t('score_only', 'Sadece skor gorunur');
+            ringUsedText.textContent = I18N.t('pro_full_access_short', 'Pro ile tam erisim');
+            ringValue.style.color = '#d29922';
+            const circumference = 2 * Math.PI * 34;
+            setTimeout(() => { ringProgress.style.strokeDashoffset = circumference * 0.7; }, 300);
         }
     }
 
@@ -70,15 +69,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (profile.plan === 'pro') {
                     subStatus.innerText = 'Pro';
                     subStatus.style.color = '#2ea043';
-                    updateRing(0, 0, true);
+                    updateRing(true);
+                    proUpgradeBanner.classList.remove('active');
                 } else {
-                    const remaining = profile.freeLimit - profile.analysisCount;
-                    subStatus.innerText = 'Ucretsiz';
-                    updateRing(Math.max(0, remaining), profile.freeLimit, false);
+                    subStatus.innerText = I18N.t('free');
+                    subStatus.style.color = '#d29922';
+                    updateRing(false);
+                    proUpgradeBanner.classList.add('active');
                 }
             } catch (e) {
-                console.error('Profil yuklenemedi:', e);
-                subStatus.innerText = 'Giris yapildi';
+                subStatus.innerText = I18N.t('logged_in', 'Giris yapildi');
                 usageSection.style.display = 'none';
             }
         } else {
@@ -118,10 +118,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         analyzeBtn.disabled = true;
     }
 
-    // Google ile giris
+    // Google ile giris (debounce korumali)
     googleLoginBtn.addEventListener('click', async () => {
+        if (isLoginInProgress) return;
+        isLoginInProgress = true;
         googleLoginBtn.disabled = true;
-        googleLoginBtn.innerText = 'Giris yapiliyor...';
+        googleLoginBtn.innerText = I18N.t('logging_in', 'Giris yapiliyor...');
 
         try {
             await SupabaseAuth.signInWithGoogle();
@@ -133,14 +135,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loginWarning.classList.remove('active');
             }
         } catch (e) {
-            console.error('Google login hatasi:', e);
-            googleLoginBtn.innerText = 'Hata! Tekrar deneyin';
+            let errorMsg = I18N.t('login_failed', 'Giris yapilamadi');
+            if (e.message.includes('iptal') || e.message.includes('cancel')) {
+                errorMsg = I18N.t('login_cancelled', 'Giris iptal edildi');
+            } else if (e.message.includes('network') || e.message.includes('fetch')) {
+                errorMsg = I18N.t('error_connection');
+            }
+            googleLoginBtn.innerText = errorMsg;
             setTimeout(() => {
                 googleLoginBtn.innerHTML = `
                     <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                    Google ile Giris Yap`;
+                    ${I18N.t('login_with_google')}`;
                 googleLoginBtn.disabled = false;
             }, 2000);
+        } finally {
+            isLoginInProgress = false;
         }
     });
 
@@ -159,9 +168,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Analiz Baslat
+    // Analiz Baslat (debounce korumali)
+    let isAnalyzing = false;
     analyzeBtn.addEventListener('click', async () => {
-        if (!isYouTube || !isLoggedIn) return;
+        if (!isYouTube || !isLoggedIn || isAnalyzing) return;
+        isAnalyzing = true;
 
         analyzeBtn.classList.add('loading');
         analyzeBtn.disabled = true;
@@ -172,8 +183,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             analyzeBtn.classList.remove('loading');
             analyzeBtn.disabled = false;
-            console.error("Analysis error:", e);
+            isAnalyzing = false;
         }
+    });
+
+    // Pro'ya yukselt
+    proUpgradeBanner.addEventListener('click', () => {
+        chrome.tabs.create({
+            url: chrome.runtime.getURL('src/dashboard/index.html?mode=upgrade')
+        });
+        window.close();
     });
 
     // Gecmis Analizler

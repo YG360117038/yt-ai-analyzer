@@ -1,31 +1,69 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Anthropic = require("@anthropic-ai/sdk").default;
+const { fetchTranscript, formatTime } = require('./transcriptService');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const anthropic = process.env.CLAUDE_API_KEY ? new Anthropic({ apiKey: process.env.CLAUDE_API_KEY }) : null;
 
-async function analyzeVideo(videoData) {
-    const prompt = buildPrompt(videoData);
+const AI_TIMEOUT_MS = 90000; // 90 saniye
+const VIDEO_TIMEOUT_MS = 180000; // 180 saniye (video analizi icin)
 
-    // 1. Gemini dene
+function withTimeout(promise, ms) {
+    let timer;
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error('AI analizi zaman asimina ugradi. Lutfen tekrar deneyin.')), ms);
+        })
+    ]).finally(() => clearTimeout(timer));
+}
+
+async function analyzeVideo(videoData, options = {}) {
+    const { isPro = false, enableVideoAnalysis = false, language = 'tr' } = options;
+
+    // 1. Transcript cek (tum kullanicilar)
+    let transcript = null;
     try {
-        console.log("Trying Gemini...");
+        transcript = await fetchTranscript(videoData.videoId);
+        if (transcript) {
+            console.log(`Transcript fetched: ${transcript.segments.length} segments, ${transcript.fullText.length} chars`);
+        }
+    } catch (e) {
+        console.warn("Transcript fetch error:", e.message);
+    }
+
+    // 2. Pro kullanicilar icin video analizi (Gemini File API)
+    if (isPro && enableVideoAnalysis && process.env.VIDEO_ANALYSIS_ENABLED === 'true') {
+        try {
+            const result = await analyzeWithVideoUnderstanding(videoData, transcript, language);
+            if (result) {
+                result._analysisType = 'video';
+                return result;
+            }
+        } catch (e) {
+            console.error("Video analysis failed, falling back to text:", e.message);
+        }
+    }
+
+    // 3. Metin analizi (transcript ile zenginlestirilmis)
+    const prompt = buildPrompt(videoData, transcript, language);
+
+    try {
         const result = await analyzeWithGemini(prompt);
         if (result) {
-            console.log("Gemini basarili!");
+            result._analysisType = transcript ? 'transcript' : 'metadata';
             return result;
         }
     } catch (e) {
         console.error("Gemini failed:", e.message);
     }
 
-    // 2. Claude fallback
+    // 4. Claude fallback
     if (anthropic) {
         try {
-            console.log("Gemini basarisiz, Claude deneniyor...");
             const result = await analyzeWithClaude(prompt);
             if (result) {
-                console.log("Claude basarili!");
+                result._analysisType = transcript ? 'transcript' : 'metadata';
                 return result;
             }
         } catch (e) {
@@ -34,6 +72,78 @@ async function analyzeVideo(videoData) {
     }
 
     throw new Error("AI analizi basarisiz oldu. Lutfen tekrar deneyin.");
+}
+
+// ==================== VIDEO UNDERSTANDING (PRO) ====================
+async function analyzeWithVideoUnderstanding(videoData, transcript, language = 'tr') {
+    const videoService = require('./videoService');
+
+    if (!videoService.isAvailable()) {
+        throw new Error('Video analysis not enabled');
+    }
+    if (!videoService.acquireSlot()) {
+        throw new Error('Video analysis busy, falling back to text');
+    }
+
+    let localPath = null;
+    let geminiFile = null;
+
+    try {
+        // 1. Video indir
+        console.log(`Downloading video: ${videoData.videoId}`);
+        localPath = await videoService.downloadVideo(videoData.videoId);
+
+        // 2. Gemini'ye yukle
+        console.log('Uploading to Gemini File API...');
+        geminiFile = await videoService.uploadToGemini(localPath);
+
+        // 3. Multimodal prompt olustur
+        const textPrompt = buildPrompt(videoData, transcript, language) + `
+
+    ONEMLI: Bu analiz icin video dosyasi eklenmistir. Videoyu IZLE ve analizini GERCEK gorsel icerige dayandir.
+    - hook_structure.first_5_seconds: Videonun gercek ilk 5 saniyesini anlat
+    - audience_retention_heatmap: Videonun gorsel/icerik akisina gore gercekci retention tahmini yap
+    - tone_analysis: Konusmacinin ses tonu, yuz ifadeleri ve beden dilini analiz et
+    - script_reverse_engineering: Videonun gercek senaryosunu transkript ve goruntulerden cikar
+    - storyboard: Videonun gercek sahnelerini baz alarak olustur
+    - content_style_breakdown: Gercek duzenleme stili, gecisler, efektler, grafikleri analiz et`;
+
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.7,
+                maxOutputTokens: 65536
+            }
+        });
+
+        const result = await withTimeout(
+            model.generateContent([
+                {
+                    fileData: {
+                        mimeType: geminiFile.mimeType,
+                        fileUri: geminiFile.uri
+                    }
+                },
+                { text: textPrompt }
+            ]),
+            VIDEO_TIMEOUT_MS
+        );
+
+        const response = await result.response;
+        const text = response.text();
+        const parsed = parseAIResponse(text);
+
+        if (parsed) {
+            console.log('Video analysis completed successfully');
+            return parsed;
+        }
+        return null;
+
+    } finally {
+        videoService.releaseSlot();
+        videoService.cleanup(localPath, geminiFile?.name).catch(() => {});
+    }
 }
 
 // ==================== GEMINI ====================
@@ -51,11 +161,9 @@ async function analyzeWithGemini(prompt) {
         try {
             if (attempt > 0) console.log(`Gemini retry ${attempt}...`);
 
-            const result = await model.generateContent(prompt);
+            const result = await withTimeout(model.generateContent(prompt), AI_TIMEOUT_MS);
             const response = await result.response;
             const text = response.text();
-
-            console.log(`Gemini response length: ${text.length}`);
 
             const candidate = result.response.candidates?.[0];
             if (candidate?.finishReason === 'MAX_TOKENS') {
@@ -65,6 +173,8 @@ async function analyzeWithGemini(prompt) {
 
             const parsed = parseAIResponse(text);
             if (parsed) return parsed;
+
+            if (attempt === 0) continue; // parse basarisiz, tekrar dene
         } catch (e) {
             console.error(`Gemini attempt ${attempt + 1}:`, e.message);
         }
@@ -74,32 +184,73 @@ async function analyzeWithGemini(prompt) {
 
 // ==================== CLAUDE ====================
 async function analyzeWithClaude(prompt) {
-    const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 16000,
-        messages: [
-            {
-                role: "user",
-                content: prompt + "\n\nONEMLI: Sadece JSON ciktisi ver, baska hicbir sey yazma. Markdown code block kullanma."
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            if (attempt > 0) console.log(`Claude retry ${attempt}...`);
+
+            const message = await withTimeout(
+                anthropic.messages.create({
+                    model: "claude-sonnet-4-20250514",
+                    max_tokens: 16000,
+                    messages: [{
+                        role: "user",
+                        content: prompt + "\n\nONEMLI: Sadece JSON ciktisi ver, baska hicbir sey yazma. Markdown code block kullanma."
+                    }]
+                }),
+                AI_TIMEOUT_MS
+            );
+
+            const text = message.content?.[0]?.text;
+            if (!text) {
+                if (attempt === 0) continue;
+                throw new Error("Claude bos yanit dondurdu");
             }
-        ]
-    });
 
-    const text = message.content[0]?.text;
-    if (!text) throw new Error("Claude bos yanit dondurdu");
+            const parsed = parseAIResponse(text);
+            if (parsed) return parsed;
 
-    console.log(`Claude response length: ${text.length}`);
-    const parsed = parseAIResponse(text);
-    if (parsed) return parsed;
-
-    throw new Error("Claude yaniti parse edilemedi");
+            if (attempt === 0) continue;
+        } catch (e) {
+            console.error(`Claude attempt ${attempt + 1}:`, e.message);
+            if (attempt === 1) throw e;
+        }
+    }
+    return null;
 }
 
 // ==================== PROMPT ====================
-function buildPrompt(videoData) {
+function buildPrompt(videoData, transcript = null, language = 'tr') {
+    const isEnglish = language === 'en';
+    let transcriptSection = '';
+    if (transcript) {
+        const truncated = transcript.fullText.substring(0, 15000);
+        const timestamped = transcript.segments.slice(0, 60).map(s =>
+            `[${formatTime(s.start)}] ${s.text}`
+        ).join('\n    ');
+
+        transcriptSection = `
+
+    VIDEO TRANSCRIPT (konusma metni):
+    ${truncated}${transcript.fullText.length > 15000 ? '\n    ... (devami kirpildi)' : ''}
+
+    ZAMANA GORE TRANSCRIPT:
+    ${timestamped}`;
+    }
+
+    const transcriptNote = transcript
+        ? (isEnglish
+            ? 'NOTE: Video transcript is available. Base your analysis on the transcript - extract first 5 seconds, hook analysis, script reverse engineering, retention strategy from ACTUAL speech content, do not guess.'
+            : 'NOT: Video transkripti mevcut. Analizi transkripte dayanarak yap - ilk 5 saniye, hook analizi, senaryo tersine muhendisligi, retention stratejisi gibi alanlari GERCEK konusma iceriginden cikar, tahmin yapma.')
+        : (isEnglish
+            ? 'NOTE: Transcript is not available. Base your analysis on metadata with your best estimates.'
+            : 'NOT: Transkript mevcut degil. Analizi metadata\'ya dayanarak en iyi tahminlerinle yap.');
+
     return `
-    Sen dünyanın en iyi YouTube içerik stratejisti ve AI prompt mühendisisin.
-    Aşağıdaki YouTube video verilerini derinlemesine analiz et ve kapsamlı bir strateji raporu hazırla.
+    ${isEnglish
+        ? 'You are the world\'s best YouTube content strategist and AI prompt engineer.\n    Deeply analyze the following YouTube video data and prepare a comprehensive strategy report.'
+        : 'Sen dünyanın en iyi YouTube içerik stratejisti ve AI prompt mühendisisin.\n    Aşağıdaki YouTube video verilerini derinlemesine analiz et ve kapsamlı bir strateji raporu hazırla.'}
+
+    ${transcriptNote}
 
     VIDEO VERİLERİ:
     Başlık: ${videoData.title}
@@ -114,6 +265,7 @@ function buildPrompt(videoData) {
     Etiketler: ${(videoData.tags || []).join(", ")}
     Hashtag'ler: ${(videoData.hashtags || []).join(", ")}
     URL: ${videoData.url || ""}
+    ${transcriptSection}
 
     ÇIKTI FORMATI: JSON (aşağıdaki yapıya kesinlikle uy)
 
@@ -245,55 +397,42 @@ function buildPrompt(videoData) {
             "storyboard": [
                 {
                     "sahne": 1,
-                    "sure": "0:00-0:05",
+                    "sure": "0:00-0:10",
                     "aciklama": "Sahnenin detayli aciklamasi",
                     "kamera": "Kamera acisi ve hareketi (close-up, wide shot, dolly vs.)",
                     "ses": "Arka plan muzigi veya ses efekti",
                     "metin": "Ekranda gosterilecek metin (varsa)",
-                    "ai_video_prompt": "Bu sahneyi Runway/Luma/Kling ile olusturmak icin Ingilizce prompt. Ornek: Cinematic wide shot of a person walking through a neon-lit city at night, 4K, dramatic lighting, slow motion"
+                    "ai_video_prompt": "Bu sahneyi Runway/Sora/Kling ile olusturmak icin detayli Ingilizce prompt. Ornek: Cinematic wide shot of a person walking through a neon-lit city at night, 4K, dramatic lighting, slow motion, volumetric fog",
+                    "voiceover_script": "Bu sahnede soylenecek tam seslendirme metni (Turkce)",
+                    "text_overlay": ["Ekranda gosterilecek alt yazi veya baslik 1", "text 2"],
+                    "duration_seconds": 10
                 },
-                {
-                    "sahne": 2,
-                    "sure": "0:05-0:15",
-                    "aciklama": "...",
-                    "kamera": "...",
-                    "ses": "...",
-                    "metin": "...",
-                    "ai_video_prompt": "..."
-                },
-                {
-                    "sahne": 3,
-                    "sure": "0:15-0:30",
-                    "aciklama": "...",
-                    "kamera": "...",
-                    "ses": "...",
-                    "metin": "...",
-                    "ai_video_prompt": "..."
-                },
-                {
-                    "sahne": 4,
-                    "sure": "0:30-0:45",
-                    "aciklama": "...",
-                    "kamera": "...",
-                    "ses": "...",
-                    "metin": "...",
-                    "ai_video_prompt": "..."
-                },
-                {
-                    "sahne": 5,
-                    "sure": "0:45-1:00",
-                    "aciklama": "...",
-                    "kamera": "...",
-                    "ses": "...",
-                    "metin": "...",
-                    "ai_video_prompt": "..."
-                }
+                {"sahne": 2, "sure": "...", "aciklama": "...", "kamera": "...", "ses": "...", "metin": "...", "ai_video_prompt": "...", "voiceover_script": "...", "text_overlay": ["..."], "duration_seconds": 0},
+                {"sahne": 3, "sure": "...", "aciklama": "...", "kamera": "...", "ses": "...", "metin": "...", "ai_video_prompt": "...", "voiceover_script": "...", "text_overlay": ["..."], "duration_seconds": 0},
+                {"sahne": 4, "sure": "...", "aciklama": "...", "kamera": "...", "ses": "...", "metin": "...", "ai_video_prompt": "...", "voiceover_script": "...", "text_overlay": ["..."], "duration_seconds": 0},
+                {"sahne": 5, "sure": "...", "aciklama": "...", "kamera": "...", "ses": "...", "metin": "...", "ai_video_prompt": "...", "voiceover_script": "...", "text_overlay": ["..."], "duration_seconds": 0},
+                {"sahne": 6, "sure": "...", "aciklama": "...", "kamera": "...", "ses": "...", "metin": "...", "ai_video_prompt": "...", "voiceover_script": "...", "text_overlay": ["..."], "duration_seconds": 0},
+                {"sahne": 7, "sure": "...", "aciklama": "...", "kamera": "...", "ses": "...", "metin": "...", "ai_video_prompt": "...", "voiceover_script": "...", "text_overlay": ["..."], "duration_seconds": 0},
+                {"sahne": 8, "sure": "...", "aciklama": "...", "kamera": "...", "ses": "...", "metin": "...", "ai_video_prompt": "...", "voiceover_script": "...", "text_overlay": ["..."], "duration_seconds": 0}
             ],
             "overall_style": "Videonun genel gorsel stili (sinematik, minimal, enerjik, retro vs.)",
             "color_palette": "Onerilen renk paleti (ornek: koyu mavi tonlari, sicak turuncu vurgular)",
             "music_mood": "Arka plan muzigi tarz onerisi (ornek: epik orkestral, lo-fi chill, enerjik EDM)",
             "transition_style": "Sahneler arasi gecis tipi (cut, fade, zoom, glitch vs.)",
-            "aspect_ratio_recommendation": "Onerilen en-boy orani ve neden (16:9 YouTube, 9:16 Shorts/TikTok, 1:1 Instagram)"
+            "aspect_ratio_recommendation": "Onerilen en-boy orani ve neden (16:9 YouTube, 9:16 Shorts/TikTok, 1:1 Instagram)",
+            "full_voiceover_script": "Videonun tamami icin kesintisiz seslendirme metni. Tum sahnelerin voiceover'larini birlestir, dogal bir akis ile yaz. Turkce.",
+            "music_recommendations": [
+                {"name": "Muzik tarzi/parca onerisi", "mood": "Enerji seviyesi (sakin/orta/enerjik)", "where": "Hangi sahnelerde kullanilmali"},
+                {"name": "...", "mood": "...", "where": "..."},
+                {"name": "...", "mood": "...", "where": "..."}
+            ],
+            "export_ready_prompts": {
+                "sora_prompt": "OpenAI Sora icin optimize edilmis tek uzun prompt - tum video icerigi tek seferde (ENG, 4K cinematic detayli)",
+                "runway_prompt": "Runway Gen-3 icin optimize edilmis tek uzun prompt (ENG, motion details, camera movements)",
+                "pika_prompt": "Pika Labs icin optimize edilmis tek prompt (ENG, stylized, motion emphasis)",
+                "kling_prompt": "Kling AI icin optimize edilmis tek prompt (ENG, realistic, high detail)",
+                "luma_prompt": "Luma Dream Machine icin optimize edilmis tek prompt (ENG, 3D-aware, lighting focus)"
+            }
         },
 
         "ai_video_prompts": {
@@ -309,6 +448,16 @@ function buildPrompt(videoData) {
             ],
             "kling_prompts": [
                 "Bu videonun konusunu Kling AI ile olusturmak icin detayli Ingilizce prompt 1",
+                "prompt 2",
+                "prompt 3"
+            ],
+            "sora_prompts": [
+                "Bu videonun konusunu OpenAI Sora ile olusturmak icin detayli Ingilizce prompt 1 (cinematic, high quality, motion details)",
+                "prompt 2",
+                "prompt 3"
+            ],
+            "pika_prompts": [
+                "Bu videonun konusunu Pika Labs ile olusturmak icin detayli Ingilizce prompt 1",
                 "prompt 2",
                 "prompt 3"
             ],
@@ -330,26 +479,80 @@ function buildPrompt(videoData) {
             "B-roll onerisi 3",
             "B-roll onerisi 4",
             "B-roll onerisi 5"
-        ]
+        ],
+
+        "content_briefing": {
+            "timeline": [
+                {"timestamp": "0:00-0:30", "topic": "Konu basligi", "summary": "Bu bolumde ne anlatiliyor (detayli)"},
+                {"timestamp": "0:30-1:30", "topic": "...", "summary": "..."},
+                {"timestamp": "1:30-3:00", "topic": "...", "summary": "..."},
+                {"timestamp": "3:00-5:00", "topic": "...", "summary": "..."},
+                {"timestamp": "5:00+", "topic": "...", "summary": "..."}
+            ],
+            "study_notes": "Videonun icerigi uzerinden hazirlanmis detayli calisma notlari. Basliklar ve alt basliklarla yapilandirilmis, ogrenmek isteyen biri icin yazilmis kapsamli not (en az 300 kelime).",
+            "quick_recap": "30 saniyede okunabilecek hizli ozet (3-4 cumle)"
+        },
+
+        "faq": [
+            {"question": "Bu videodan ogrenilebilecek en onemli sey nedir?", "answer": "Detayli cevap..."},
+            {"question": "Video hangi problemlere cozum sunuyor?", "answer": "Detayli cevap..."},
+            {"question": "Videonun hedef kitlesi kimler?", "answer": "Detayli cevap..."},
+            {"question": "Videodaki bilgiler guncel mi?", "answer": "Detayli cevap..."},
+            {"question": "Bu konuda daha fazla bilgi icin ne yapilmali?", "answer": "Detayli cevap..."},
+            {"question": "Izleyici iceriden cikarilabilecek soru 1?", "answer": "..."},
+            {"question": "Izleyici iceriden cikarilabilecek soru 2?", "answer": "..."}
+        ],
+
+        "key_concepts": [
+            {"term": "Anahtar kavram/terim 1", "definition": "Tanimi ve video baglamindaki anlami", "importance": "Neden onemli"},
+            {"term": "Kavram 2", "definition": "...", "importance": "..."},
+            {"term": "Kavram 3", "definition": "...", "importance": "..."},
+            {"term": "Kavram 4", "definition": "...", "importance": "..."},
+            {"term": "Kavram 5", "definition": "...", "importance": "..."}
+        ],
+
+        "content_dna": {
+            "format_formula": "Bu videonun format formulu (ornek: Hook + Problem + 3 Cozum + CTA seklinde yapilanmis)",
+            "unique_elements": ["Bu videoyu benzersiz yapan eleman 1", "eleman 2", "eleman 3"],
+            "replicable_patterns": ["Tekrar kullanilabilecek kalip 1", "kalip 2", "kalip 3"],
+            "success_factors": ["Basari faktoru 1", "faktor 2", "faktor 3"],
+            "content_pillars": ["Icerik sutunu 1 (ana tema)", "sutun 2", "sutun 3"],
+            "emotional_arc": "Videonun duygusal yolculugu (merak -> saskinlik -> motivasyon gibi)"
+        },
+
+        "recreation_mega_prompt": "Bu videonun tarzinda, tonunda ve yapisinda yepyeni bir video olusturmak icin kullanilabilecek tek bir mega prompt. Icinde su bilgiler olmali: hedef kitle, ton, format yapisi, hook stili, gorsel stil, muzik onerisi, senaryo yapisi, CTA stratejisi. En az 200 kelime, dogrudan bir AI aracina (ChatGPT, Claude vs.) yapistirinca kullanilabilir olmali."
     }
 
-    ÖNEMLİ KURALLAR:
-    - Tüm yanıtları TÜRKÇE olarak hazırla (SADECE ai_video_prompts, runway_prompts, luma_prompts, kling_prompts, shorts_reels_prompts, thumbnail_dalle_prompts ve storyboard icindeki ai_video_prompt alanlari INGILIZCE olacak cunku AI video servisleri Ingilizce calisir).
-    - Gerçek, uygulanabilir, özgün analizler yap. Genel/klişe yanıtlar verme.
+    ${isEnglish ? `IMPORTANT RULES:
+    - Prepare ALL responses in ENGLISH (ONLY ai_video_prompts, runway_prompts, luma_prompts, kling_prompts, sora_prompts, pika_prompts, shorts_reels_prompts, thumbnail_dalle_prompts, export_ready_prompts and ai_video_prompt fields inside storyboard should be in ENGLISH as AI video services work in English).
+    - Provide real, actionable, original analyses. Do not give generic/cliché responses.` : `ÖNEMLİ KURALLAR:
+    - Tüm yanıtları TÜRKÇE olarak hazırla (SADECE ai_video_prompts, runway_prompts, luma_prompts, kling_prompts, sora_prompts, pika_prompts, shorts_reels_prompts, thumbnail_dalle_prompts, export_ready_prompts ve storyboard icindeki ai_video_prompt alanlari INGILIZCE olacak cunku AI video servisleri Ingilizce calisir).
+    - Gerçek, uygulanabilir, özgün analizler yap. Genel/klişe yanıtlar verme.`}
     - AI video prompt'lari cok detayli olmali: sahne aciklamasi, kamera acisi, isik durumu, renk tonu, hareket, stil, kalite (4K, cinematic vs.) icermeli.
-    - Storyboard tam 5 sahne icermeli, her sahne icin ai_video_prompt INGILIZCE ve kullanima hazir olmali.
+    - Storyboard tam 8 sahne icermeli, her sahne icin ai_video_prompt INGILIZCE ve kullanima hazir olmali.
+    - Her storyboard sahnesi voiceover_script (Turkce seslendirme metni) ve text_overlay (ekran yazilari) icermeli.
+    - full_voiceover_script alani tum sahnelerin seslendirme metinlerini birlestirmis, dogal akisli tek bir metin olmali.
+    - export_ready_prompts icindeki her prompt, ilgili platforma ozel optimize edilmis, detayli ve kullanima hazir olmali.
     - Video suresi ${videoData.duration || "bilinmiyor"} - storyboard sahnelerini bu sureye gore olustur.
     - Mermaid kodu geçerli ve render edilebilir olmalı.
     - Heatmap dizisi tam olarak 20 eleman içermeli ve 0-100 arası değerler olmalı.
+    - content_briefing.study_notes en az 300 kelime, detayli ve egitici olmali.
+    - content_briefing.timeline video suresine gore 5-8 bolum icermeli.
+    - faq en az 7 soru-cevap icermeli, izleyicinin gercekten sorabilecegi sorular olmali.
+    - key_concepts en az 5 terim icermeli.
+    - recreation_mega_prompt en az 200 kelime, dogrudan AI'a yapistirinca kullanilabilir olmali.
     - JSON çıktısı parse edilebilir olmalı, ekstra karakter veya açıklama ekleme.
     `;
 }
 
 // ==================== JSON PARSER ====================
 function parseAIResponse(text) {
+    if (!text || typeof text !== 'string') return null;
+
     // 1. Direkt parse
     try {
-        return JSON.parse(text);
+        const result = JSON.parse(text);
+        if (result && typeof result === 'object' && result.video_score) return result;
     } catch (e) {}
 
     // 2. JSON blogu cikar
@@ -360,7 +563,8 @@ function parseAIResponse(text) {
 
     // 3. Direkt dene
     try {
-        return JSON.parse(jsonString);
+        const result = JSON.parse(jsonString);
+        if (result && typeof result === 'object') return result;
     } catch (e) {}
 
     // 4. Temizlik
@@ -371,7 +575,8 @@ function parseAIResponse(text) {
         .replace(/\r/g, '');
 
     try {
-        return JSON.parse(jsonString);
+        const result = JSON.parse(jsonString);
+        if (result && typeof result === 'object') return result;
     } catch (e) {}
 
     // 5. Bracket dengeleme
@@ -389,11 +594,14 @@ function parseAIResponse(text) {
     }
 
     try {
-        return JSON.parse(jsonString);
+        const result = JSON.parse(jsonString);
+        if (result && typeof result === 'object') return result;
     } catch (e) {
-        console.error("All parse attempts failed:", e.message);
+        console.error("JSON parse basarisiz - tum denemeler tukendi");
         return null;
     }
+
+    return null;
 }
 
 module.exports = { analyzeVideo };

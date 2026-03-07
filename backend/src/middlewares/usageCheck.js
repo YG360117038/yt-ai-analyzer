@@ -1,12 +1,9 @@
-const FREE_LIMIT = 3;
-
 function createUsageCheck(supabase, getOrCreateProfile) {
     return async function usageCheck(req, res, next) {
         try {
             const profile = await getOrCreateProfile(req.user);
 
             if (!profile || profile._error) {
-                console.error('usageCheck: Profil alinamadi:', profile?._error);
                 return res.status(500).json({ error: 'Profil olusturulamadi.' });
             }
 
@@ -18,28 +15,20 @@ function createUsageCheck(supabase, getOrCreateProfile) {
                         plan: 'free',
                         subscription_status: 'expired'
                     }).eq('id', req.user.id);
-
                     profile.plan = 'free';
+                    profile.subscription_status = 'expired';
                 } else {
                     req.profile = profile;
                     return next();
                 }
             }
 
-            // Ucretsiz kullanici - limit kontrolu
-            if (profile.analysis_count >= FREE_LIMIT) {
-                return res.status(403).json({
-                    error: 'Ucretsiz analiz limitiniz doldu.',
-                    requiresUpgrade: true,
-                    analysisCount: profile.analysis_count,
-                    limit: FREE_LIMIT
-                });
-            }
-
+            // Free kullanici - analiz yapabilir ama sonuclar kisitli gelecek
+            // Kisitlama backend response'unda yapilir (index.js'de is_limited flag)
             req.profile = profile;
             next();
         } catch (err) {
-            console.error('Usage check error:', err);
+            console.error('Usage check error:', err.message);
             return res.status(500).json({ error: 'Kullanim kontrolu sirasinda hata olustu.' });
         }
     };

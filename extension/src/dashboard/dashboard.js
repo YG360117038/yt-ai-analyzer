@@ -1,4 +1,4 @@
-const BACKEND_URL = (typeof CONFIG !== 'undefined' && CONFIG.BACKEND_URL) || "http://localhost:3000";
+const BACKEND_URL = CONFIG.BACKEND_URL;
 
 // Mermaid initialize (CSP uyumlu - inline script yerine)
 if (typeof mermaid !== 'undefined') {
@@ -15,7 +15,25 @@ async function authFetch(url, options = {}) {
     return fetch(url, { ...options, headers });
 }
 
+// Timeout'lu fetch wrapper
+function fetchWithTimeout(fetchPromise, timeoutMs = 120000) {
+    let timer;
+    return Promise.race([
+        fetchPromise,
+        new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
+        })
+    ]).finally(() => clearTimeout(timer));
+}
+
+// History icin AbortController
+let historyAbortController = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize i18n
+    await I18N.init();
+    I18N.applyToDOM();
+
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('id');
     const mode = urlParams.get('mode');
@@ -43,12 +61,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            // Gecmis tabina gecildiginde yukle
             if (tabName === 'history') loadHistory();
         });
     });
 
-    // Admin link kontrolu
+    // Admin check
     try {
         const token = await SupabaseAuth.getToken();
         if (token) {
@@ -59,15 +76,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (adminLink) adminLink.style.display = 'flex';
             }
         }
-    } catch (e) { /* admin check failed, skip */ }
+    } catch (e) { /* admin check failed */ }
 
-    // ==================== INIT ====================
+    // Route
     if (mode === 'new') {
         startNewAnalysis();
+    } else if (mode === 'upgrade') {
+        loadingScreen.style.display = 'none';
+        document.getElementById('paywall-overlay').style.display = 'flex';
     } else if (mode === 'history') {
         loadingScreen.style.display = 'none';
         document.getElementById('main-header').style.display = 'none';
-        // History tabina gecis
         navItems.forEach(n => n.classList.remove('active'));
         document.querySelector('[data-tab="history"]').classList.add('active');
         tabContents.forEach(t => t.classList.remove('active'));
@@ -84,24 +103,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function startNewAnalysis() {
         try {
             setStep(1);
-            updateProgress("Video Verileri Hazirlaniyor...", 15);
+            updateProgress(I18N.t('preparing_data'), 15);
             const result = await chrome.storage.local.get("pending_analysis");
             const videoData = result.pending_analysis;
 
             if (!videoData) {
-                statusText.innerText = "Hata: Video verisi bulunamadi.";
-                statusText.style.color = "#ff0000";
+                showError(I18N.t('error_no_video_data'), I18N.t('error_no_video_data_desc'));
                 return;
             }
 
             setStep(2);
-            updateProgress("AI Analizi Yapiliyor...", 40);
+            updateProgress(I18N.t('ai_analyzing'), 40);
 
-            const response = await authFetch(`${BACKEND_URL}/api/analyze`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(videoData)
-            });
+            // Uzun surerse mesaji guncelle
+            const progressTimer = setTimeout(() => {
+                updateProgress(I18N.t('video_content_analyzing'), 60);
+            }, 30000);
+            const progressTimer2 = setTimeout(() => {
+                updateProgress(I18N.t('detailed_analysis_completing'), 75);
+            }, 90000);
+
+            // Add language preference to request
+            videoData.language = I18N.getLang();
+
+            const response = await fetchWithTimeout(
+                authFetch(`${BACKEND_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(videoData)
+                }),
+                240000 // 4 dakika timeout (video analizi icin)
+            );
+
+            clearTimeout(progressTimer);
+            clearTimeout(progressTimer2);
 
             if (response.status === 403) {
                 const err = await response.json().catch(() => ({}));
@@ -112,23 +147,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (response.status === 401) {
-                statusText.innerText = "Lutfen once giris yapin.";
-                statusText.style.color = "#ff0000";
+                showError(I18N.t('error_auth'), I18N.t('error_auth_desc'));
+                return;
+            }
+
+            if (response.status === 429) {
+                showError(I18N.t('error_rate_limit'), I18N.t('error_rate_limit_desc'));
                 return;
             }
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
-                throw new Error(err.error || "Backend analizi basarisiz oldu.");
+                throw new Error(err.error || I18N.t('error_analysis'));
             }
 
             setStep(3);
-            updateProgress("Sonuclar Isleniyor...", 75);
+            updateProgress(I18N.t('processing_results'), 75);
 
             const data = await response.json();
 
             setStep(4);
-            updateProgress("Rapor Hazirlaniyor...", 95);
+            updateProgress(I18N.t('preparing_report'), 95);
 
             renderAnalysis(data);
 
@@ -141,10 +180,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 500);
 
         } catch (error) {
-            console.error("Analiz Hatasi:", error);
-            statusText.innerText = "Hata: " + error.message;
-            statusText.style.color = "#ff0000";
-            document.querySelector('.loading-subtext').innerText = "Lutfen backend'in calistigini kontrol edin.";
+            if (error.message === 'TIMEOUT') {
+                showError(I18N.t('error_timeout'), I18N.t('error_timeout_desc'));
+            } else if (error.message === 'AUTH_REQUIRED') {
+                showError(I18N.t('error_login_required'), I18N.t('error_login_required_desc'));
+            } else if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+                showError(I18N.t('error_connection'), I18N.t('error_connection_desc'));
+            } else {
+                showError(I18N.t('error_analysis'), error.message);
+            }
+        }
+    }
+
+    function showError(title, subtitle) {
+        statusText.innerText = title;
+        statusText.style.color = "#ff4444";
+        const subtext = document.querySelector('.loading-subtext');
+        if (subtext) subtext.innerText = subtitle;
+        // Retry butonu ekle
+        const stepsEl = document.querySelector('.loading-steps');
+        if (stepsEl) {
+            stepsEl.innerHTML = `
+                <button onclick="window.location.reload()" style="margin-top:16px;padding:10px 24px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">${I18N.t('retry', 'Tekrar Dene')}</button>
+            `;
         }
     }
 
@@ -165,17 +223,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==================== LOAD EXISTING ====================
     async function loadAnalysis(id) {
         try {
-            const response = await authFetch(`${BACKEND_URL}/api/analysis/${id}`);
-            if (!response.ok) throw new Error("Analiz yuklenemedi.");
+            const response = await fetchWithTimeout(authFetch(`${BACKEND_URL}/api/analysis/${id}`), 30000);
+            if (!response.ok) throw new Error(I18N.t('error_analysis'));
             const data = await response.json();
             renderAnalysis(data);
         } catch (error) {
             if (error.message === 'AUTH_REQUIRED') {
-                showToast("Lutfen giris yapin.");
+                showToast(I18N.t('error_login_required'));
                 return;
             }
-            console.error("Yukleme hatasi:", error);
-            showToast("Analiz yuklenirken hata olustu.");
+            showToast(I18N.t('error_analysis'));
         }
     }
 
@@ -186,11 +243,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentAnalysisData = data;
         const results = data.analysis_results;
         const metadata = data.video_metadata;
+        const isLimited = data.is_limited === true;
 
         // Header
-        document.getElementById('video-title').innerText = metadata.title || "Video Analizi";
-        document.getElementById('channel-name').innerText = metadata.channelName || "Bilinmeyen";
+        document.getElementById('video-title').innerText = metadata.title || I18N.t('video_analysis_title');
+        document.getElementById('channel-name').innerText = metadata.channelName || I18N.t('unknown');
         document.getElementById('channel-img').src = metadata.channelAvatar || metadata.thumbnail || "";
+
+        // Analiz tipi badge
+        const analysisType = results._analysisType || 'metadata';
+        const badgeMap = {
+            'video': { text: I18N.t('analysis_type_video'), color: '#10b981' },
+            'transcript': { text: I18N.t('analysis_type_transcript'), color: '#3b82f6' },
+            'metadata': { text: I18N.t('analysis_type_metadata'), color: '#6b7280' }
+        };
+        const badge = badgeMap[analysisType] || badgeMap.metadata;
+        const existingBadge = document.getElementById('analysis-type-badge');
+        if (existingBadge) existingBadge.remove();
+        const badgeEl = document.createElement('span');
+        badgeEl.id = 'analysis-type-badge';
+        badgeEl.style.cssText = `display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;color:white;background:${badge.color};margin-left:8px;`;
+        badgeEl.textContent = badge.text;
+        document.getElementById('channel-name').parentElement.appendChild(badgeEl);
 
         if (metadata.viewCount) {
             document.getElementById('meta-views').style.display = 'flex';
@@ -201,7 +275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('publish-date').innerText = metadata.publishDate;
         }
 
-        // Score Banner
+        // Score Banner - her zaman goster
         if (results.video_score) {
             renderScoreBanner(results.video_score);
         }
@@ -226,12 +300,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cleanCode = results.video_flow_mermaid.replace(/```mermaid|```/g, "").trim();
             mermaidDiv.textContent = cleanCode;
             mermaidDiv.removeAttribute('data-processed');
-            try { mermaid.contentLoaded(); } catch (e) { console.warn("Mermaid render error:", e); }
+            try { mermaid.contentLoaded(); } catch (e) { }
         }
 
         // Categorize & Render
         const categoryMap = {
-            // Analysis tab
             'video_score': 'skip',
             'content_style_breakdown': 'analysis',
             'psychological_triggers': 'analysis',
@@ -244,19 +317,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             'cta_strategy': 'analysis',
             'competitor_analysis': 'analysis',
             'comment_sentiment': 'analysis',
-
-            // Prompts tab
             'ai_prompts_toolkit': 'prompts',
             'content_repurpose_ideas': 'prompts',
             'monetization_ideas': 'prompts',
-
-            // Notebook tab
             'video_flow_mermaid': 'skip',
             'deep_digest_summary': 'notebook',
             'notebook_podcast_script': 'notebook',
             'audience_retention_heatmap': 'notebook',
-
-            // Scripts tab
             'similar_video_prompts': 'scripts',
             'viral_hook_prompts': 'scripts',
             'title_variations': 'scripts',
@@ -267,27 +334,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             'full_script_template': 'scripts',
             'hook_variations': 'scripts',
             'storytelling_framework': 'scripts',
-
-            // Characters tab
             'aggressive_sales': 'characters',
             'calm_educational': 'characters',
             'documentary': 'characters',
             'motivational': 'characters',
             'controversial': 'characters',
-
-            // Video Production tab
             'video_production': 'video_custom',
             'ai_video_prompts': 'video',
-            'b_roll_suggestions': 'video'
+            'b_roll_suggestions': 'video',
+            'sora_prompts': 'video',
+            'pika_prompts': 'video',
+            'content_briefing': 'notebook_custom',
+            'faq': 'notebook_custom',
+            'key_concepts': 'notebook_custom',
+            'content_dna': 'notebook_custom',
+            'recreation_mega_prompt': 'notebook_custom'
         };
 
         Object.entries(results).forEach(([key, value]) => {
             const category = categoryMap[key] || 'analysis';
             if (category === 'skip') return;
 
-            // Video production ozel render
             if (category === 'video_custom') {
                 renderVideoProduction(value, containers.video);
+                return;
+            }
+
+            if (category === 'notebook_custom') {
+                renderNotebookContent(key, value, containers.notebook);
                 return;
             }
 
@@ -298,6 +372,68 @@ document.addEventListener('DOMContentLoaded', async () => {
             const card = createCard(key, value, isPromptType);
             container.appendChild(card);
         });
+
+        // Free user ise pro-only tab'lara kilitli overlay ekle
+        if (isLimited) {
+            renderLockedState();
+        }
+    }
+
+    // ==================== FREE USER LOCKED STATE ====================
+    function renderLockedState() {
+        // Pro-only tab'lara kilitli overlay ekle (analysis ve notebook haric - free icerikleri var)
+        const tabIds = ['tab-prompts', 'tab-scripts', 'tab-characters', 'tab-video'];
+
+        tabIds.forEach(tabId => {
+            const tab = document.getElementById(tabId);
+            if (!tab) return;
+
+            const contentEl = tab.querySelector('.grid') || tab.querySelector('.mermaid-container');
+
+            // Placeholder icerik ekle (blur arkasinda)
+            const gridEl = tab.querySelector('.grid');
+            if (gridEl) {
+                gridEl.innerHTML = '';
+                for (let i = 0; i < 4; i++) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'card';
+                    placeholder.innerHTML = `
+                        <div class="card-header"><h3>${I18N.t('pro_content')}</h3></div>
+                        <div style="padding:16px">
+                            <div style="background:var(--border);height:12px;border-radius:6px;margin-bottom:10px;width:90%"></div>
+                            <div style="background:var(--border);height:12px;border-radius:6px;margin-bottom:10px;width:75%"></div>
+                            <div style="background:var(--border);height:12px;border-radius:6px;margin-bottom:10px;width:85%"></div>
+                            <div style="background:var(--border);height:12px;border-radius:6px;width:60%"></div>
+                        </div>
+                    `;
+                    gridEl.appendChild(placeholder);
+                }
+            }
+
+            tab.classList.add('pro-locked-overlay');
+            tab.style.position = 'relative';
+            tab.style.minHeight = '400px';
+
+            const banner = document.createElement('div');
+            banner.className = 'pro-locked-banner';
+            banner.innerHTML = `
+                <div style="font-size:32px;margin-bottom:12px">&#128274;</div>
+                <h3>${I18N.t('pro_required')}</h3>
+                <p>${I18N.t('pro_locked_desc')}</p>
+                <button class="upgrade-cta" onclick="document.getElementById('paywall-overlay').style.display='flex'">${I18N.t('upgrade_to_pro')} - $9.99/ay</button>
+                <div class="price-tag">${I18N.t('unlimited', 'Sinirsiz')} + ${I18N.t('pro_full_access')}</div>
+            `;
+            tab.appendChild(banner);
+        });
+
+        // Export butonlarini devre disi birak
+        const exportBtns = document.querySelectorAll('#export-txt, #export-json, #copy-all');
+        exportBtns.forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.4';
+            btn.style.cursor = 'not-allowed';
+            btn.title = I18N.t('pro_plan_required');
+        });
     }
 
     function isPromptKey(key) {
@@ -306,40 +442,358 @@ document.addEventListener('DOMContentLoaded', async () => {
             'seo_descriptions', 'high_ctr_titles', 'thumbnail_text_ideas',
             'hook_variations', 'seo_tags', 'content_repurpose_ideas',
             'monetization_ideas', 'runway_prompts', 'luma_prompts',
-            'kling_prompts', 'shorts_reels_prompts', 'thumbnail_dalle_prompts',
+            'kling_prompts', 'sora_prompts', 'pika_prompts',
+            'shorts_reels_prompts', 'thumbnail_dalle_prompts',
             'b_roll_suggestions'
         ];
         return promptKeys.includes(key);
+    }
+
+    // ==================== NOTEBOOK / DEEP ANALYSIS ====================
+    function renderNotebookContent(key, value, container) {
+        if (!container || !value) return;
+
+        // Content Briefing
+        if (key === 'content_briefing') {
+            // Quick Recap
+            if (value.quick_recap) {
+                const recapCard = document.createElement('div');
+                recapCard.className = 'card card-full';
+                recapCard.innerHTML = `
+                    <div class="card-header">
+                        <h3>&#9889; ${I18N.t('quick_recap')}</h3>
+                        <button class="copy-btn">${I18N.t('copy')}</button>
+                    </div>
+                    <div class="card-body">
+                        <p style="font-size:15px;line-height:1.8;color:var(--text)">${value.quick_recap}</p>
+                    </div>
+                `;
+                recapCard.querySelector('.copy-btn').addEventListener('click', () => {
+                    copyToClipboard(value.quick_recap);
+                    showToast(I18N.t('copied'));
+                });
+                container.appendChild(recapCard);
+                makeCollapsible(recapCard, recapCard.querySelector('.card-body'));
+            }
+
+            // Timeline
+            if (value.timeline && Array.isArray(value.timeline)) {
+                const timelineCard = document.createElement('div');
+                timelineCard.className = 'card card-full';
+                timelineCard.innerHTML = `
+                    <div class="card-header"><h3>&#128340; ${I18N.t('timeline')}</h3></div>
+                    <div class="timeline-container">
+                        ${value.timeline.map((item, i) => `
+                            <div class="timeline-item" style="animation-delay:${i * 0.1}s">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-time">${item.timestamp || ''}</div>
+                                    <div class="timeline-topic">${item.topic || ''}</div>
+                                    <div class="timeline-summary">${item.summary || ''}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(timelineCard);
+                makeCollapsible(timelineCard, timelineCard.querySelector('.timeline-container'));
+            }
+
+            // Study Notes
+            if (value.study_notes) {
+                const notesCard = document.createElement('div');
+                notesCard.className = 'card card-full';
+                notesCard.innerHTML = `
+                    <div class="card-header">
+                        <h3>&#128214; ${I18N.t('study_notes')}</h3>
+                        <button class="copy-btn">${I18N.t('copy')}</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="study-notes">${value.study_notes.replace(/\n/g, '<br>')}</div>
+                    </div>
+                `;
+                notesCard.querySelector('.copy-btn').addEventListener('click', () => {
+                    copyToClipboard(value.study_notes);
+                    showToast(I18N.t('copied'));
+                });
+                container.appendChild(notesCard);
+                makeCollapsible(notesCard, notesCard.querySelector('.card-body'));
+            }
+            return;
+        }
+
+        // FAQ
+        if (key === 'faq' && Array.isArray(value)) {
+            const faqCard = document.createElement('div');
+            faqCard.className = 'card card-full';
+            faqCard.innerHTML = `
+                <div class="card-header"><h3>&#10067; ${I18N.label('faq')}</h3></div>
+                <div class="faq-container">
+                    ${value.map((item, i) => `
+                        <div class="faq-item" data-index="${i}">
+                            <div class="faq-question">
+                                <span>${item.question || ''}</span>
+                                <svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="faq-answer">${item.answer || ''}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            // Accordion
+            faqCard.querySelectorAll('.faq-item').forEach(item => {
+                item.querySelector('.faq-question').addEventListener('click', () => {
+                    item.classList.toggle('open');
+                });
+            });
+            container.appendChild(faqCard);
+            makeCollapsible(faqCard, faqCard.querySelector('.faq-container'));
+            return;
+        }
+
+        // Key Concepts
+        if (key === 'key_concepts' && Array.isArray(value)) {
+            const conceptCard = document.createElement('div');
+            conceptCard.className = 'card card-full';
+            conceptCard.innerHTML = `
+                <div class="card-header"><h3>&#128218; ${I18N.label('key_concepts')}</h3></div>
+                <div class="concepts-grid">
+                    ${value.map(item => `
+                        <div class="concept-item">
+                            <div class="concept-term">${item.term || ''}</div>
+                            <div class="concept-definition">${item.definition || ''}</div>
+                            ${item.importance ? `<div class="concept-importance">${item.importance}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            container.appendChild(conceptCard);
+            makeCollapsible(conceptCard, conceptCard.querySelector('.concepts-grid'));
+            return;
+        }
+
+        // Content DNA
+        if (key === 'content_dna' && typeof value === 'object') {
+            const dnaCard = document.createElement('div');
+            dnaCard.className = 'card card-full';
+            dnaCard.innerHTML = `
+                <div class="card-header"><h3>&#129516; ${I18N.label('content_dna')}</h3></div>
+                <div class="card-body">
+                    ${value.format_formula ? `
+                        <div class="dna-section">
+                            <div class="dna-label">${I18N.label('format_formula')}</div>
+                            <div class="dna-value dna-formula">${value.format_formula}</div>
+                        </div>
+                    ` : ''}
+                    ${value.emotional_arc ? `
+                        <div class="dna-section">
+                            <div class="dna-label">${I18N.label('emotional_arc')}</div>
+                            <div class="dna-value">${value.emotional_arc}</div>
+                        </div>
+                    ` : ''}
+                    ${value.unique_elements && value.unique_elements.length ? `
+                        <div class="dna-section">
+                            <div class="dna-label">${I18N.label('unique_elements')}</div>
+                            <div class="dna-tags">${value.unique_elements.map(e => `<span class="dna-tag">${e}</span>`).join('')}</div>
+                        </div>
+                    ` : ''}
+                    ${value.replicable_patterns && value.replicable_patterns.length ? `
+                        <div class="dna-section">
+                            <div class="dna-label">${I18N.label('replicable_patterns')}</div>
+                            <div class="dna-tags">${value.replicable_patterns.map(p => `<span class="dna-tag dna-tag-pattern">${p}</span>`).join('')}</div>
+                        </div>
+                    ` : ''}
+                    ${value.success_factors && value.success_factors.length ? `
+                        <div class="dna-section">
+                            <div class="dna-label">${I18N.label('success_factors')}</div>
+                            <div class="dna-tags">${value.success_factors.map(f => `<span class="dna-tag dna-tag-success">${f}</span>`).join('')}</div>
+                        </div>
+                    ` : ''}
+                    ${value.content_pillars && value.content_pillars.length ? `
+                        <div class="dna-section">
+                            <div class="dna-label">${I18N.label('content_pillars')}</div>
+                            <div class="dna-tags">${value.content_pillars.map(p => `<span class="dna-tag dna-tag-pillar">${p}</span>`).join('')}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            container.appendChild(dnaCard);
+            makeCollapsible(dnaCard, dnaCard.querySelector('.card-body'));
+            return;
+        }
+
+        // Recreation Mega Prompt
+        if (key === 'recreation_mega_prompt' && typeof value === 'string') {
+            const megaCard = document.createElement('div');
+            megaCard.className = 'card card-full';
+            megaCard.innerHTML = `
+                <div class="card-header">
+                    <h3>&#127775; ${I18N.label('recreation_mega_prompt')}</h3>
+                    <button class="copy-btn">${I18N.t('copy')}</button>
+                </div>
+                <div class="card-body">
+                    <div class="mega-prompt-info">${I18N.t('mega_prompt_info')}</div>
+                    <div class="mega-prompt-text">${value.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+            megaCard.querySelector('.copy-btn').addEventListener('click', () => {
+                copyToClipboard(value);
+                showToast(I18N.t('copied'));
+            });
+            container.appendChild(megaCard);
+            makeCollapsible(megaCard, megaCard.querySelector('.card-body'));
+            return;
+        }
+
+        // Fallback: genel card olarak render et
+        const card = createCard(key, value, false);
+        container.appendChild(card);
     }
 
     // ==================== VIDEO PRODUCTION ====================
     function renderVideoProduction(data, container) {
         if (!container || !data) return;
 
-        // Style info
+        // Quick actions card
+        const quickCard = document.createElement('div');
+        quickCard.className = 'card card-full';
+        quickCard.innerHTML = `
+            <div class="card-header">
+                <h3>${I18N.t('video_production')}</h3>
+            </div>
+            <div class="quick-actions">
+                <button class="action-btn action-voiceover" id="copy-full-voiceover">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                    ${I18N.t('copy_voiceover', 'Tam Seslendirme Metnini Kopyala')}
+                </button>
+                <button class="action-btn action-prompts" id="copy-all-prompts">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    ${I18N.t('copy_all_prompts', 'Tum AI Promptlarini Kopyala')}
+                </button>
+                <button class="action-btn action-export" id="export-video-package">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    ${I18N.t('download_video_package', 'Video Paketi Indir (JSON)')}
+                </button>
+                <button class="action-btn action-markdown" id="copy-markdown-package">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    ${I18N.t('copy_as_markdown', 'Markdown Olarak Kopyala')}
+                </button>
+            </div>
+        `;
+        container.appendChild(quickCard);
+
+        // Quick action events
+        quickCard.querySelector('#copy-full-voiceover').addEventListener('click', () => {
+            const voiceover = data.full_voiceover_script || data.storyboard?.map(s => s.voiceover_script).filter(Boolean).join('\n\n') || '';
+            copyToClipboard(voiceover);
+            showToast(I18N.t('copied'));
+        });
+
+        quickCard.querySelector('#copy-all-prompts').addEventListener('click', () => {
+            let allPrompts = '';
+            if (data.storyboard) {
+                allPrompts += I18N.t('scene_prompts_header') + '\n\n';
+                data.storyboard.filter(s => s.ai_video_prompt).forEach((s, i) => {
+                    allPrompts += `Scene ${i + 1} (${s.sure || ''}):\n${s.ai_video_prompt}\n\n`;
+                });
+            }
+            if (data.export_ready_prompts) {
+                allPrompts += I18N.t('platform_prompts_header') + '\n\n';
+                Object.entries(data.export_ready_prompts).forEach(([k, v]) => {
+                    allPrompts += `${k.replace(/_/g, ' ').toUpperCase()}:\n${v}\n\n`;
+                });
+            }
+            copyToClipboard(allPrompts);
+            showToast(I18N.t('copied'));
+        });
+
+        quickCard.querySelector('#export-video-package').addEventListener('click', () => {
+            const pkg = {
+                storyboard: data.storyboard,
+                voiceover: data.full_voiceover_script,
+                style: { overall_style: data.overall_style, color_palette: data.color_palette, music_mood: data.music_mood, transition_style: data.transition_style, aspect_ratio: data.aspect_ratio_recommendation },
+                music_recommendations: data.music_recommendations,
+                export_ready_prompts: data.export_ready_prompts
+            };
+            const json = JSON.stringify(pkg, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'video-production-package.json'; a.click();
+            URL.revokeObjectURL(url);
+            showToast(I18N.t('copied'));
+        });
+
+        quickCard.querySelector('#copy-markdown-package').addEventListener('click', () => {
+            let md = I18N.t('md_video_production') + '\n\n';
+            md += `${I18N.t('md_style_guide')}\n- **${I18N.t('md_visual_style')}:** ${data.overall_style || '-'}\n- **${I18N.t('md_color_palette')}:** ${data.color_palette || '-'}\n- **${I18N.t('md_music')}:** ${data.music_mood || '-'}\n- **${I18N.t('md_transitions')}:** ${data.transition_style || '-'}\n- **${I18N.t('md_aspect_ratio')}:** ${data.aspect_ratio_recommendation || '-'}\n\n`;
+            if (data.storyboard) {
+                md += I18N.t('md_storyboard') + '\n\n';
+                data.storyboard.forEach((s, i) => {
+                    md += `### ${I18N.t('md_scene')} ${s.sahne || i + 1} (${s.sure || ''})\n`;
+                    md += `- **${I18N.t('md_description')}:** ${s.aciklama || '-'}\n`;
+                    md += `- **${I18N.t('md_camera')}:** ${s.kamera || '-'}\n`;
+                    md += `- **${I18N.t('md_sound')}:** ${s.ses || '-'}\n`;
+                    if (s.voiceover_script) md += `- **${I18N.t('md_voiceover')}:** ${s.voiceover_script}\n`;
+                    if (s.text_overlay?.length) md += `- **Text Overlay:** ${s.text_overlay.join(', ')}\n`;
+                    if (s.ai_video_prompt) md += `- **AI Prompt:** ${s.ai_video_prompt}\n`;
+                    md += '\n';
+                });
+            }
+            if (data.full_voiceover_script) md += `${I18N.t('md_full_voiceover')}\n${data.full_voiceover_script}\n\n`;
+            if (data.export_ready_prompts) {
+                md += I18N.t('md_platform_prompts') + '\n\n';
+                Object.entries(data.export_ready_prompts).forEach(([k, v]) => {
+                    md += `### ${k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}\n${v}\n\n`;
+                });
+            }
+            copyToClipboard(md);
+            showToast(I18N.t('copied'));
+        });
+
+        // Stil rehberi
         if (data.overall_style || data.color_palette || data.music_mood) {
             const styleCard = document.createElement('div');
             styleCard.className = 'card card-full';
             styleCard.innerHTML = `
-                <div class="card-header">
-                    <h3>Video Stil Rehberi</h3>
-                </div>
+                <div class="card-header"><h3>${I18N.t('style_guide', 'Video Stil Rehberi')}</h3></div>
                 <div class="style-grid">
-                    ${data.overall_style ? `<div class="style-item"><div class="style-label">Gorsel Stil</div><div class="style-value">${data.overall_style}</div></div>` : ''}
-                    ${data.color_palette ? `<div class="style-item"><div class="style-label">Renk Paleti</div><div class="style-value">${data.color_palette}</div></div>` : ''}
-                    ${data.music_mood ? `<div class="style-item"><div class="style-label">Muzik Tarzi</div><div class="style-value">${data.music_mood}</div></div>` : ''}
-                    ${data.transition_style ? `<div class="style-item"><div class="style-label">Gecis Efekti</div><div class="style-value">${data.transition_style}</div></div>` : ''}
-                    ${data.aspect_ratio_recommendation ? `<div class="style-item"><div class="style-label">En-Boy Orani</div><div class="style-value">${data.aspect_ratio_recommendation}</div></div>` : ''}
+                    ${data.overall_style ? `<div class="style-item"><div class="style-label">${I18N.label('overall_style')}</div><div class="style-value">${data.overall_style}</div></div>` : ''}
+                    ${data.color_palette ? `<div class="style-item"><div class="style-label">${I18N.label('color_palette')}</div><div class="style-value">${data.color_palette}</div></div>` : ''}
+                    ${data.music_mood ? `<div class="style-item"><div class="style-label">${I18N.label('music_mood')}</div><div class="style-value">${data.music_mood}</div></div>` : ''}
+                    ${data.transition_style ? `<div class="style-item"><div class="style-label">${I18N.label('transition_style')}</div><div class="style-value">${data.transition_style}</div></div>` : ''}
+                    ${data.aspect_ratio_recommendation ? `<div class="style-item"><div class="style-label">${I18N.label('aspect_ratio_recommendation')}</div><div class="style-value">${data.aspect_ratio_recommendation}</div></div>` : ''}
                 </div>
             `;
             container.appendChild(styleCard);
+        }
+
+        // Muzik onerileri
+        if (data.music_recommendations && Array.isArray(data.music_recommendations)) {
+            const musicCard = document.createElement('div');
+            musicCard.className = 'card card-full';
+            musicCard.innerHTML = `<div class="card-header"><h3>${I18N.t('music_recommendations')}</h3></div>`;
+            const musicContent = document.createElement('div');
+            musicContent.className = 'music-recommendations';
+            data.music_recommendations.forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'music-item';
+                item.innerHTML = `
+                    <div class="music-name">${m.name || '-'}</div>
+                    <div class="music-mood">${m.mood || '-'}</div>
+                    <div class="music-where">${m.where || '-'}</div>
+                `;
+                musicContent.appendChild(item);
+            });
+            musicCard.appendChild(musicContent);
+            container.appendChild(musicCard);
         }
 
         // Storyboard
         if (data.storyboard && Array.isArray(data.storyboard)) {
             const storyCard = document.createElement('div');
             storyCard.className = 'card card-full';
-            storyCard.innerHTML = `<div class="card-header"><h3>Storyboard - Sahne Sahne</h3><button class="copy-btn" id="copy-all-scenes">Tum Prompt'lari Kopyala</button></div>`;
+            storyCard.innerHTML = `<div class="card-header"><h3>${I18N.label('storyboard')} - ${data.storyboard.length} ${I18N.t('scene')}</h3><button class="copy-btn" id="copy-all-scenes">${I18N.t('copy_all_prompts', 'Tum Sahne Promptlarini Kopyala')}</button></div>`;
 
             const storyContent = document.createElement('div');
 
@@ -352,36 +806,72 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="scene-number">${scene.sahne || (i + 1)}</div>
                             <strong style="font-size:14px;color:var(--text)">${scene.aciklama || ''}</strong>
                         </div>
-                        <span class="scene-time">${scene.sure || ''}</span>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            ${scene.duration_seconds ? `<span class="scene-duration">${scene.duration_seconds}s</span>` : ''}
+                            <span class="scene-time">${scene.sure || ''}</span>
+                        </div>
                     </div>
                     <div class="storyboard-details">
-                        <div class="storyboard-detail"><span class="label">Kamera</span><span class="value">${scene.kamera || '-'}</span></div>
-                        <div class="storyboard-detail"><span class="label">Ses/Muzik</span><span class="value">${scene.ses || '-'}</span></div>
-                        ${scene.metin ? `<div class="storyboard-detail"><span class="label">Ekran Metni</span><span class="value">${scene.metin}</span></div>` : ''}
+                        <div class="storyboard-detail"><span class="label">${I18N.t('camera_label')}</span><span class="value">${scene.kamera || '-'}</span></div>
+                        <div class="storyboard-detail"><span class="label">${I18N.t('sound_label')}</span><span class="value">${scene.ses || '-'}</span></div>
+                        ${scene.metin ? `<div class="storyboard-detail"><span class="label">${I18N.t('screen_text_label')}</span><span class="value">${scene.metin}</span></div>` : ''}
                     </div>
+                    ${scene.voiceover_script ? `
+                        <div class="voiceover-box">
+                            <div class="voiceover-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                                ${I18N.t('voiceover')}
+                            </div>
+                            <div class="voiceover-text">${scene.voiceover_script}</div>
+                        </div>
+                    ` : ''}
+                    ${scene.text_overlay && scene.text_overlay.length ? `
+                        <div class="text-overlay-box">
+                            <div class="overlay-label">Text Overlay</div>
+                            <div class="overlay-items">${scene.text_overlay.map(t => `<span class="overlay-tag">${t}</span>`).join('')}</div>
+                        </div>
+                    ` : ''}
                     ${scene.ai_video_prompt ? `
                         <div class="ai-prompt-box" data-prompt="${encodeURIComponent(scene.ai_video_prompt)}">
-                            <div class="prompt-label"><span>AI VIDEO PROMPT</span><span style="font-size:10px;opacity:0.6">tikla kopyala</span></div>
+                            <div class="prompt-label"><span>AI VIDEO PROMPT</span><span style="font-size:10px;opacity:0.6">${I18N.t('click_to_copy')}</span></div>
                             <div class="prompt-text">${scene.ai_video_prompt}</div>
                         </div>
                     ` : ''}
+                    <button class="copy-scene-btn" data-scene="${i}">${I18N.t('copy_scene')}</button>
                 `;
                 storyContent.appendChild(item);
             });
 
             storyCard.appendChild(storyContent);
             container.appendChild(storyCard);
+            makeCollapsible(storyCard, storyContent, 500);
 
-            // Prompt kopyalama eventleri
-            storyCard.querySelectorAll('.ai-prompt-box').forEach(box => {
-                box.addEventListener('click', () => {
-                    const prompt = decodeURIComponent(box.dataset.prompt);
-                    copyToClipboard(prompt);
-                    showToast("AI Video prompt kopyalandi!");
+            // Copy events
+            storyCard.querySelectorAll('.copy-scene-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.dataset.scene);
+                    const s = data.storyboard[idx];
+                    if (!s) return;
+                    let text = `${I18N.t('md_scene')} ${s.sahne || idx + 1} (${s.sure || ''})\n`;
+                    text += `${I18N.t('md_description')}: ${s.aciklama || '-'}\n${I18N.t('md_camera')}: ${s.kamera || '-'}\n${I18N.t('md_sound')}: ${s.ses || '-'}\n`;
+                    if (s.voiceover_script) text += `${I18N.t('md_voiceover')}: ${s.voiceover_script}\n`;
+                    if (s.text_overlay?.length) text += `Text Overlay: ${s.text_overlay.join(', ')}\n`;
+                    if (s.ai_video_prompt) text += `AI Video Prompt: ${s.ai_video_prompt}\n`;
+                    copyToClipboard(text);
+                    btn.innerText = I18N.t('copied');
+                    setTimeout(() => { btn.innerText = I18N.t('copy_scene'); }, 2000);
                 });
             });
 
-            // Tum promptlari kopyala
+            storyCard.querySelectorAll('.ai-prompt-box').forEach(box => {
+                box.addEventListener('click', (e) => {
+                    if (e.target.closest('.copy-scene-btn')) return;
+                    const prompt = decodeURIComponent(box.dataset.prompt);
+                    copyToClipboard(prompt);
+                    showToast(I18N.t('copied'));
+                });
+            });
+
             const copyAllBtn = storyCard.querySelector('#copy-all-scenes');
             if (copyAllBtn) {
                 copyAllBtn.addEventListener('click', () => {
@@ -390,15 +880,80 @@ document.addEventListener('DOMContentLoaded', async () => {
                         .map((s, i) => `Scene ${i + 1} (${s.sure || ''}):\n${s.ai_video_prompt}`)
                         .join('\n\n');
                     copyToClipboard(allPrompts);
-                    showToast("Tum sahne prompt'lari kopyalandi!");
-                    copyAllBtn.innerText = 'Kopyalandi!';
+                    showToast(I18N.t('copied'));
+                    copyAllBtn.innerText = I18N.t('copied');
                     copyAllBtn.classList.add('copied');
                     setTimeout(() => {
-                        copyAllBtn.innerText = 'Tum Prompt\'lari Kopyala';
+                        copyAllBtn.innerText = I18N.t('copy_all_prompts', 'Tum Sahne Promptlarini Kopyala');
                         copyAllBtn.classList.remove('copied');
                     }, 2000);
                 });
             }
+        }
+
+        // Tam seslendirme metni
+        if (data.full_voiceover_script) {
+            const voiceCard = document.createElement('div');
+            voiceCard.className = 'card card-full';
+            voiceCard.innerHTML = `
+                <div class="card-header">
+                    <h3>${I18N.t('full_voiceover_script')}</h3>
+                    <button class="copy-btn" id="copy-voiceover-card">${I18N.t('copy')}</button>
+                </div>
+                <div class="card-body">
+                    <div class="full-voiceover">${data.full_voiceover_script}</div>
+                </div>
+            `;
+            container.appendChild(voiceCard);
+            makeCollapsible(voiceCard, voiceCard.querySelector('.card-body'));
+            voiceCard.querySelector('#copy-voiceover-card').addEventListener('click', () => {
+                copyToClipboard(data.full_voiceover_script);
+                showToast(I18N.t('copied'));
+            });
+        }
+
+        // Platform promptlari
+        if (data.export_ready_prompts) {
+            const platformCard = document.createElement('div');
+            platformCard.className = 'card card-full';
+            platformCard.innerHTML = `<div class="card-header"><h3>${I18N.t('platform_prompts')}</h3></div>`;
+
+            const platformGrid = document.createElement('div');
+            platformGrid.className = 'platform-grid';
+
+            const platforms = [
+                { key: 'sora_prompt', name: 'OpenAI Sora', icon: '&#9733;', color: '#10a37f' },
+                { key: 'runway_prompt', name: 'Runway Gen-3', icon: '&#9654;', color: '#6366f1' },
+                { key: 'pika_prompt', name: 'Pika Labs', icon: '&#9672;', color: '#f59e0b' },
+                { key: 'kling_prompt', name: 'Kling AI', icon: '&#9830;', color: '#ec4899' },
+                { key: 'luma_prompt', name: 'Luma Dream', icon: '&#9788;', color: '#06b6d4' }
+            ];
+
+            platforms.forEach(p => {
+                const val = data.export_ready_prompts[p.key];
+                if (!val) return;
+                const item = document.createElement('div');
+                item.className = 'platform-card';
+                item.style.borderColor = p.color + '33';
+                item.innerHTML = `
+                    <div class="platform-header">
+                        <span class="platform-icon" style="color:${p.color}">${p.icon}</span>
+                        <span class="platform-name">${p.name}</span>
+                    </div>
+                    <div class="platform-prompt">${val}</div>
+                    <button class="platform-copy-btn" style="background:${p.color}">${I18N.t('copy')}</button>
+                `;
+                item.querySelector('.platform-copy-btn').addEventListener('click', () => {
+                    copyToClipboard(val);
+                    const btn = item.querySelector('.platform-copy-btn');
+                    btn.innerText = I18N.t('copied');
+                    setTimeout(() => { btn.innerText = I18N.t('copy'); }, 2000);
+                });
+                platformGrid.appendChild(item);
+            });
+
+            platformCard.appendChild(platformGrid);
+            container.appendChild(platformCard);
         }
     }
 
@@ -424,14 +979,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         banner.innerHTML = '';
 
         const items = [
-            { label: 'Genel Puan', value: score.overall_score },
-            { label: 'SEO', value: score.seo_score },
-            { label: 'Etkilesim', value: score.engagement_score },
-            { label: 'Viral Potansiyel', value: score.viral_potential },
-            { label: 'Icerik Kalitesi', value: score.content_quality }
+            { label: I18N.t('overall_score'), value: score.overall_score },
+            { label: I18N.t('seo_score'), value: score.seo_score },
+            { label: I18N.t('engagement_score'), value: score.engagement_score },
+            { label: I18N.t('viral_potential'), value: score.viral_potential },
+            { label: I18N.t('content_quality'), value: score.content_quality }
         ];
 
-        items.forEach((item, index) => {
+        items.forEach((item) => {
             const val = parseInt(item.value) || 0;
             const colorClass = val >= 70 ? 'score-high' : val >= 40 ? 'score-mid' : 'score-low';
             const div = document.createElement('div');
@@ -443,7 +998,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             banner.appendChild(div);
         });
 
-        // Animasyonlu sayac
         requestAnimationFrame(() => {
             banner.querySelectorAll('.score-value[data-target]').forEach((el, i) => {
                 const target = parseInt(el.dataset.target);
@@ -465,7 +1019,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const card = document.createElement('div');
         card.className = 'card';
 
-        // Header
         const header = document.createElement('div');
         header.className = 'card-header';
 
@@ -475,21 +1028,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const copyBtn = document.createElement('button');
         copyBtn.className = 'copy-btn';
-        copyBtn.innerText = 'Kopyala';
+        copyBtn.innerText = I18N.t('copy');
         copyBtn.addEventListener('click', () => {
             const text = extractText(value);
             copyToClipboard(text);
-            copyBtn.innerText = 'Kopyalandi!';
+            copyBtn.innerText = I18N.t('copied');
             copyBtn.classList.add('copied');
             setTimeout(() => {
-                copyBtn.innerText = 'Kopyala';
+                copyBtn.innerText = I18N.t('copy');
                 copyBtn.classList.remove('copied');
             }, 2000);
         });
         header.appendChild(copyBtn);
         card.appendChild(header);
 
-        // Content
         const contentDiv = document.createElement('div');
         contentDiv.className = 'card-body';
 
@@ -500,7 +1052,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         card.appendChild(contentDiv);
+
+        // Auto-collapse long content
+        makeCollapsible(card, contentDiv);
+
         return card;
+    }
+
+    // Auto-collapse helper - wraps content in collapse-content div
+    function makeCollapsible(card, contentEl, threshold = 400) {
+        requestAnimationFrame(() => {
+            const target = contentEl || card.querySelector('.card-body') || card.querySelector('.timeline-container') || card.querySelector('.faq-container') || card.querySelector('.concepts-grid') || card.querySelector('.storyboard-item')?.parentElement;
+            if (!target || target.scrollHeight <= threshold) return;
+
+            // Wrap target in collapse-content div
+            const wrapper = document.createElement('div');
+            wrapper.className = 'collapse-content';
+            target.parentNode.insertBefore(wrapper, target);
+            wrapper.appendChild(target);
+
+            card.classList.add('collapsible');
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'card-toggle';
+            toggleBtn.innerHTML = `<span>${I18N.t('show_more') || 'Devamini gor'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`;
+            toggleBtn.addEventListener('click', () => {
+                const isExpanded = card.classList.toggle('expanded');
+                toggleBtn.querySelector('span').textContent = isExpanded
+                    ? (I18N.t('show_less') || 'Daralt')
+                    : (I18N.t('show_more') || 'Devamini gor');
+            });
+            card.appendChild(toggleBtn);
+        });
     }
 
     // ==================== RENDER HELPERS ====================
@@ -517,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 copyToClipboard(text);
                 div.classList.add('copied-item');
                 setTimeout(() => div.classList.remove('copied-item'), 1500);
-                showToast("Panoya kopyalandi!");
+                showToast(I18N.t('copied'));
             });
             list.appendChild(div);
         });
@@ -536,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const bar = document.createElement('div');
                 bar.className = 'heatmap-bar';
                 bar.style.height = `${Math.min(100, Math.max(5, val))}%`;
-                bar.title = `Tahmini Ilgi: %${val}`;
+                bar.title = `${I18N.t('estimated_interest')}: %${val}`;
                 heatmap.appendChild(bar);
             });
             container.appendChild(heatmap);
@@ -611,23 +1193,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ==================== HISTORY ====================
     async function loadHistory() {
+        // Onceki istegi iptal et
+        if (historyAbortController) {
+            historyAbortController.abort();
+        }
+        historyAbortController = new AbortController();
+
         const container = document.getElementById('history-content');
-        // Skeleton loading
         container.innerHTML = `<div class="history-grid">
             ${Array(6).fill('<div class="skeleton skeleton-card" style="height:100px;border-radius:12px"></div>').join('')}
         </div>`;
 
         try {
-            const response = await authFetch(`${BACKEND_URL}/api/analyses`);
-            if (!response.ok) throw new Error("Gecmis yuklenemedi.");
+            const token = await SupabaseAuth.getToken();
+            if (!token) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128274;</div>
+                        <h3>${I18N.t('login_required_short')}</h3>
+                        <p>${I18N.t('login_to_see_history_short')}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const response = await fetch(`${BACKEND_URL}/api/analyses`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+                signal: historyAbortController.signal
+            });
+
+            if (!response.ok) throw new Error(I18N.t('error_connection'));
             const data = await response.json();
 
             if (!data.analyses || data.analyses.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="icon">&#128270;</div>
-                        <h3>Henuz analiz yok</h3>
-                        <p>Bir YouTube videosuna gidin ve analiz baslatin.</p>
+                        <h3>${I18N.t('no_analysis_yet_short')}</h3>
+                        <p>${I18N.t('start_analysis_hint')}</p>
                     </div>
                 `;
                 return;
@@ -641,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const card = document.createElement('div');
                 card.className = 'history-card';
 
-                const date = new Date(item.createdAt).toLocaleDateString('tr-TR', {
+                const date = new Date(item.createdAt).toLocaleDateString(I18N.getLocale(), {
                     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
 
@@ -651,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <h4>${item.title}</h4>
                         <span>${item.channelName} - ${date}</span>
                     </div>
-                    <button class="delete-btn" title="Sil">x</button>
+                    <button class="delete-btn" title="${I18N.t('delete')}">x</button>
                 `;
 
                 card.addEventListener('click', (e) => {
@@ -661,13 +1264,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 card.querySelector('.delete-btn').addEventListener('click', async (e) => {
                     e.stopPropagation();
-                    if (!confirm('Bu analizi silmek istediginize emin misiniz?')) return;
+                    if (!confirm(I18N.t('delete_confirm'))) return;
                     try {
                         await authFetch(`${BACKEND_URL}/api/analysis/${item.id}`, { method: 'DELETE' });
                         card.remove();
-                        showToast("Analiz silindi.");
+                        showToast(I18N.t('analysis_deleted'));
                     } catch (err) {
-                        showToast("Silme hatasi.");
+                        showToast(I18N.t('delete_error'));
                     }
                 });
 
@@ -676,12 +1279,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             container.appendChild(grid);
         } catch (error) {
-            console.error("History error:", error);
+            if (error.name === 'AbortError') return; // Iptal edilen istek
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="icon">&#9888;</div>
-                    <h3>Baglanti Hatasi</h3>
-                    <p>Backend sunucusunun calistigini kontrol edin (localhost:3000)</p>
+                    <h3>${I18N.t('connection_error_title')}</h3>
+                    <p>${I18N.t('connection_error_desc')}</p>
                 </div>
             `;
         }
@@ -689,115 +1292,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ==================== EXPORT ====================
     document.getElementById('export-txt').addEventListener('click', () => {
-        if (!currentAnalysisData) return;
+        if (!currentAnalysisData || currentAnalysisData.is_limited) return;
         const text = generateTextReport(currentAnalysisData);
         downloadFile(text, `analiz-${currentAnalysisData.video_id || 'rapor'}.txt`, 'text/plain');
-        showToast("TXT dosyasi indirildi!");
+        showToast(I18N.t('txt_downloaded'));
     });
 
     document.getElementById('export-json').addEventListener('click', () => {
-        if (!currentAnalysisData) return;
+        if (!currentAnalysisData || currentAnalysisData.is_limited) return;
         const json = JSON.stringify(currentAnalysisData, null, 2);
         downloadFile(json, `analiz-${currentAnalysisData.video_id || 'rapor'}.json`, 'application/json');
-        showToast("JSON dosyasi indirildi!");
+        showToast(I18N.t('json_downloaded'));
     });
 
     document.getElementById('copy-all').addEventListener('click', () => {
-        if (!currentAnalysisData) return;
+        if (!currentAnalysisData || currentAnalysisData.is_limited) return;
         const text = generateTextReport(currentAnalysisData);
         copyToClipboard(text);
-        showToast("Tum rapor panoya kopyalandi!");
+        showToast(I18N.t('report_copied'));
     });
 
     // ==================== UTILITIES ====================
     function formatLabel(key) {
-        const labels = {
-            'video_score': 'Video Puani',
-            'content_style_breakdown': 'Icerik Stili Analizi',
-            'psychological_triggers': 'Psikolojik Tetikleyiciler',
-            'hook_structure': 'Giris (Hook) Yapisi',
-            'retention_strategy': 'Izleyici Tutma Stratejisi',
-            'thumbnail_psychology': 'Kucuk Resim Psikolojisi',
-            'target_audience': 'Hedef Kitle',
-            'tone_analysis': 'Ton Analizi',
-            'script_reverse_engineering': 'Senaryo Yapisi',
-            'cta_strategy': 'CTA Stratejisi',
-            'competitor_analysis': 'Rakip Analizi',
-            'comment_sentiment': 'Yorum Duygu Analizi',
-            'video_flow_mermaid': 'Video Akis Semasi',
-            'deep_digest_summary': 'Derin Ozet & Aksiyon Plani',
-            'notebook_podcast_script': 'Podcast Senaryosu',
-            'audience_retention_heatmap': 'Izleyici Ilgi Isi Haritasi',
-            'similar_video_prompts': 'Benzer Video Promptlari',
-            'viral_hook_prompts': 'Viral Giris Promptlari',
-            'title_variations': 'Baslik Varyasyonlari',
-            'seo_descriptions': 'SEO Aciklamalari',
-            'high_ctr_titles': 'Yuksek CTR Basliklar',
-            'thumbnail_text_ideas': 'Thumbnail Metin Fikirleri',
-            'seo_tags': 'SEO Tag Onerileri',
-            'full_script_template': 'Tam Senaryo Sablonu',
-            'hook_variations': 'Giris Varyasyonlari',
-            'storytelling_framework': 'Hikaye Anlatim Cercevesi',
-            'aggressive_sales': 'Agresif Satis Tonu',
-            'calm_educational': 'Egitici & Sakin Ton',
-            'documentary': 'Belgesel Tarzi',
-            'motivational': 'Motivasyonel Anlatim',
-            'controversial': 'Tartismali Yaklasim',
-            'ai_prompts_toolkit': 'AI Prompt Araclari',
-            'chatgpt_prompts': 'ChatGPT Promptlari',
-            'midjourney_prompts': 'Midjourney Promptlari',
-            'blog_post_prompt': 'Blog Yazisi Promptu',
-            'twitter_thread_prompt': 'Twitter Thread Promptu',
-            'linkedin_post_prompt': 'LinkedIn Paylasim Promptu',
-            'tiktok_script_prompt': 'TikTok/Reels Promptu',
-            'email_newsletter_prompt': 'Email Bulten Promptu',
-            'content_repurpose_ideas': 'Icerik Donusturme Fikirleri',
-            'monetization_ideas': 'Para Kazanma Fikirleri',
-            'overall_score': 'Genel Puan',
-            'seo_score': 'SEO Puani',
-            'engagement_score': 'Etkilesim Puani',
-            'viral_potential': 'Viral Potansiyel',
-            'content_quality': 'Icerik Kalitesi',
-            'demographics': 'Demografik',
-            'psychographics': 'Psikografik',
-            'viewer_intent': 'Izleyici Niyeti',
-            'niche_positioning': 'Nis Konumlandirma',
-            'differentiation': 'Farklilasma',
-            'market_gap': 'Pazar Boslugu',
-            'overall_mood': 'Genel Duygu',
-            'top_themes': 'One Cikan Temalar',
-            'audience_questions': 'Izleyici Sorulari',
-            'content_ideas_from_comments': 'Yorumlardan Fikirler',
-            'key_takeaways': 'Onemli Dersler',
-            'action_plan': 'Aksiyon Plani',
-            'one_sentence_summary': 'Tek Cumle Ozet',
-            'type': 'Tip',
-            'analysis': 'Analiz',
-            'first_5_seconds': 'Ilk 5 Saniye',
-            'improvement_tips': 'Iyilestirme Onerileri',
-            'structure': 'Yapi',
-            'hero': 'Ana Karakter',
-            'conflict': 'Problem/Catisma',
-            'resolution': 'Cozum',
-            'template': 'Sablon',
-            'verdict': 'Degerlendirme',
-            'video_production': 'Video Production',
-            'ai_video_prompts': 'AI Video Prompt\'lari',
-            'runway_prompts': 'Runway ML Prompt\'lari',
-            'luma_prompts': 'Luma AI Prompt\'lari',
-            'kling_prompts': 'Kling AI Prompt\'lari',
-            'shorts_reels_prompts': 'Shorts/Reels/TikTok Prompt\'lari',
-            'thumbnail_dalle_prompts': 'Thumbnail AI Prompt\'lari',
-            'b_roll_suggestions': 'B-Roll Onerileri',
-            'storyboard': 'Storyboard',
-            'overall_style': 'Gorsel Stil',
-            'color_palette': 'Renk Paleti',
-            'music_mood': 'Muzik Tarzi',
-            'transition_style': 'Gecis Efekti',
-            'aspect_ratio_recommendation': 'En-Boy Orani'
-        };
-        const cleanKey = key.replace(/^[0-9]+\.\s*/, '').toLowerCase().trim().replace(/ /g, '_');
-        return labels[cleanKey] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        return I18N.label(key);
     }
 
     function extractText(value) {
@@ -813,11 +1330,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const metadata = data.video_metadata;
         const results = data.analysis_results;
 
-        let report = `=== YT AI ANALYZER RAPORU ===\n\n`;
-        report += `Video: ${metadata.title}\n`;
-        report += `Kanal: ${metadata.channelName}\n`;
+        let report = I18N.t('report_title') + '\n\n';
+        report += `${I18N.t('video_label')}: ${metadata.title}\n`;
+        report += `${I18N.t('channel_label')}: ${metadata.channelName}\n`;
         report += `URL: ${metadata.url}\n`;
-        report += `Tarih: ${new Date().toLocaleDateString('tr-TR')}\n`;
+        report += `${I18N.t('date_label')}: ${new Date().toLocaleDateString(I18N.getLocale())}\n`;
         report += `${'='.repeat(50)}\n\n`;
 
         Object.entries(results).forEach(([key, value]) => {
@@ -865,12 +1382,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Upgrade butonu
     const upgradeBtn = document.getElementById('upgrade-btn');
     if (upgradeBtn) {
         upgradeBtn.addEventListener('click', async () => {
             upgradeBtn.disabled = true;
-            upgradeBtn.innerText = 'Yukleniyor...';
+            upgradeBtn.innerText = I18N.t('payment_loading');
 
             try {
                 const response = await authFetch(`${BACKEND_URL}/api/payment/create`, {
@@ -880,19 +1396,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (!response.ok) {
                     const err = await response.json().catch(() => ({}));
-                    throw new Error(err.error || 'Odeme olusturulamadi.');
+                    throw new Error(err.error || I18N.t('payment_error'));
                 }
 
                 const { token } = await response.json();
-                // PayTR odeme sayfasini yeni sekmede ac
                 chrome.tabs.create({
                     url: `https://www.paytr.com/odeme/guvenli/${token}`
                 });
             } catch (e) {
-                console.error('Odeme hatasi:', e);
-                showToast('Odeme olusturulurken hata olustu.');
+                showToast(I18N.t('payment_create_error'));
                 upgradeBtn.disabled = false;
-                upgradeBtn.innerText = "Pro'ya Yukselt";
+                upgradeBtn.innerText = I18N.t('upgrade_to_pro_short');
             }
         });
     }

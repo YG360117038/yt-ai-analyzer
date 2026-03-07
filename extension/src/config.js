@@ -1,7 +1,9 @@
 /**
  * Extension Config
- * Deploy sonrasi BACKEND_URL'i Render URL'iniz ile degistirin.
- * SUPABASE_URL ve SUPABASE_ANON_KEY degerlerini Supabase dashboard'dan alin.
+ *
+ * BACKEND_URL: Backend API adresi (Render deploy URL'i)
+ * SUPABASE_URL: Supabase proje URL'i
+ * SUPABASE_ANON_KEY: Supabase anon/public key (client-side icin guvenlidir, RLS ile korunur)
  */
 const CONFIG = {
     BACKEND_URL: "https://yt-ai-analyzer.onrender.com",

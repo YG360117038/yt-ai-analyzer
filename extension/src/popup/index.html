@@ -421,6 +421,50 @@
 
         .btn.loading .spinner { display: block; }
         .btn.loading .btn-text { display: none; }
+
+        /* Pro Upgrade Banner */
+        .pro-upgrade-banner {
+            display: none;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 140, 0, 0.08));
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .pro-upgrade-banner:hover {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(255, 140, 0, 0.12));
+            border-color: rgba(255, 215, 0, 0.25);
+            transform: translateY(-1px);
+        }
+        .pro-upgrade-banner.active { display: block; }
+        .pro-upgrade-banner .pro-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #FFD700, #FF8C00);
+            color: #000;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .pro-upgrade-banner .pro-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+        .pro-upgrade-banner .pro-desc {
+            font-size: 11px;
+            color: #999;
+        }
+        .pro-upgrade-banner .pro-price {
+            color: #FFD700;
+            font-weight: 700;
+        }
     </style>
 </head>
 
@@ -439,7 +483,7 @@
             <div id="logged-out-view">
                 <button id="google-login-btn" class="btn-google">
                     <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                    Google ile Giris Yap
+                    <span data-i18n="login_with_google">Google ile Giris Yap</span>
                 </button>
             </div>
             <div id="logged-in-view" style="display:none">
@@ -448,16 +492,16 @@
                         <img id="user-avatar" class="user-avatar" src="" alt="">
                         <span id="user-name" class="user-name">-</span>
                     </div>
-                    <button id="logout-btn" class="btn-logout">Cikis</button>
+                    <button id="logout-btn" class="btn-logout" data-i18n="logout">Cikis</button>
                 </div>
             </div>
         </div>
 
         <div class="warning" id="not-youtube-warning">
-            Bir YouTube video sayfasina gidin ve tekrar deneyin.
+            <span data-i18n="not_youtube_warning">Bir YouTube video sayfasina gidin ve tekrar deneyin.</span>
         </div>
 
-        <div id="login-warning" class="warning">
+        <div id="login-warning" class="warning" data-i18n="login_warning">
             Analiz yapmak icin giris yapin.
         </div>
 
@@ -465,19 +509,19 @@
             <div class="video-info">
                 <img id="preview-thumb" src="" alt="">
                 <div class="video-details">
-                    <h3 id="preview-title">Video Basligi</h3>
-                    <span id="preview-channel">Kanal Adi</span>
+                    <h3 id="preview-title" data-i18n="video_title_placeholder">Video Basligi</h3>
+                    <span id="preview-channel" data-i18n="channel_name_placeholder">Kanal Adi</span>
                 </div>
             </div>
         </div>
 
         <div class="status-row glass">
-            <span class="label">Durum</span>
-            <span class="value"><span class="status-dot" id="status-dot"></span><span id="status-text">Hazir</span></span>
+            <span class="label" data-i18n="status">Durum</span>
+            <span class="value"><span class="status-dot" id="status-dot"></span><span id="status-text" data-i18n="ready">Hazir</span></span>
         </div>
 
         <div class="status-row glass">
-            <span class="label">Abonelik</span>
+            <span class="label" data-i18n="subscription">Abonelik</span>
             <span class="value" id="sub-status">-</span>
         </div>
 
@@ -499,37 +543,45 @@
                 </svg>
                 <div class="ring-text">
                     <span class="ring-value" id="ring-value">-</span>
-                    <span class="ring-label">kalan</span>
+                    <span class="ring-label" data-i18n="remaining">kalan</span>
                 </div>
             </div>
             <div class="ring-info">
                 <div class="ring-info-item">
                     <span class="ring-info-dot remaining"></span>
-                    <span id="ring-remaining-text">Kalan hak</span>
+                    <span id="ring-remaining-text" data-i18n="remaining_rights">Kalan hak</span>
                 </div>
                 <div class="ring-info-item">
                     <span class="ring-info-dot used"></span>
-                    <span id="ring-used-text">Kullanilan</span>
+                    <span id="ring-used-text" data-i18n="used">Kullanilan</span>
                 </div>
             </div>
+        </div>
+
+        <!-- Pro Upgrade Banner (free users) -->
+        <div class="pro-upgrade-banner" id="pro-upgrade-banner">
+            <span class="pro-badge">PRO</span>
+            <div class="pro-title" data-i18n="pro_full_access">Tam Analiz Erisimi</div>
+            <div class="pro-desc"><span data-i18n="pro_see_all">Tum sonuclari gorun</span> - <span class="pro-price">$9.99/ay</span></div>
         </div>
 
         <div class="btn-group">
             <button id="analyze-btn" class="btn btn-primary" disabled>
                 <span class="spinner"></span>
-                <span class="btn-text">Videoyu Analiz Et</span>
+                <span class="btn-text" data-i18n="analyze_video">Videoyu Analiz Et</span>
             </button>
-            <button id="dashboard-btn" class="btn btn-secondary">
+            <button id="dashboard-btn" class="btn btn-secondary" data-i18n="analysis_history">
                 Gecmis Analizler
             </button>
         </div>
 
-        <div class="footer">
+        <div class="footer" data-i18n="popup_footer">
             YouTube sayfasinda sag tikla > "Analyze Video with AI"
         </div>
     </div>
 
     <script src="../config.js"></script>
+    <script src="../lib/i18n.js"></script>
     <script src="../lib/supabase.js"></script>
     <script src="index.js"></script>
 </body>

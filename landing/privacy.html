@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gizlilik Politikasi - YT AI Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #f0f0f0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            line-height: 1.8;
+        }
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .date { color: #888; font-size: 14px; margin-bottom: 40px; }
+        h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 36px;
+            margin-bottom: 12px;
+            color: #ff0000;
+        }
+        p, li { font-size: 15px; color: #bbb; margin-bottom: 12px; }
+        ul { padding-left: 20px; margin-bottom: 16px; }
+        li { margin-bottom: 6px; }
+        a { color: #ff0000; }
+        .back { display: inline-block; margin-bottom: 24px; color: #888; text-decoration: none; font-size: 14px; }
+        .back:hover { color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back">&larr; Ana Sayfa</a>
+        <h1>Gizlilik Politikasi</h1>
+        <p class="date">Son guncelleme: Mart 2026</p>
+
+        <h2>1. Genel Bakis</h2>
+        <p>YT AI Analyzer ("Extension"), YouTube videolarini AI ile analiz eden bir Chrome tarayici uzantisidir. Gizliliginiz bizim icin onemlidir. Bu politika, hangi verileri topladigimizi, nasil kullandigimizi ve nasil korudugumuzu aciklar.</p>
+
+        <h2>2. Topladigimiz Veriler</h2>
+        <p>Extension asagidaki verileri toplar:</p>
+        <ul>
+            <li><strong>Google Hesap Bilgileri:</strong> Google ile giris yaptiginizda email adresiniz, isminiz ve profil fotografiniz alinir. Bu bilgiler Supabase uzerinde guvenli sekilde saklanir.</li>
+            <li><strong>YouTube Video Verileri:</strong> Analiz ettiginiz videolarin basligi, aciklamasi, kanal adi, goruntulenme sayisi, yorumlari ve etiketleri. Bu veriler yalnizca AI analizi icin kullanilir.</li>
+            <li><strong>Analiz Sonuclari:</strong> AI tarafindan uretilen analiz raporlari veritabaninda saklanir, boylece gecmis analizlerinize erisebilirsiniz.</li>
+            <li><strong>Kullanim Sayaci:</strong> Ucretsiz plandaki kullanicilarin analiz sayisi takip edilir.</li>
+        </ul>
+
+        <h2>3. Toplamadigimiz Veriler</h2>
+        <ul>
+            <li>YouTube sifreniz veya Google hesap sifreniz</li>
+            <li>YouTube izleme gecmisiniz</li>
+            <li>Analiz etmediginiz videolarin verileri</li>
+            <li>Kisisel dosyalariniz veya tarayici gecmisiniz</li>
+            <li>Konum bilginiz</li>
+        </ul>
+
+        <h2>4. Verilerin Kullanimi</h2>
+        <p>Topladigimiz verileri asagidaki amaclarla kullaniriz:</p>
+        <ul>
+            <li>YouTube videolarini analiz etmek ve raporlar olusturmak</li>
+            <li>Kullanici hesabinizi yonetmek ve giris durumunu dogrulamak</li>
+            <li>Ucretsiz plan limitlerini takip etmek</li>
+            <li>Hizmetimizi gelistirmek</li>
+        </ul>
+
+        <h2>5. Ucuncu Taraf Hizmetleri</h2>
+        <p>Extension asagidaki ucuncu taraf hizmetlerini kullanir:</p>
+        <ul>
+            <li><strong>Google OAuth:</strong> Giris yapma islemi icin. Google'in gizlilik politikasi gecerlidir.</li>
+            <li><strong>Supabase:</strong> Veritabani ve kimlik dogrulama icin. Veriler Supabase sunucularinda sifrelenerek saklanir.</li>
+            <li><strong>Google Gemini AI:</strong> Video analizi icin video meta verileri (baslik, aciklama, yorumlar) gonderilir.</li>
+            <li><strong>Anthropic Claude AI:</strong> Yedek AI analizi icin ayni veriler gonderilir.</li>
+            <li><strong>Render:</strong> Backend sunucusu icin.</li>
+        </ul>
+
+        <h2>6. Veri Saklama ve Guvenligi</h2>
+        <ul>
+            <li>Tum veriler HTTPS uzerinden iletilir</li>
+            <li>Kimlik dogrulama token'lari Chrome'un guvenli depolama alaninda (chrome.storage) saklanir</li>
+            <li>Veritabani Row Level Security (RLS) ile korunur - her kullanici yalnizca kendi verilerine erisebilir</li>
+            <li>Backend API'leri JWT token dogrulamasi ile korunur</li>
+        </ul>
+
+        <h2>7. Kullanici Haklari</h2>
+        <p>Asagidaki haklara sahipsiniz:</p>
+        <ul>
+            <li><strong>Erisim:</strong> Gecmis analizlerinizi dashboard uzerinden gorebilirsiniz</li>
+            <li><strong>Silme:</strong> Analizlerinizi tek tek silebilirsiniz</li>
+            <li><strong>Hesap Kapatma:</strong> Hesabinizi ve tum verilerinizi silmek icin bizimle iletisime gecin</li>
+            <li><strong>Cikis:</strong> Istediginiz zaman cikis yapabilirsiniz, tarayici verileriniz silinir</li>
+        </ul>
+
+        <h2>8. Cerezler</h2>
+        <p>Extension cerez kullanmaz. Kimlik dogrulama icin Chrome'un yerel depolama API'si (chrome.storage.local) kullanilir.</p>
+
+        <h2>9. Cocuklarin Gizliligi</h2>
+        <p>Extension 13 yasindan kucuk cocuklara yonelik degildir ve bilerek cocuklardan veri toplamaz.</p>
+
+        <h2>10. Politika Degisiklikleri</h2>
+        <p>Bu gizlilik politikasini zaman zaman guncelleyebiliriz. Onemli degisiklikler durumunda Extension uzerinden bildirim yapariz.</p>
+
+        <h2>11. Iletisim</h2>
+        <p>Gizlilikle ilgili sorulariniz icin: <a href="mailto:onurtncs@gmail.com">onurtncs@gmail.com</a></p>
+    </div>
+</body>
+</html>

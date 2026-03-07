@@ -1,4 +1,4 @@
-const BACKEND_URL = (typeof CONFIG !== 'undefined' && CONFIG.BACKEND_URL) || 'http://localhost:3000';
+const BACKEND_URL = CONFIG.BACKEND_URL;
 
 async function authFetch(url, options = {}) {
     const token = await SupabaseAuth.getToken();

@@ -2,6 +2,8 @@
  * Supabase Auth Helper for Chrome Extension
  * chrome.identity.launchWebAuthFlow ile Google OAuth
  */
+let _refreshPromise = null; // Token refresh race condition onleme
+
 const SupabaseAuth = {
 
     // Google ile giris yap
@@ -14,7 +16,13 @@ const SupabaseAuth = {
                 { url: authUrl, interactive: true },
                 async (responseUrl) => {
                     if (chrome.runtime.lastError) {
-                        reject(new Error(chrome.runtime.lastError.message));
+                        const msg = chrome.runtime.lastError.message || 'Google giris penceresi acilamadi.';
+                        // Kullanici iptal etti mi?
+                        if (msg.includes('canceled') || msg.includes('closed') || msg.includes('user')) {
+                            reject(new Error('Giris iptal edildi.'));
+                        } else {
+                            reject(new Error('Google giris hatasi: ' + msg));
+                        }
                         return;
                     }
 
@@ -24,29 +32,33 @@ const SupabaseAuth = {
                     }
 
                     try {
-                        // URL hash'inden token'lari al
                         const url = new URL(responseUrl);
                         const hashParams = new URLSearchParams(url.hash.substring(1));
                         const accessToken = hashParams.get('access_token');
                         const refreshToken = hashParams.get('refresh_token');
-                        const expiresIn = parseInt(hashParams.get('expires_in') || '3600');
+                        const rawExpiresIn = parseInt(hashParams.get('expires_in'));
+                        const expiresIn = (isNaN(rawExpiresIn) || rawExpiresIn <= 0) ? 3600 : rawExpiresIn;
 
                         if (!accessToken) {
-                            reject(new Error('Token alinamadi.'));
+                            reject(new Error('Giris basarili oldu ama token alinamadi. Lutfen tekrar deneyin.'));
                             return;
+                        }
+
+                        if (!refreshToken) {
+                            console.warn('Refresh token alinamadi - oturum suresi sinirli olabilir.');
                         }
 
                         const expiresAt = Date.now() + (expiresIn * 1000);
 
                         await chrome.storage.local.set({
                             auth_token: accessToken,
-                            refresh_token: refreshToken,
+                            refresh_token: refreshToken || null,
                             token_expires_at: expiresAt
                         });
 
                         resolve({ accessToken, refreshToken });
                     } catch (err) {
-                        reject(err);
+                        reject(new Error('Giris islemi sirasinda beklenmeyen bir hata olustu.'));
                     }
                 }
             );
@@ -63,9 +75,15 @@ const SupabaseAuth = {
         if (result.token_expires_at && Date.now() > result.token_expires_at - 300000) {
             if (result.refresh_token) {
                 try {
-                    return await this.refreshToken(result.refresh_token);
+                    // Race condition onleme: ayni anda birden fazla refresh yapma
+                    if (!_refreshPromise) {
+                        _refreshPromise = this.refreshToken(result.refresh_token)
+                            .finally(() => { _refreshPromise = null; });
+                    }
+                    return await _refreshPromise;
                 } catch (e) {
-                    console.error('Token yenileme hatasi:', e);
+                    console.error('Token yenileme hatasi:', e.message);
+                    _refreshPromise = null;
                     await this.signOut();
                     return null;
                 }
@@ -89,15 +107,23 @@ const SupabaseAuth = {
         });
 
         if (!response.ok) {
-            throw new Error('Token yenilenemedi.');
+            const errText = await response.text().catch(() => '');
+            throw new Error('Token yenilenemedi: ' + (response.status === 400 ? 'Oturum suresi dolmus.' : errText));
         }
 
         const data = await response.json();
-        const expiresAt = Date.now() + (data.expires_in * 1000);
+
+        if (!data.access_token) {
+            throw new Error('Yenileme sonrasi token alinamadi.');
+        }
+
+        const rawExpiresIn = data.expires_in;
+        const expiresIn = (typeof rawExpiresIn === 'number' && rawExpiresIn > 0) ? rawExpiresIn : 3600;
+        const expiresAt = Date.now() + (expiresIn * 1000);
 
         await chrome.storage.local.set({
             auth_token: data.access_token,
-            refresh_token: data.refresh_token,
+            refresh_token: data.refresh_token || refreshToken, // Yeni refresh token yoksa eskisini koru
             token_expires_at: expiresAt
         });
 
@@ -106,7 +132,7 @@ const SupabaseAuth = {
 
     // Kullanici profilini backend'den al (retry ile)
     async getProfile(token, retries = 2) {
-        const backendUrl = (typeof CONFIG !== 'undefined' && CONFIG.BACKEND_URL) || 'http://localhost:3000';
+        const backendUrl = CONFIG.BACKEND_URL;
 
         for (let i = 0; i <= retries; i++) {
             try {
@@ -116,7 +142,6 @@ const SupabaseAuth = {
 
                 if (response.ok) return response.json();
 
-                // Son denemede hata firlat
                 if (i === retries) {
                     const err = await response.json().catch(() => ({}));
                     throw new Error(err.error || 'Profil alinamadi.');
@@ -124,7 +149,6 @@ const SupabaseAuth = {
             } catch (e) {
                 if (i === retries) throw e;
             }
-            // Tekrar denemeden once kisa bekle
             await new Promise(r => setTimeout(r, 1000));
         }
     },

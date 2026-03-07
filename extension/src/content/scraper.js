@@ -1,5 +1,5 @@
 /**
- * YouTube Video Data Scraper - Enhanced
+ * YouTube Video Data Scraper
  * Videodan maksimum veri cikarir
  */
 
@@ -87,23 +87,28 @@ async function scrollForComments(maxScrolls = 5) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "EXTRACT_DATA") {
-        console.log("Scraper: Extracting video data...");
         try {
             const data = extractVideoData();
-            console.log("Scraper: Data extracted, comments:", data.comments.length);
             sendResponse(data);
         } catch (e) {
-            console.error("Scraping error:", e);
-            sendResponse({ error: e.message });
+            sendResponse({ error: e.message || 'Video verisi cikarilirken hata olustu.' });
         }
     }
 
     if (request.action === "SCROLL_FOR_COMMENTS") {
-        scrollForComments(request.scrollCount || 5).then(() => {
-            const data = extractVideoData();
-            sendResponse(data);
-        });
-        return true;
+        scrollForComments(request.scrollCount || 5)
+            .then(() => {
+                try {
+                    const data = extractVideoData();
+                    sendResponse(data);
+                } catch (e) {
+                    sendResponse({ error: e.message || 'Yorum yukleme hatasi.' });
+                }
+            })
+            .catch(e => {
+                sendResponse({ error: e.message || 'Scroll hatasi.' });
+            });
+        return true; // async response
     }
 
     return true;

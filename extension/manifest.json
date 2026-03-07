@@ -1,8 +1,16 @@
 {
   "manifest_version": 3,
   "name": "YouTube AI Prompt Analyzer",
-  "version": "1.0",
-  "description": "YouTube videolarını AI ile analiz eder ve içerik stratejileri oluşturur.",
+  "short_name": "YT AI Analyzer",
+  "version": "1.0.0",
+  "description": "Analyze YouTube videos with AI. Get content strategy, audience insights, SEO tips & video production plans. | YouTube videolarını AI ile analiz edin.",
+  "author": "YT AI Analyzer",
+  "homepage_url": "https://ytaianalyzer.com",
+  "icons": {
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
   "permissions": [
     "contextMenus",
     "tabs",
@@ -13,15 +21,22 @@
   ],
   "host_permissions": [
     "https://*.youtube.com/*",
-    "http://localhost:3000/*",
     "https://*.onrender.com/*",
     "https://*.supabase.co/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "background": {
     "service_worker": "src/background/index.js"
   },
   "action": {
-    "default_popup": "src/popup/index.html"
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
   },
   "content_scripts": [
     {
