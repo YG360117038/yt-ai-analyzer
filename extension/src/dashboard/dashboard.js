@@ -373,6 +373,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             container.appendChild(card);
         });
 
+        // AI Studio - tum promptlari topla ve render et
+        renderAIStudio(results);
+
         // Free user ise pro-only tab'lara kilitli overlay ekle
         if (isLimited) {
             renderLockedState();
@@ -382,7 +385,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==================== FREE USER LOCKED STATE ====================
     function renderLockedState() {
         // Pro-only tab'lara kilitli overlay ekle (analysis ve notebook haric - free icerikleri var)
-        const tabIds = ['tab-prompts', 'tab-scripts', 'tab-characters', 'tab-video'];
+        const tabIds = ['tab-prompts', 'tab-scripts', 'tab-characters', 'tab-video', 'tab-aistudio'];
 
         tabIds.forEach(tabId => {
             const tab = document.getElementById(tabId);
@@ -955,6 +958,237 @@ document.addEventListener('DOMContentLoaded', async () => {
             platformCard.appendChild(platformGrid);
             container.appendChild(platformCard);
         }
+    }
+
+    // ==================== AI STUDIO ====================
+    function renderAIStudio(results) {
+        const container = document.getElementById('aistudio-content');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'aistudio-header';
+        header.innerHTML = `
+            <h2>${I18N.t('ai_studio_title', 'AI Studio')}</h2>
+            <p>${I18N.t('ai_studio_desc', 'Bu videoyu yeniden olusturmak icin platform bazli hazir promptlar')}</p>
+        `;
+        container.appendChild(header);
+
+        // Collect all prompts by category
+        const allTools = [];
+
+        // 1. Video Production - Export Ready Prompts
+        const vp = results.video_production || {};
+        if (vp.export_ready_prompts) {
+            const platforms = [
+                { key: 'sora_prompt', name: 'OpenAI Sora', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9733;', color: '#10a37f', cat: 'video' },
+                { key: 'runway_prompt', name: 'Runway Gen-3', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9654;', color: '#6366f1', cat: 'video' },
+                { key: 'pika_prompt', name: 'Pika Labs', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9672;', color: '#f59e0b', cat: 'video' },
+                { key: 'kling_prompt', name: 'Kling AI', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9830;', color: '#ec4899', cat: 'video' },
+                { key: 'luma_prompt', name: 'Luma Dream Machine', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9788;', color: '#06b6d4', cat: 'video' }
+            ];
+            platforms.forEach(p => {
+                const val = vp.export_ready_prompts[p.key];
+                if (val) allTools.push({ ...p, prompt: val });
+            });
+        }
+
+        // 2. AI Video Prompts (per-platform arrays)
+        const avp = results.ai_video_prompts || {};
+        const videoArrayPlatforms = [
+            { key: 'runway_prompts', name: 'Runway ML', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9654;', color: '#6366f1', cat: 'video' },
+            { key: 'sora_prompts', name: 'OpenAI Sora', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9733;', color: '#10a37f', cat: 'video' },
+            { key: 'kling_prompts', name: 'Kling AI', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9830;', color: '#ec4899', cat: 'video' },
+            { key: 'pika_prompts', name: 'Pika Labs', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9672;', color: '#f59e0b', cat: 'video' },
+            { key: 'luma_prompts', name: 'Luma AI', type: I18N.t('ai_cat_video', 'Video Olusturma'), icon: '&#9788;', color: '#06b6d4', cat: 'video' },
+            { key: 'shorts_reels_prompts', name: 'Shorts / Reels / TikTok', type: I18N.t('ai_cat_short', 'Kisa Video'), icon: '&#9889;', color: '#ff0050', cat: 'video' }
+        ];
+        videoArrayPlatforms.forEach(p => {
+            const arr = avp[p.key];
+            if (arr && Array.isArray(arr)) {
+                arr.forEach((prompt, i) => {
+                    if (prompt && prompt.length > 10) {
+                        allTools.push({ ...p, name: `${p.name} #${i + 1}`, prompt });
+                    }
+                });
+            }
+        });
+
+        // 3. Thumbnail / Image prompts
+        const thumbArr = avp.thumbnail_dalle_prompts || [];
+        thumbArr.forEach((prompt, i) => {
+            if (prompt && prompt.length > 10) {
+                allTools.push({
+                    name: `DALL-E / Midjourney #${i + 1}`,
+                    type: I18N.t('ai_cat_image', 'Gorsel Olusturma'),
+                    icon: '&#127912;',
+                    color: '#f472b6',
+                    cat: 'image',
+                    prompt
+                });
+            }
+        });
+        // Midjourney from ai_prompts_toolkit
+        const toolkit = results.ai_prompts_toolkit || {};
+        if (toolkit.midjourney_prompts) {
+            toolkit.midjourney_prompts.forEach((prompt, i) => {
+                if (prompt && prompt.length > 10) {
+                    allTools.push({
+                        name: `Midjourney #${i + 1}`,
+                        type: I18N.t('ai_cat_image', 'Gorsel Olusturma'),
+                        icon: '&#127912;',
+                        color: '#818cf8',
+                        cat: 'image',
+                        prompt
+                    });
+                }
+            });
+        }
+
+        // 4. Text/Content prompts from toolkit
+        const textPrompts = [
+            { key: 'blog_post_prompt', name: 'Blog Post', icon: '&#128221;', color: '#2ea043' },
+            { key: 'twitter_thread_prompt', name: 'Twitter / X Thread', icon: '&#128172;', color: '#1da1f2' },
+            { key: 'linkedin_post_prompt', name: 'LinkedIn Post', icon: '&#128188;', color: '#0a66c2' },
+            { key: 'tiktok_script_prompt', name: 'TikTok Script', icon: '&#127916;', color: '#ff0050' },
+            { key: 'email_newsletter_prompt', name: 'Email Newsletter', icon: '&#9993;', color: '#d29922' }
+        ];
+        textPrompts.forEach(p => {
+            const val = toolkit[p.key];
+            if (val && val.length > 10) {
+                allTools.push({
+                    ...p,
+                    type: I18N.t('ai_cat_content', 'Icerik Donusumu'),
+                    cat: 'content',
+                    prompt: val
+                });
+            }
+        });
+
+        // 5. ChatGPT prompts
+        if (toolkit.chatgpt_prompts) {
+            toolkit.chatgpt_prompts.forEach((prompt, i) => {
+                if (prompt && prompt.length > 10) {
+                    allTools.push({
+                        name: `ChatGPT Prompt #${i + 1}`,
+                        type: I18N.t('ai_cat_text', 'Metin / Sohbet'),
+                        icon: '&#129302;',
+                        color: '#10a37f',
+                        cat: 'text',
+                        prompt
+                    });
+                }
+            });
+        }
+
+        // 6. Storyboard scene prompts
+        if (vp.storyboard && Array.isArray(vp.storyboard)) {
+            vp.storyboard.forEach((scene, i) => {
+                if (scene.ai_video_prompt && scene.ai_video_prompt.length > 10) {
+                    allTools.push({
+                        name: `${I18N.t('scene', 'Sahne')} ${scene.sahne || i + 1} - ${(scene.aciklama || '').substring(0, 40)}`,
+                        type: I18N.t('ai_cat_scene', 'Sahne Promptu'),
+                        icon: '&#127910;',
+                        color: '#8b5cf6',
+                        cat: 'scene',
+                        prompt: scene.ai_video_prompt
+                    });
+                }
+            });
+        }
+
+        // 7. Mega Prompt
+        if (results.recreation_mega_prompt && results.recreation_mega_prompt.length > 10) {
+            allTools.push({
+                name: 'Mega Prompt',
+                type: I18N.t('ai_cat_mega', 'Tam Yeniden Olusturma'),
+                icon: '&#128640;',
+                color: '#ff0000',
+                cat: 'mega',
+                prompt: results.recreation_mega_prompt
+            });
+        }
+
+        if (allTools.length === 0) {
+            container.innerHTML += `<div class="aistudio-empty"><h3>${I18N.t('no_prompts', 'Prompt bulunamadi')}</h3><p>${I18N.t('no_prompts_desc', 'Analiz tamamlandiginda AI promptlari burada gorunecek')}</p></div>`;
+            return;
+        }
+
+        // Category filter buttons
+        const categories = [
+            { key: 'all', label: I18N.t('ai_filter_all', 'Tumunu Goster') },
+            { key: 'video', label: I18N.t('ai_cat_video', 'Video Olusturma') },
+            { key: 'image', label: I18N.t('ai_cat_image', 'Gorsel Olusturma') },
+            { key: 'content', label: I18N.t('ai_cat_content', 'Icerik Donusumu') },
+            { key: 'text', label: I18N.t('ai_cat_text', 'Metin / Sohbet') },
+            { key: 'scene', label: I18N.t('ai_cat_scene', 'Sahne Promptlari') },
+            { key: 'mega', label: 'Mega Prompt' }
+        ];
+
+        // Only show categories that have items
+        const activeCats = new Set(allTools.map(t => t.cat));
+        const filterDiv = document.createElement('div');
+        filterDiv.className = 'aistudio-categories';
+        categories.forEach(c => {
+            if (c.key !== 'all' && !activeCats.has(c.key)) return;
+            const btn = document.createElement('button');
+            btn.className = 'aistudio-cat-btn' + (c.key === 'all' ? ' active' : '');
+            btn.textContent = c.label;
+            btn.dataset.cat = c.key;
+            btn.addEventListener('click', () => {
+                filterDiv.querySelectorAll('.aistudio-cat-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                grid.querySelectorAll('.ai-tool-card').forEach(card => {
+                    card.style.display = (c.key === 'all' || card.dataset.cat === c.key) ? '' : 'none';
+                });
+            });
+            filterDiv.appendChild(btn);
+        });
+        container.appendChild(filterDiv);
+
+        // Grid
+        const grid = document.createElement('div');
+        grid.className = 'aistudio-grid';
+
+        allTools.forEach(tool => {
+            const card = document.createElement('div');
+            card.className = 'ai-tool-card';
+            card.dataset.cat = tool.cat;
+            card.innerHTML = `
+                <div class="ai-tool-header">
+                    <div class="ai-tool-icon" style="background:${tool.color}22">${tool.icon}</div>
+                    <div class="ai-tool-info">
+                        <h4>${tool.name}</h4>
+                        <span class="ai-tool-type">${tool.type}</span>
+                    </div>
+                    <span class="ai-tool-badge" style="background:${tool.color}22;color:${tool.color}">${tool.cat === 'scene' ? 'SCENE' : tool.cat === 'mega' ? 'MEGA' : 'AI'}</span>
+                </div>
+                <div class="ai-tool-prompt">${tool.prompt}</div>
+                <div class="ai-tool-actions">
+                    <button class="ai-tool-copy" style="background:${tool.color}">${I18N.t('copy_prompt', 'Promptu Kopyala')}</button>
+                    <button class="ai-tool-expand">${I18N.t('show_more', 'Devamini gor')}</button>
+                </div>
+            `;
+
+            card.querySelector('.ai-tool-copy').addEventListener('click', () => {
+                copyToClipboard(tool.prompt);
+                const btn = card.querySelector('.ai-tool-copy');
+                btn.textContent = I18N.t('copied');
+                setTimeout(() => { btn.textContent = I18N.t('copy_prompt', 'Promptu Kopyala'); }, 2000);
+            });
+
+            card.querySelector('.ai-tool-expand').addEventListener('click', () => {
+                const promptEl = card.querySelector('.ai-tool-prompt');
+                const expandBtn = card.querySelector('.ai-tool-expand');
+                const isExpanded = promptEl.classList.toggle('expanded');
+                expandBtn.textContent = isExpanded ? I18N.t('show_less', 'Daralt') : I18N.t('show_more', 'Devamini gor');
+            });
+
+            grid.appendChild(card);
+        });
+
+        container.appendChild(grid);
     }
 
     // ==================== ANIMATED COUNTER ====================

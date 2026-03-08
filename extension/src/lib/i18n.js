@@ -107,6 +107,20 @@ const I18N = (() => {
         // ==================== CARD TOGGLE ====================
         'show_more': { tr: 'Devamini gor', en: 'Show more' },
         'show_less': { tr: 'Daralt', en: 'Show less' },
+        'ai_studio': { tr: 'AI Studio', en: 'AI Studio' },
+        'ai_studio_title': { tr: 'AI Studio', en: 'AI Studio' },
+        'ai_studio_desc': { tr: 'Bu videoyu yeniden olusturmak icin platform bazli hazir promptlar', en: 'Ready-to-use prompts by platform to recreate this video' },
+        'ai_filter_all': { tr: 'Tumunu Goster', en: 'Show All' },
+        'ai_cat_video': { tr: 'Video Olusturma', en: 'Video Generation' },
+        'ai_cat_image': { tr: 'Gorsel Olusturma', en: 'Image Generation' },
+        'ai_cat_content': { tr: 'Icerik Donusumu', en: 'Content Repurpose' },
+        'ai_cat_text': { tr: 'Metin / Sohbet', en: 'Text / Chat' },
+        'ai_cat_scene': { tr: 'Sahne Promptlari', en: 'Scene Prompts' },
+        'ai_cat_short': { tr: 'Kisa Video', en: 'Short Video' },
+        'ai_cat_mega': { tr: 'Tam Yeniden Olusturma', en: 'Full Recreation' },
+        'copy_prompt': { tr: 'Promptu Kopyala', en: 'Copy Prompt' },
+        'no_prompts': { tr: 'Prompt bulunamadi', en: 'No prompts found' },
+        'no_prompts_desc': { tr: 'Analiz tamamlandiginda AI promptlari burada gorunecek', en: 'AI prompts will appear here when analysis is complete' },
 
         // ==================== COPY/EXPORT ====================
         'copied': { tr: 'Kopyalandi!', en: 'Copied!' },
