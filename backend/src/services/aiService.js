@@ -5,7 +5,7 @@ const { fetchTranscript, formatTime } = require('./transcriptService');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const anthropic = process.env.CLAUDE_API_KEY ? new Anthropic({ apiKey: process.env.CLAUDE_API_KEY }) : null;
 
-const AI_TIMEOUT_MS = 90000; // 90 saniye
+const AI_TIMEOUT_MS = 180000; // 180 saniye
 const VIDEO_TIMEOUT_MS = 180000; // 180 saniye (video analizi icin)
 
 function withTimeout(promise, ms) {
