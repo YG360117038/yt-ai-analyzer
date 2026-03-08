@@ -109,7 +109,7 @@ async function analyzeWithVideoUnderstanding(videoData, transcript, language = '
     - content_style_breakdown: Gercek duzenleme stili, gecisler, efektler, grafikleri analiz et`;
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash-preview-05-20",
+            model: "gemini-1.5-flash",
             generationConfig: {
                 responseMimeType: "application/json",
                 temperature: 0.7,
@@ -149,7 +149,7 @@ async function analyzeWithVideoUnderstanding(videoData, transcript, language = '
 // ==================== GEMINI ====================
 async function analyzeWithGemini(prompt) {
     const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash-preview-05-20",
+        model: "gemini-1.5-flash",
         generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.7,
