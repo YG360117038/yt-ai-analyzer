@@ -48,6 +48,7 @@ async function fetchTranscript(videoId) {
         // yt-dlp ile altyazi indir (auto-generated)
         const args = [
             '-m', 'yt_dlp',
+            '--js-runtimes', 'nodejs',
             '--write-auto-sub',
             '--sub-lang', 'en',
             '--sub-format', 'srv1',
