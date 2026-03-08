@@ -113,7 +113,10 @@ async function analyzeWithVideoUnderstanding(videoData, transcript, language = '
             generationConfig: {
                 responseMimeType: "application/json",
                 temperature: 0.7,
-                maxOutputTokens: 65536
+                maxOutputTokens: 65536,
+                thinkingConfig: {
+                    thinkingBudget: 1024
+                }
             }
         });
 
@@ -153,7 +156,10 @@ async function analyzeWithGemini(prompt) {
         generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.7,
-            maxOutputTokens: 65536
+            maxOutputTokens: 65536,
+            thinkingConfig: {
+                thinkingBudget: 1024
+            }
         }
     });
 
@@ -598,9 +604,41 @@ function parseAIResponse(text) {
     try {
         const result = JSON.parse(jsonString);
         if (result && typeof result === 'object') return result;
+    } catch (e) {}
+
+    // 6. Truncated JSON recovery - close open brackets/braces
+    try {
+        let truncated = jsonString;
+        // Remove trailing incomplete key-value pair
+        truncated = truncated.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, '');
+        truncated = truncated.replace(/,\s*$/, '');
+        // Count and close open brackets
+        let opens = 0, openBrackets = 0;
+        let inString = false, escape = false;
+        for (let i = 0; i < truncated.length; i++) {
+            const c = truncated[i];
+            if (escape) { escape = false; continue; }
+            if (c === '\\') { escape = true; continue; }
+            if (c === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (c === '{') opens++;
+            if (c === '}') opens--;
+            if (c === '[') openBrackets++;
+            if (c === ']') openBrackets--;
+        }
+        // Close unclosed string if in string
+        if (inString) truncated += '"';
+        // Close arrays then objects
+        for (let i = 0; i < openBrackets; i++) truncated += ']';
+        for (let i = 0; i < opens; i++) truncated += '}';
+
+        const result = JSON.parse(truncated);
+        if (result && typeof result === 'object' && result.video_score) {
+            console.warn('JSON truncation recovered - some fields may be missing');
+            return result;
+        }
     } catch (e) {
         console.error("JSON parse basarisiz - tum denemeler tukendi");
-        return null;
     }
 
     return null;
