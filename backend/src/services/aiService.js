@@ -112,11 +112,8 @@ async function analyzeWithVideoUnderstanding(videoData, transcript, language = '
             model: "gemini-2.5-flash",
             generationConfig: {
                 responseMimeType: "application/json",
-                temperature: 0.7,
-                maxOutputTokens: 65536,
-                thinkingConfig: {
-                    thinkingBudget: 1024
-                }
+                temperature: 0.4,
+                maxOutputTokens: 65536
             }
         });
 
@@ -155,11 +152,8 @@ async function analyzeWithGemini(prompt) {
         model: "gemini-2.5-flash",
         generationConfig: {
             responseMimeType: "application/json",
-            temperature: 0.7,
-            maxOutputTokens: 65536,
-            thinkingConfig: {
-                thinkingBudget: 1024
-            }
+            temperature: 0.4,
+            maxOutputTokens: 65536
         }
     });
 
@@ -172,15 +166,26 @@ async function analyzeWithGemini(prompt) {
             const text = response.text();
 
             const candidate = result.response.candidates?.[0];
-            if (candidate?.finishReason === 'MAX_TOKENS') {
-                console.warn('Gemini yanit kesildi (MAX_TOKENS)');
+            const finishReason = candidate?.finishReason;
+            console.log(`Gemini attempt ${attempt + 1}: finishReason=${finishReason}, responseLength=${text?.length || 0}`);
+
+            if (finishReason === 'MAX_TOKENS') {
+                console.warn('Gemini yanit kesildi (MAX_TOKENS) - truncated recovery denenecek');
+            }
+
+            if (!text || text.length < 100) {
+                console.error(`Gemini bos/kisa yanit: "${(text || '').substring(0, 200)}"`);
                 if (attempt === 0) continue;
             }
 
             const parsed = parseAIResponse(text);
             if (parsed) return parsed;
 
-            if (attempt === 0) continue; // parse basarisiz, tekrar dene
+            // Parse basarisiz - ilk 500 ve son 500 karakteri logla
+            console.error(`Gemini JSON parse basarisiz. Basi: ${text.substring(0, 500)}`);
+            console.error(`Gemini JSON parse basarisiz. Sonu: ${text.substring(text.length - 500)}`);
+
+            if (attempt === 0) continue;
         } catch (e) {
             console.error(`Gemini attempt ${attempt + 1}:`, e.message);
             if (e.status) console.error(`Gemini HTTP status: ${e.status}`);
@@ -563,62 +568,46 @@ function parseAIResponse(text) {
         if (result && typeof result === 'object' && result.video_score) return result;
     } catch (e) {}
 
-    // 2. JSON blogu cikar
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    // 2. JSON blogu cikar (ilk { ile son } arasi)
+    const firstBrace = text.indexOf('{');
+    if (firstBrace === -1) return null;
+    let jsonString = text.substring(firstBrace);
 
-    let jsonString = jsonMatch[0];
-
-    // 3. Direkt dene
-    try {
-        const result = JSON.parse(jsonString);
-        if (result && typeof result === 'object') return result;
-    } catch (e) {}
-
-    // 4. Temizlik
+    // 3. Temizlik - kontrol karakterlerini temizle
     jsonString = jsonString
-        .replace(/,(\s*[\]\}])/g, '$1')
-        .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ')
-        .replace(/\t/g, ' ')
-        .replace(/\r/g, '');
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ')
+        .replace(/\t/g, '    ')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n');
 
+    // 4. Direkt dene
     try {
         const result = JSON.parse(jsonString);
         if (result && typeof result === 'object') return result;
     } catch (e) {}
 
-    // 5. Bracket dengeleme
-    let braceCount = 0;
-    let lastValidIdx = 0;
-    for (let i = 0; i < jsonString.length; i++) {
-        if (jsonString[i] === '{') braceCount++;
-        if (jsonString[i] === '}') {
-            braceCount--;
-            if (braceCount === 0) { lastValidIdx = i; break; }
-        }
-    }
-    if (lastValidIdx > 0) {
-        jsonString = jsonString.substring(0, lastValidIdx + 1);
-    }
-
+    // 5. Trailing comma temizligi
+    let cleaned = jsonString.replace(/,(\s*[\]\}])/g, '$1');
     try {
-        const result = JSON.parse(jsonString);
+        const result = JSON.parse(cleaned);
         if (result && typeof result === 'object') return result;
     } catch (e) {}
 
-    // 6. Truncated JSON recovery - close open brackets/braces
+    // 6. String-aware bracket dengeleme ile truncated JSON recovery
     try {
-        let truncated = jsonString;
-        // Remove trailing incomplete key-value pair
-        truncated = truncated.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, '');
+        let truncated = cleaned;
+        // Sondaki eksik key-value'yu kaldir (birden fazla pattern dene)
+        truncated = truncated.replace(/,\s*"[^"]*"?\s*:?\s*("([^"\\]|\\.)*)?$/, '');
+        truncated = truncated.replace(/,\s*"[^"]*$/, '');
         truncated = truncated.replace(/,\s*$/, '');
-        // Count and close open brackets
+
+        // String-aware bracket sayimi
         let opens = 0, openBrackets = 0;
         let inString = false, escape = false;
         for (let i = 0; i < truncated.length; i++) {
             const c = truncated[i];
             if (escape) { escape = false; continue; }
-            if (c === '\\') { escape = true; continue; }
+            if (c === '\\' && inString) { escape = true; continue; }
             if (c === '"') { inString = !inString; continue; }
             if (inString) continue;
             if (c === '{') opens++;
@@ -626,21 +615,58 @@ function parseAIResponse(text) {
             if (c === '[') openBrackets++;
             if (c === ']') openBrackets--;
         }
-        // Close unclosed string if in string
+
+        // Acik string'i kapat
         if (inString) truncated += '"';
-        // Close arrays then objects
+        // Trailing comma temizle (kapanislardan once)
+        truncated = truncated.replace(/,(\s*)$/, '$1');
+        // Acik bracket ve brace'leri kapat
         for (let i = 0; i < openBrackets; i++) truncated += ']';
         for (let i = 0; i < opens; i++) truncated += '}';
 
         const result = JSON.parse(truncated);
         if (result && typeof result === 'object' && result.video_score) {
-            console.warn('JSON truncation recovered - some fields may be missing');
+            console.warn(`JSON truncation recovered - ${Object.keys(result).length} keys found (some fields may be missing)`);
             return result;
         }
-    } catch (e) {
-        console.error("JSON parse basarisiz - tum denemeler tukendi");
-    }
+    } catch (e) {}
 
+    // 7. Son care: satirlari sondan kaldirarak dene
+    try {
+        const lines = cleaned.split('\n');
+        for (let removeCount = 1; removeCount < Math.min(lines.length, 50); removeCount++) {
+            let partial = lines.slice(0, lines.length - removeCount).join('\n');
+            // Sondaki virgul ve boslugu temizle
+            partial = partial.replace(/,\s*$/, '');
+            // Acik bracket/brace say ve kapat
+            let opens = 0, openBrackets = 0;
+            let inStr = false, esc = false;
+            for (let i = 0; i < partial.length; i++) {
+                const c = partial[i];
+                if (esc) { esc = false; continue; }
+                if (c === '\\' && inStr) { esc = true; continue; }
+                if (c === '"') { inStr = !inStr; continue; }
+                if (inStr) continue;
+                if (c === '{') opens++;
+                if (c === '}') opens--;
+                if (c === '[') openBrackets++;
+                if (c === ']') openBrackets--;
+            }
+            if (inStr) partial += '"';
+            for (let i = 0; i < openBrackets; i++) partial += ']';
+            for (let i = 0; i < opens; i++) partial += '}';
+
+            try {
+                const result = JSON.parse(partial);
+                if (result && typeof result === 'object' && result.video_score) {
+                    console.warn(`JSON line-removal recovered (removed ${removeCount} lines) - ${Object.keys(result).length} keys`);
+                    return result;
+                }
+            } catch (e2) { continue; }
+        }
+    } catch (e) {}
+
+    console.error("JSON parse basarisiz - tum denemeler tukendi");
     return null;
 }
 
