@@ -13,7 +13,7 @@ function withTimeout(promise, ms) {
     return Promise.race([
         promise,
         new Promise((_, reject) => {
-            timer = setTimeout(() => reject(new Error('AI analizi zaman asimina ugradi. Lutfen tekrar deneyin.')), ms);
+            timer = setTimeout(() => reject(new Error('AI analizi zaman aşımına uğradı. Lütfen tekrar deneyin.')), ms);
         })
     ]).finally(() => clearTimeout(timer));
 }
@@ -71,7 +71,7 @@ async function analyzeVideo(videoData, options = {}) {
         }
     }
 
-    throw new Error("AI analizi basarisiz oldu. Lutfen tekrar deneyin.");
+    throw new Error("AI analizi başarısız oldu. Lütfen tekrar deneyin.");
 }
 
 // ==================== VIDEO UNDERSTANDING (PRO) ====================

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analiz Sonuclari - YT AI Analyzer</title>
+    <title>Analiz Sonuçları - YT AI Analyzer</title>
     <style>
         :root {
             --primary: #ff0000;
@@ -1381,16 +1381,16 @@
     <!-- Loading -->
     <div id="loading-screen" class="loading-overlay">
         <div class="loader"></div>
-        <div class="loading-text" id="status-text">AI Analizi Baslatiliyor...</div>
+        <div class="loading-text" id="status-text">AI Analizi Başlatılıyor...</div>
         <div class="loading-subtext">Video derinlemesine analiz ediliyor</div>
         <div class="progress-container">
             <div id="main-progress" class="progress-bar"></div>
         </div>
         <div class="loading-steps">
-            <div class="step active" id="step-1"><span class="step-dot"></span> Video verileri cekildi</div>
-            <div class="step" id="step-2"><span class="step-dot"></span> AI modeline gonderiliyor</div>
-            <div class="step" id="step-3"><span class="step-dot"></span> Analiz sonuclari isleniyor</div>
-            <div class="step" id="step-4"><span class="step-dot"></span> Rapor hazirlaniyor</div>
+            <div class="step active" id="step-1"><span class="step-dot"></span> Video verileri çekildi</div>
+            <div class="step" id="step-2"><span class="step-dot"></span> AI modeline gönderiliyor</div>
+            <div class="step" id="step-3"><span class="step-dot"></span> Analiz sonuçları işleniyor</div>
+            <div class="step" id="step-4"><span class="step-dot"></span> Rapor hazırlanıyor</div>
         </div>
     </div>
 
@@ -1401,19 +1401,19 @@
     <div id="paywall-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:999;align-items:center;justify-content:center">
         <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:48px 40px;max-width:440px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.6)">
             <div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(255,0,0,0.15),rgba(255,0,0,0.05));border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px">&#128274;</div>
-            <h2 style="font-size:22px;margin-bottom:8px;font-weight:700">Tam Erisim Icin Pro'ya Gecin</h2>
-            <p style="color:var(--text-dim);font-size:14px;line-height:1.6;margin-bottom:28px">Ucretsiz planda sadece skor kartini gorebilirsiniz. Pro ile tum analiz sonuclarina erisim saglayin.</p>
+            <h2 style="font-size:22px;margin-bottom:8px;font-weight:700">Tam Erişim İçin Pro'ya Geçin</h2>
+            <p style="color:var(--text-dim);font-size:14px;line-height:1.6;margin-bottom:28px">Ücretsiz planda sadece skor kartını görebilirsiniz. Pro ile tüm analiz sonuçlarına erişim sağlayın.</p>
             <div style="background:rgba(255,0,0,0.06);border:1px solid rgba(255,0,0,0.15);border-radius:14px;padding:24px;margin-bottom:28px">
                 <div style="font-size:40px;font-weight:800;color:var(--primary);margin-bottom:2px">$9.99<span style="font-size:14px;font-weight:400;color:var(--text-dim)">/ay</span></div>
                 <div style="color:var(--text-dim);font-size:13px;margin-top:16px;text-align:left;display:flex;flex-direction:column;gap:8px">
-                    <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--green)">&#10003;</span> Sinirsiz AI video analizi</span>
+                    <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--green)">&#10003;</span> Sınırsız AI video analizi</span>
                     <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--green)">&#10003;</span> Derin analiz, prompt toolkit, storyboard</span>
-                    <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--green)">&#10003;</span> Video uretim merkezi & AI promptlari</span>
-                    <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--green)">&#10003;</span> Tum export formatlari (TXT, JSON, Markdown)</span>
+                    <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--green)">&#10003;</span> Video üretim merkezi & AI promptları</span>
+                    <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--green)">&#10003;</span> Tüm export formatları (TXT, JSON, Markdown)</span>
                 </div>
             </div>
-            <button id="upgrade-btn" style="width:100%;padding:14px 24px;background:linear-gradient(135deg,#ff0000,#cc0000);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 16px rgba(255,0,0,0.25)">Pro'ya Yukselt</button>
-            <p style="color:var(--text-dim);font-size:11px;margin-top:14px">Guvenli odeme - PayTR altyapisi ile</p>
+            <button id="upgrade-btn" style="width:100%;padding:14px 24px;background:linear-gradient(135deg,#ff0000,#cc0000);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 16px rgba(255,0,0,0.25)">Pro'ya Yükselt</button>
+            <p style="color:var(--text-dim);font-size:11px;margin-top:14px">Güvenli ödeme - PayTR altyapısı ile</p>
         </div>
     </div>
 
@@ -1497,21 +1497,21 @@
             <span class="nav-icon">&#128214;</span> <span data-i18n="notebook_mode">Notebook Modu</span>
         </div>
         <div class="nav-item" data-tab="scripts">
-            <span class="nav-icon">&#128221;</span> <span data-i18n="scripts_titles">Script & Basliklar</span>
+            <span class="nav-icon">&#128221;</span> <span data-i18n="scripts_titles">Script & Başlıklar</span>
         </div>
         <div class="nav-item" data-tab="characters">
-            <span class="nav-icon">&#127917;</span> <span data-i18n="character_transform">Karakter Donusumu</span>
+            <span class="nav-icon">&#127917;</span> <span data-i18n="character_transform">Karakter Dönüşümü</span>
         </div>
         <div class="nav-item" data-tab="video">
-            <span class="nav-icon">&#127916;</span> <span data-i18n="video_production">Video Uretim Merkezi</span>
+            <span class="nav-icon">&#127916;</span> <span data-i18n="video_production">Video Üretim Merkezi</span>
         </div>
         <div class="nav-item" data-tab="aistudio">
             <span class="nav-icon">&#10024;</span> <span data-i18n="ai_studio">AI Studio</span>
         </div>
 
-        <div class="nav-section" data-i18n="nav_other">Diger</div>
+        <div class="nav-section" data-i18n="nav_other">Diğer</div>
         <div class="nav-item" data-tab="history">
-            <span class="nav-icon">&#128196;</span> <span data-i18n="history">Gecmis Analizler</span>
+            <span class="nav-icon">&#128196;</span> <span data-i18n="history">Geçmiş Analizler</span>
         </div>
         <div class="nav-item" id="admin-link" style="display:none" onclick="window.open(chrome.runtime.getURL('src/admin/index.html'))">
             <span class="nav-icon">&#9881;</span> <span data-i18n="admin_panel">Admin Panel</span>
@@ -1523,7 +1523,7 @@
         <!-- Header -->
         <div class="header" id="main-header">
             <div>
-                <h1 id="video-title" data-i18n="loading">Yukleniyor...</h1>
+                <h1 id="video-title" data-i18n="loading">Yükleniyor...</h1>
                 <div class="video-meta">
                     <div class="meta-pill">
                         <img id="channel-img" src="" alt="">
@@ -1538,9 +1538,9 @@
                 </div>
             </div>
             <div class="actions">
-                <button class="btn" id="export-txt" data-i18n="export_txt">TXT Indir</button>
-                <button class="btn" id="export-json" data-i18n="export_json">JSON Indir</button>
-                <button class="btn btn-primary" id="copy-all" data-i18n="copy_all">Tumunu Kopyala</button>
+                <button class="btn" id="export-txt" data-i18n="export_txt">TXT İndir</button>
+                <button class="btn" id="export-json" data-i18n="export_json">JSON İndir</button>
+                <button class="btn btn-primary" id="copy-all" data-i18n="copy_all">Tümünü Kopyala</button>
             </div>
         </div>
 
@@ -1560,7 +1560,7 @@
         <!-- Tab: Notebook -->
         <div id="tab-notebook" class="tab-content">
             <div id="flow-section" class="mermaid-container" style="display:none">
-                <h2 data-i18n="video_flow_chart">Video Akis Semasi</h2>
+                <h2 data-i18n="video_flow_chart">Video Akış Şeması</h2>
                 <div id="mermaid-chart" class="mermaid"></div>
             </div>
             <div id="notebook-content" class="grid"></div>

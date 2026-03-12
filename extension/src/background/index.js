@@ -8,7 +8,7 @@ importScripts('../config.js');
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: "analyze-video",
-        title: "AI ile Videoyu Analiz Et",
+        title: "Analyze Video with AI",
         contexts: ["page"],
         documentUrlPatterns: ["https://*.youtube.com/watch*"]
     });
@@ -48,7 +48,7 @@ async function analyzeVideo(tab) {
                 break;
             } catch (e) {
                 if (attempt === 0 && e.message?.includes('Cannot access')) {
-                    throw new Error("Bu sayfada analiz yapilamiyor. Lutfen bir YouTube video sayfasinda oldugunuzdan emin olun.");
+                    throw new Error("Bu sayfada analiz yapılamıyor. Lütfen bir YouTube video sayfasında olduğunuzdan emin olun.");
                 }
                 // Ikinci denemede devam et (zaten yuklenmis olabilir)
             }
@@ -64,16 +64,16 @@ async function analyzeVideo(tab) {
         try {
             videoData = await chrome.tabs.sendMessage(tab.id, { action: "EXTRACT_DATA" });
         } catch (e) {
-            throw new Error("Video verisi alinamadi. Sayfayi yenileyip tekrar deneyin.");
+            throw new Error("Video verisi alınamadı. Sayfayı yenileyip tekrar deneyin.");
         }
 
         // Error response kontrolu
         if (videoData?.error) {
-            throw new Error("Video verisi cikarilirken hata: " + videoData.error);
+            throw new Error("Video verisi çıkarılırken hata: " + videoData.error);
         }
 
         if (!videoData || !videoData.videoId) {
-            throw new Error("Video verisi alinamadi. Lutfen bir YouTube video sayfasinda oldugunuzdan emin olun.");
+            throw new Error("Video verisi alınamadı. Lütfen bir YouTube video sayfasında olduğunuzdan emin olun.");
         }
 
         // Gecici kaydet
@@ -101,7 +101,7 @@ async function analyzeVideo(tab) {
                     document.body.appendChild(div);
                     setTimeout(() => div.remove(), 5000);
                 },
-                args: [error.message || 'Bir sorun olustu.']
+                args: [error.message || 'Bir sorun oluştu.']
             });
         } catch (e) {
             // Bildirim gosterilemedi

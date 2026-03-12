@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GEMINI_API_KEY'];
 for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
-        console.error(`KRITIK: ${envVar} env degiskeni eksik!`);
+        console.error(`KRİTİK: ${envVar} env değişkeni eksik!`);
         process.exit(1);
     }
 }
@@ -49,7 +49,7 @@ app.use(express.json({ limit: '10mb' }));
 const analyzeRateLimit = rateLimit({
     windowMs: 60 * 1000, // 1 dakika
     max: 10,
-    message: { error: 'Cok fazla istek gonderdiniz. Lutfen 1 dakika bekleyin.' },
+    message: { error: 'Çok fazla istek gönderdiniz. Lütfen 1 dakika bekleyin.' },
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -57,7 +57,7 @@ const analyzeRateLimit = rateLimit({
 const generalRateLimit = rateLimit({
     windowMs: 60 * 1000,
     max: 60,
-    message: { error: 'Cok fazla istek. Lutfen bekleyin.' },
+    message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -106,11 +106,11 @@ app.post('/api/payment/callback', async (req, res) => {
             const hashBuffer = Buffer.from(hash || '', 'utf8');
             const expectedBuffer = Buffer.from(expectedHash, 'utf8');
             if (hashBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(hashBuffer, expectedBuffer)) {
-                console.error('PayTR hash dogrulama basarisiz');
+                console.error('PayTR hash doğrulama başarısız');
                 return res.send('FAIL');
             }
         } catch (e) {
-            console.error('PayTR hash karsilastirma hatasi:', e.message);
+            console.error('PayTR hash karşılaştırma hatası:', e.message);
             return res.send('FAIL');
         }
 
@@ -122,11 +122,11 @@ app.post('/api/payment/callback', async (req, res) => {
                 .single();
 
             if (paymentError || !payment) {
-                console.error('Odeme kaydi bulunamadi:', merchant_oid, paymentError?.message);
+                console.error('Ödeme kaydı bulunamadı:', merchant_oid, paymentError?.message);
                 return res.send('OK');
             }
 
-            // Profili Pro'ya yukselt
+            // Profili Pro'ya yükselt
             const subscriptionEnd = new Date();
             subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
 
@@ -139,17 +139,17 @@ app.post('/api/payment/callback', async (req, res) => {
             }).eq('id', payment.user_id);
 
             if (updateError) {
-                console.error('Profil Pro guncelleme hatasi:', updateError.message);
+                console.error('Profil Pro güncelleme hatası:', updateError.message);
             }
 
-            // Odeme kaydini guncelle
+            // Ödeme kaydını güncelle
             const { error: payUpdateError } = await supabase.from('payments').update({
                 status: 'success',
                 callback_data: req.body
             }).eq('merchant_oid', merchant_oid);
 
             if (payUpdateError) {
-                console.error('Odeme kaydi guncelleme hatasi:', payUpdateError.message);
+                console.error('Ödeme kaydı güncelleme hatası:', payUpdateError.message);
             }
         } else {
             await supabase.from('payments').update({
@@ -167,7 +167,7 @@ app.post('/api/payment/callback', async (req, res) => {
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-// Profil yoksa otomatik olustur
+// Profil yoksa otomatik oluştur
 async function getOrCreateProfile(user) {
     let { data: profile, error } = await supabase
         .from('profiles')
@@ -180,7 +180,7 @@ async function getOrCreateProfile(user) {
     const upsertData = {
         id: user.id,
         email: user.email,
-        display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanici',
+        display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanıcı',
         avatar_url: user.user_metadata?.avatar_url || null,
         plan: 'free',
         analysis_count: 0,
@@ -193,7 +193,7 @@ async function getOrCreateProfile(user) {
         .upsert(upsertData, { onConflict: 'id' });
 
     if (insertError) {
-        console.error('Profil upsert hatasi:', insertError.message);
+        console.error('Profil upsert hatası:', insertError.message);
     }
 
     const { data: freshProfile, error: readError } = await supabase
@@ -203,23 +203,23 @@ async function getOrCreateProfile(user) {
         .single();
 
     if (readError || !freshProfile) {
-        console.error('Profil okunamadi:', readError?.message);
-        return { _error: readError?.message || 'Profil olusturuldu ama okunamadi' };
+        console.error('Profil okunamadı:', readError?.message);
+        return { _error: readError?.message || 'Profil oluşturuldu ama okunamadı' };
     }
 
     return freshProfile;
 }
 
-// Kullanici Profili
+// Kullanıcı Profili
 app.get('/api/user/profile', authMiddleware, async (req, res) => {
     try {
         const profile = await getOrCreateProfile(req.user);
 
         if (!profile) {
-            return res.status(500).json({ error: 'Profil olusturulamadi.' });
+            return res.status(500).json({ error: 'Profil oluşturulamadı.' });
         }
         if (profile._error) {
-            return res.status(500).json({ error: 'Profil olusturulamadi.' });
+            return res.status(500).json({ error: 'Profil oluşturulamadı.' });
         }
 
         res.json({
@@ -231,11 +231,11 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
             analysisCount: profile.analysis_count,
             subscriptionStatus: profile.subscription_status,
             subscriptionEnd: profile.subscription_end,
-            freeLimit: 0 // Artik limit yok, free user skor goruyor
+            freeLimit: 0 // Artık limit yok, free user skor görüyor
         });
     } catch (error) {
         console.error('Profile endpoint error:', error.message);
-        res.status(500).json({ error: 'Profil yuklenirken hata olustu.' });
+        res.status(500).json({ error: 'Profil yüklenirken hata oluştu.' });
     }
 });
 
@@ -247,21 +247,21 @@ app.post('/api/analyze', authMiddleware, usageCheck, analyzeRateLimit, async (re
         const videoData = req.body;
 
         if (!videoData.videoId || typeof videoData.videoId !== 'string') {
-            return res.status(400).json({ error: "videoId gerekli." });
+            return res.status(400).json({ error: "Video ID gerekli." });
         }
 
         // Input validation
         const videoIdRegex = /^[a-zA-Z0-9_-]{11}$/;
         if (!videoIdRegex.test(videoData.videoId)) {
-            return res.status(400).json({ error: "Gecersiz videoId formati." });
+            return res.status(400).json({ error: "Geçersiz video ID formatı." });
         }
 
         if (videoData.title && typeof videoData.title === 'string' && videoData.title.length > 500) {
-            return res.status(400).json({ error: "Baslik cok uzun (maks 500 karakter)." });
+            return res.status(400).json({ error: "Başlık çok uzun (maks 500 karakter)." });
         }
 
         if (videoData.description && typeof videoData.description === 'string' && videoData.description.length > 10000) {
-            return res.status(400).json({ error: "Aciklama cok uzun (maks 10000 karakter)." });
+            return res.status(400).json({ error: "Açıklama çok uzun (maks 10000 karakter)." });
         }
 
         if (videoData.language && !['tr', 'en'].includes(videoData.language)) {
@@ -289,17 +289,17 @@ app.post('/api/analyze', authMiddleware, usageCheck, analyzeRateLimit, async (re
             .select();
 
         if (error) {
-            console.error("Supabase kayit hatasi:", error.message);
+            console.error("Supabase kayıt hatası:", error.message);
             throw new Error('Analiz kaydedilemedi.');
         }
 
-        // Kullanim sayacini artir
+        // Kullanım sayacını artır
         await supabase.from('profiles').update({
             analysis_count: req.profile.analysis_count + 1,
             updated_at: new Date().toISOString()
         }).eq('id', req.user.id);
 
-        // Free user ise kisitli sonuc gonder
+        // Free user ise kısıtlı sonuç gönder
         if (req.profile.plan !== 'pro') {
             const freeKeys = [
                 'video_score', 'content_style_breakdown', 'tone_analysis',
@@ -315,15 +315,15 @@ app.post('/api/analyze', authMiddleware, usageCheck, analyzeRateLimit, async (re
                 ...data[0],
                 analysis_results: freeResults,
                 is_limited: true,
-                upgrade_message: 'Tam analiz icin Pro plana gecin.'
+                upgrade_message: 'Tam analiz için Pro plana geçin.'
             };
             return res.json(limitedData);
         }
 
         res.json(data[0]);
     } catch (error) {
-        console.error("Analiz hatasi:", error.message);
-        res.status(500).json({ error: error.message || 'Analiz sirasinda bir hata olustu.' });
+        console.error("Analiz hatası:", error.message);
+        res.status(500).json({ error: error.message || 'Analiz sırasında bir hata oluştu.' });
     }
 });
 
@@ -338,9 +338,9 @@ app.get('/api/analysis/:id', authMiddleware, async (req, res) => {
             .single();
 
         if (error) throw error;
-        if (!data) return res.status(404).json({ error: "Analiz bulunamadi." });
+        if (!data) return res.status(404).json({ error: "Analiz bulunamadı." });
 
-        // Free user ise sonuclari kisitla
+        // Free user ise sonuçları kısıtla
         const profile = await getOrCreateProfile(req.user);
         if (profile && !profile._error && profile.plan !== 'pro') {
             const freeKeys = [
@@ -354,16 +354,16 @@ app.get('/api/analysis/:id', authMiddleware, async (req, res) => {
             }
             data.analysis_results = freeResults;
             data.is_limited = true;
-            data.upgrade_message = 'Tam analiz icin Pro plana gecin.';
+            data.upgrade_message = 'Tam analiz için Pro plana geçin.';
         }
 
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Analiz yuklenirken hata olustu.' });
+        res.status(500).json({ error: 'Analiz yüklenirken hata oluştu.' });
     }
 });
 
-// Gecmis Analizler Listesi
+// Geçmiş Analizler Listesi
 app.get('/api/analyses', authMiddleware, async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit) || 20, 100);
@@ -382,7 +382,7 @@ app.get('/api/analyses', authMiddleware, async (req, res) => {
             analyses: (data || []).map(item => ({
                 id: item.id,
                 videoId: item.video_id,
-                title: item.video_metadata?.title || "Basliksiz",
+                title: item.video_metadata?.title || "Başlıksız",
                 channelName: item.video_metadata?.channelName || "",
                 thumbnail: item.video_metadata?.thumbnail || "",
                 createdAt: item.created_at
@@ -391,7 +391,7 @@ app.get('/api/analyses', authMiddleware, async (req, res) => {
             hasMore: (offset + limit) < (count || 0)
         });
     } catch (error) {
-        res.status(500).json({ error: 'Gecmis analizler yuklenirken hata olustu.' });
+        res.status(500).json({ error: 'Geçmiş analizler yüklenirken hata oluştu.' });
     }
 });
 
@@ -407,7 +407,7 @@ app.delete('/api/analysis/:id', authMiddleware, async (req, res) => {
         if (error) throw error;
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: 'Analiz silinirken hata olustu.' });
+        res.status(500).json({ error: 'Analiz silinirken hata oluştu.' });
     }
 });
 
@@ -422,7 +422,7 @@ function adminMiddleware(req, res, next) {
     next();
 }
 
-// Admin: Istatistikler
+// Admin: İstatistikler
 app.get('/api/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
@@ -435,11 +435,11 @@ app.get('/api/admin/stats', authMiddleware, adminMiddleware, async (req, res) =>
         res.json({ totalUsers, totalAnalyses, proUsers, recentAnalyses });
     } catch (error) {
         console.error('Admin stats error:', error.message);
-        res.status(500).json({ error: 'Istatistikler yuklenirken hata olustu.' });
+        res.status(500).json({ error: 'İstatistikler yüklenirken hata oluştu.' });
     }
 });
 
-// Admin: Kullanici listesi
+// Admin: Kullanıcı listesi
 app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { data, error } = await supabase.from('profiles')
@@ -449,11 +449,11 @@ app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) =>
         if (error) throw error;
         res.json({ users: data });
     } catch (error) {
-        res.status(500).json({ error: 'Kullanici listesi yuklenirken hata olustu.' });
+        res.status(500).json({ error: 'Kullanıcı listesi yüklenirken hata oluştu.' });
     }
 });
 
-// Admin: Tum analizler
+// Admin: Tüm analizler
 app.get('/api/admin/analyses', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit) || 50, 200);
@@ -485,13 +485,13 @@ app.get('/api/admin/analyses', authMiddleware, adminMiddleware, async (req, res)
             total: count || 0
         });
     } catch (error) {
-        res.status(500).json({ error: 'Analizler yuklenirken hata olustu.' });
+        res.status(500).json({ error: 'Analizler yüklenirken hata oluştu.' });
     }
 });
 
 // ==================== PAYMENT ROUTES ====================
 
-// PayTR Odeme Tokeni Olustur
+// PayTR Ödeme Tokeni Oluştur
 app.post('/api/payment/create', authMiddleware, async (req, res) => {
     try {
         const user = req.user;
@@ -500,7 +500,7 @@ app.post('/api/payment/create', authMiddleware, async (req, res) => {
         const merchantSalt = process.env.PAYTR_MERCHANT_SALT;
 
         if (!merchantId || !merchantKey || !merchantSalt) {
-            return res.status(500).json({ error: 'Odeme sistemi yapilandirilmamis.' });
+            return res.status(500).json({ error: 'Ödeme sistemi yapılandırılmamış.' });
         }
 
         const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
@@ -509,7 +509,7 @@ app.post('/api/payment/create', authMiddleware, async (req, res) => {
         const currency = 'USD';
         const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
         const email = user.email;
-        const userName = user.user_metadata?.full_name || 'Kullanici';
+        const userName = user.user_metadata?.full_name || 'Kullanıcı';
         const merchantOkUrl = `${backendUrl}/api/payment/success`;
         const merchantFailUrl = `${backendUrl}/api/payment/fail`;
         const noInstallment = 1;
@@ -532,8 +532,8 @@ app.post('/api/payment/create', authMiddleware, async (req, res) => {
         });
 
         if (insertError) {
-            console.error('Odeme kaydi olusturma hatasi:', insertError.message);
-            return res.status(500).json({ error: 'Odeme kaydedilemedi.' });
+            console.error('Ödeme kaydı oluşturma hatası:', insertError.message);
+            return res.status(500).json({ error: 'Ödeme kaydedilemedi.' });
         }
 
         // PayTR'den token al
@@ -549,7 +549,7 @@ app.post('/api/payment/create', authMiddleware, async (req, res) => {
             max_installment: maxInstallment.toString(),
             currency: currency,
             user_name: userName,
-            user_address: 'Turkiye',
+            user_address: 'Türkiye',
             user_phone: '05000000000',
             merchant_ok_url: merchantOkUrl,
             merchant_fail_url: merchantFailUrl,
@@ -575,19 +575,19 @@ app.post('/api/payment/create', authMiddleware, async (req, res) => {
                 res.json({ token: result.token });
             } else {
                 console.error('PayTR token error:', result.reason);
-                res.status(400).json({ error: 'Odeme baslatilamadi. Lutfen tekrar deneyin.' });
+                res.status(400).json({ error: 'Ödeme başlatılamadı. Lütfen tekrar deneyin.' });
             }
         } catch (fetchErr) {
             clearTimeout(timeout);
             if (fetchErr.name === 'AbortError') {
-                res.status(504).json({ error: 'Odeme sistemi yanitlamiyor. Lutfen tekrar deneyin.' });
+                res.status(504).json({ error: 'Ödeme sistemi yanıtlamıyor. Lütfen tekrar deneyin.' });
             } else {
                 throw fetchErr;
             }
         }
     } catch (error) {
         console.error('Payment create error:', error.message);
-        res.status(500).json({ error: 'Odeme olusturulurken hata olustu.' });
+        res.status(500).json({ error: 'Ödeme oluşturulurken hata oluştu.' });
     }
 });
 
@@ -595,12 +595,12 @@ app.post('/api/payment/create', authMiddleware, async (req, res) => {
 app.get('/api/payment/success', (req, res) => {
     res.send(`
         <html>
-        <head><title>Odeme Basarili</title></head>
+        <head><title>Ödeme Başarılı</title></head>
         <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
                 <h1 style="color:#2ea043;font-size:48px">&#10003;</h1>
-                <h2>Odeme Basarili!</h2>
-                <p style="color:#888">Pro aboneliginiz aktif edildi. Bu sekmeyi kapatabilirsiniz.</p>
+                <h2>Ödeme Başarılı!</h2>
+                <p style="color:#888">Pro aboneliğiniz aktif edildi. Bu sekmeyi kapatabilirsiniz.</p>
             </div>
         </body>
         </html>
@@ -611,12 +611,12 @@ app.get('/api/payment/success', (req, res) => {
 app.get('/api/payment/fail', (req, res) => {
     res.send(`
         <html>
-        <head><title>Odeme Basarisiz</title></head>
+        <head><title>Ödeme Başarısız</title></head>
         <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
                 <h1 style="color:#ff0000;font-size:48px">&#10007;</h1>
-                <h2>Odeme Basarisiz</h2>
-                <p style="color:#888">Odeme islenemedi. Lutfen tekrar deneyin.</p>
+                <h2>Ödeme Başarısız</h2>
+                <p style="color:#888">Ödeme işlenemedi. Lütfen tekrar deneyin.</p>
             </div>
         </body>
         </html>

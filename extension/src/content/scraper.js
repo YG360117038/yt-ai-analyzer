@@ -91,7 +91,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const data = extractVideoData();
             sendResponse(data);
         } catch (e) {
-            sendResponse({ error: e.message || 'Video verisi cikarilirken hata olustu.' });
+            sendResponse({ error: e.message || 'Video verisi çıkarılırken hata oluştu.' });
         }
     }
 
@@ -102,11 +102,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     const data = extractVideoData();
                     sendResponse(data);
                 } catch (e) {
-                    sendResponse({ error: e.message || 'Yorum yukleme hatasi.' });
+                    sendResponse({ error: e.message || 'Yorum yükleme hatası.' });
                 }
             })
             .catch(e => {
-                sendResponse({ error: e.message || 'Scroll hatasi.' });
+                sendResponse({ error: e.message || 'Scroll hatası.' });
             });
         return true; // async response
     }

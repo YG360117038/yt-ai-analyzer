@@ -26,6 +26,12 @@ function fetchWithTimeout(fetchPromise, timeoutMs = 120000) {
     ]).finally(() => clearTimeout(timer));
 }
 
+// XSS sanitization helper
+function sanitizeHTML(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 // History icin AbortController
 let historyAbortController = null;
 
@@ -468,7 +474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button class="copy-btn">${I18N.t('copy')}</button>
                     </div>
                     <div class="card-body">
-                        <p style="font-size:15px;line-height:1.8;color:var(--text)">${value.quick_recap}</p>
+                        <p style="font-size:15px;line-height:1.8;color:var(--text)">${sanitizeHTML(value.quick_recap)}</p>
                     </div>
                 `;
                 recapCard.querySelector('.copy-btn').addEventListener('click', () => {
@@ -490,9 +496,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="timeline-item" style="animation-delay:${i * 0.1}s">
                                 <div class="timeline-marker"></div>
                                 <div class="timeline-content">
-                                    <div class="timeline-time">${item.timestamp || ''}</div>
-                                    <div class="timeline-topic">${item.topic || ''}</div>
-                                    <div class="timeline-summary">${item.summary || ''}</div>
+                                    <div class="timeline-time">${sanitizeHTML(item.timestamp || '')}</div>
+                                    <div class="timeline-topic">${sanitizeHTML(item.topic || '')}</div>
+                                    <div class="timeline-summary">${sanitizeHTML(item.summary || '')}</div>
                                 </div>
                             </div>
                         `).join('')}
@@ -512,7 +518,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button class="copy-btn">${I18N.t('copy')}</button>
                     </div>
                     <div class="card-body">
-                        <div class="study-notes">${value.study_notes.replace(/\n/g, '<br>')}</div>
+                        <div class="study-notes">${sanitizeHTML(value.study_notes).replace(/\n/g, '<br>')}</div>
                     </div>
                 `;
                 notesCard.querySelector('.copy-btn').addEventListener('click', () => {
@@ -535,10 +541,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${value.map((item, i) => `
                         <div class="faq-item" data-index="${i}">
                             <div class="faq-question">
-                                <span>${item.question || ''}</span>
+                                <span>${sanitizeHTML(item.question || '')}</span>
                                 <svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                             </div>
-                            <div class="faq-answer">${item.answer || ''}</div>
+                            <div class="faq-answer">${sanitizeHTML(item.answer || '')}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -563,9 +569,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="concepts-grid">
                     ${value.map(item => `
                         <div class="concept-item">
-                            <div class="concept-term">${item.term || ''}</div>
-                            <div class="concept-definition">${item.definition || ''}</div>
-                            ${item.importance ? `<div class="concept-importance">${item.importance}</div>` : ''}
+                            <div class="concept-term">${sanitizeHTML(item.term || '')}</div>
+                            <div class="concept-definition">${sanitizeHTML(item.definition || '')}</div>
+                            ${item.importance ? `<div class="concept-importance">${sanitizeHTML(item.importance)}</div>` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -585,13 +591,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${value.format_formula ? `
                         <div class="dna-section">
                             <div class="dna-label">${I18N.label('format_formula')}</div>
-                            <div class="dna-value dna-formula">${value.format_formula}</div>
+                            <div class="dna-value dna-formula">${sanitizeHTML(value.format_formula)}</div>
                         </div>
                     ` : ''}
                     ${value.emotional_arc ? `
                         <div class="dna-section">
                             <div class="dna-label">${I18N.label('emotional_arc')}</div>
-                            <div class="dna-value">${value.emotional_arc}</div>
+                            <div class="dna-value">${sanitizeHTML(value.emotional_arc)}</div>
                         </div>
                     ` : ''}
                     ${value.unique_elements && value.unique_elements.length ? `
@@ -636,7 +642,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <div class="card-body">
                     <div class="mega-prompt-info">${I18N.t('mega_prompt_info')}</div>
-                    <div class="mega-prompt-text">${value.replace(/\n/g, '<br>')}</div>
+                    <div class="mega-prompt-text">${sanitizeHTML(value).replace(/\n/g, '<br>')}</div>
                 </div>
             `;
             megaCard.querySelector('.copy-btn').addEventListener('click', () => {
@@ -807,7 +813,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="storyboard-header">
                         <div style="display:flex;align-items:center;gap:10px">
                             <div class="scene-number">${scene.sahne || (i + 1)}</div>
-                            <strong style="font-size:14px;color:var(--text)">${scene.aciklama || ''}</strong>
+                            <strong style="font-size:14px;color:var(--text)">${sanitizeHTML(scene.aciklama || '')}</strong>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px">
                             ${scene.duration_seconds ? `<span class="scene-duration">${scene.duration_seconds}s</span>` : ''}
@@ -825,7 +831,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
                                 ${I18N.t('voiceover')}
                             </div>
-                            <div class="voiceover-text">${scene.voiceover_script}</div>
+                            <div class="voiceover-text">${sanitizeHTML(scene.voiceover_script)}</div>
                         </div>
                     ` : ''}
                     ${scene.text_overlay && scene.text_overlay.length ? `
@@ -837,7 +843,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${scene.ai_video_prompt ? `
                         <div class="ai-prompt-box" data-prompt="${encodeURIComponent(scene.ai_video_prompt)}">
                             <div class="prompt-label"><span>AI VIDEO PROMPT</span><span style="font-size:10px;opacity:0.6">${I18N.t('click_to_copy')}</span></div>
-                            <div class="prompt-text">${scene.ai_video_prompt}</div>
+                            <div class="prompt-text">${sanitizeHTML(scene.ai_video_prompt)}</div>
                         </div>
                     ` : ''}
                     <button class="copy-scene-btn" data-scene="${i}">${I18N.t('copy_scene')}</button>
