@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "YouTube AI Prompt Analyzer",
-  "short_name": "YT AI Analyzer",
+  "name": "Dion Youtube Analyzer",
+  "short_name": "Dion YT",
   "version": "1.0.0",
   "description": "Analyze YouTube videos with AI. Get content strategy, audience insights, SEO tips & video production plans. | YouTube videolarını AI ile analiz edin.",
-  "author": "YT AI Analyzer",
-  "homepage_url": "https://ytaianalyzer.com",
+  "author": "Dion Youtube Analyzer",
+  "homepage_url": "https://YG360117038.github.io/yt-ai-analyzer",
   "icons": {
     "16": "assets/icon-16.png",
     "48": "assets/icon-48.png",

@@ -97,7 +97,7 @@ async function analyzeVideo(tab) {
                     const div = document.createElement('div');
                     div.id = 'yt-ai-notification';
                     div.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;background:#1a1a1a;color:#ff4444;padding:16px 24px;border-radius:12px;font-family:sans-serif;font-size:14px;border:1px solid #333;box-shadow:0 8px 32px rgba(0,0,0,0.5);max-width:360px;';
-                    div.innerHTML = `<strong style="color:#fff;display:block;margin-bottom:4px">YT AI Analyzer</strong>${msg}`;
+                    div.innerHTML = `<strong style="color:#fff;display:block;margin-bottom:4px">Dion Youtube Analyzer</strong>${msg}`;
                     document.body.appendChild(div);
                     setTimeout(() => div.remove(), 5000);
                 },

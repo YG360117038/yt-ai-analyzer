@@ -1,5 +1,5 @@
 /**
- * Lightweight i18n system for YT AI Analyzer
+ * Lightweight i18n system for Dion Youtube Analyzer
  * Supports Turkish (tr) and English (en)
  * Auto-detects browser language, falls back to English
  */
@@ -125,7 +125,7 @@ const I18N = (() => {
         // ==================== COPY/EXPORT ====================
         'copied': { tr: 'Kopyalandı!', en: 'Copied!' },
         'copy': { tr: 'Kopyala', en: 'Copy' },
-        'report_title': { tr: '=== YT AI ANALYZER RAPORU ===', en: '=== YT AI ANALYZER REPORT ===' },
+        'report_title': { tr: '=== DION YOUTUBE ANALYZER RAPORU ===', en: '=== DION YOUTUBE ANALYZER REPORT ===' },
         'video_label': { tr: 'Video', en: 'Video' },
         'channel_label': { tr: 'Kanal', en: 'Channel' },
         'date_label': { tr: 'Tarih', en: 'Date' },
