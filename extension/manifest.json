@@ -21,9 +21,8 @@
   ],
   "host_permissions": [
     "https://*.youtube.com/*",
-    "https://*.onrender.com/*",
-    "https://*.railway.app/*",
-    "https://*.supabase.co/*"
+    "https://yt-ai-analyzer-production.up.railway.app/*",
+    "https://sxlyfxqepyrjevfrjkwz.supabase.co/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
