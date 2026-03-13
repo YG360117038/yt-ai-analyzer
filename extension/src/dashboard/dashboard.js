@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="font-size:32px;margin-bottom:12px">&#128274;</div>
                 <h3>${I18N.t('pro_required')}</h3>
                 <p>${I18N.t('pro_locked_desc')}</p>
-                <button class="upgrade-cta" onclick="document.getElementById('paywall-overlay').style.display='flex'">${I18N.t('upgrade_to_pro')} - $9.99/ay</button>
+                <button class="upgrade-cta" onclick="chrome.tabs.create({url:'http://skool.com/omnicore-8861'})">${I18N.t('upgrade_to_pro')}</button>
                 <div class="price-tag">${I18N.t('unlimited', 'Sinirsiz')} + ${I18N.t('pro_full_access')}</div>
             `;
             tab.appendChild(banner);
@@ -1624,30 +1624,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const upgradeBtn = document.getElementById('upgrade-btn');
     if (upgradeBtn) {
-        upgradeBtn.addEventListener('click', async () => {
-            upgradeBtn.disabled = true;
-            upgradeBtn.innerText = I18N.t('payment_loading');
-
-            try {
-                const response = await authFetch(`${BACKEND_URL}/api/payment/create`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    throw new Error(err.error || I18N.t('payment_error'));
-                }
-
-                const { token } = await response.json();
-                chrome.tabs.create({
-                    url: `https://www.paytr.com/odeme/guvenli/${token}`
-                });
-            } catch (e) {
-                showToast(I18N.t('payment_create_error'));
-                upgradeBtn.disabled = false;
-                upgradeBtn.innerText = I18N.t('upgrade_to_pro_short');
-            }
+        upgradeBtn.addEventListener('click', () => {
+            chrome.tabs.create({ url: 'http://skool.com/omnicore-8861' });
         });
     }
 });
