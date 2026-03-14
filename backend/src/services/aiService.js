@@ -113,7 +113,8 @@ async function analyzeWithVideoUnderstanding(videoData, transcript, language = '
             generationConfig: {
                 responseMimeType: "application/json",
                 temperature: 0.4,
-                maxOutputTokens: 65536
+                maxOutputTokens: 65536,
+                thinkingConfig: { thinkingBudget: 0 }
             }
         });
 
@@ -153,7 +154,8 @@ async function analyzeWithGemini(prompt) {
         generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.4,
-            maxOutputTokens: 65536
+            maxOutputTokens: 65536,
+            thinkingConfig: { thinkingBudget: 0 }
         }
     });
 
