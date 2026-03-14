@@ -76,8 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const token = await SupabaseAuth.getToken();
         if (token) {
             const profile = await SupabaseAuth.getProfile(token);
-            const adminEmails = ['onurtncs@gmail.com', 'kozmikcase@gmail.com'];
-            if (profile && adminEmails.includes(profile.email)) {
+            if (profile && profile.isAdmin) {
                 const adminLink = document.getElementById('admin-link');
                 if (adminLink) adminLink.style.display = 'flex';
             }
@@ -429,7 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="font-size:32px;margin-bottom:12px">&#128274;</div>
                 <h3>${I18N.t('pro_required')}</h3>
                 <p>${I18N.t('pro_locked_desc')}</p>
-                <button class="upgrade-cta" onclick="chrome.tabs.create({url:'http://skool.com/omnicore-8861'})">${I18N.t('upgrade_to_pro')}</button>
+                <button class="upgrade-cta" onclick="chrome.tabs.create({url:'https://www.skool.com/omnicore-8861'})">${I18N.t('upgrade_to_pro')}</button>
                 <div class="price-tag">${I18N.t('unlimited', 'Sinirsiz')} + ${I18N.t('pro_full_access')}</div>
             `;
             tab.appendChild(banner);
@@ -1374,7 +1373,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (line.includes(':')) {
                     const [speaker, ...rest] = line.split(':');
                     const p = document.createElement('p');
-                    p.innerHTML = `<span class="speaker">${speaker.trim()}:</span> ${rest.join(':').trim()}`;
+                    const spanEl = document.createElement('span');
+                    spanEl.className = 'speaker';
+                    spanEl.textContent = speaker.trim() + ':';
+                    p.appendChild(spanEl);
+                    p.appendChild(document.createTextNode(' ' + rest.join(':').trim()));
                     scriptDiv.appendChild(p);
                 } else if (line.trim()) {
                     const p = document.createElement('p');
@@ -1625,7 +1628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const upgradeBtn = document.getElementById('upgrade-btn');
     if (upgradeBtn) {
         upgradeBtn.addEventListener('click', () => {
-            chrome.tabs.create({ url: 'http://skool.com/omnicore-8861' });
+            chrome.tabs.create({ url: 'https://www.skool.com/omnicore-8861' });
         });
     }
 });

@@ -231,7 +231,8 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
             analysisCount: profile.analysis_count,
             subscriptionStatus: profile.subscription_status,
             subscriptionEnd: profile.subscription_end,
-            freeLimit: 0 // Artık limit yok, free user skor görüyor
+            freeLimit: 0,
+            isAdmin: ADMIN_EMAILS.includes(req.user.email)
         });
     } catch (error) {
         console.error('Profile endpoint error:', error.message);

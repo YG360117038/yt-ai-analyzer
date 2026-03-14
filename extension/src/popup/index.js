@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Pro'ya yukselt
     proUpgradeBanner.addEventListener('click', () => {
-        chrome.tabs.create({ url: 'http://skool.com/omnicore-8861' });
+        chrome.tabs.create({ url: 'https://www.skool.com/omnicore-8861' });
         window.close();
     });
 
