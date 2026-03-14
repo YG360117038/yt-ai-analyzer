@@ -154,7 +154,7 @@ async function analyzeWithGemini(prompt) {
         generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.4,
-            maxOutputTokens: 65536,
+            maxOutputTokens: 24576,
             thinkingConfig: { thinkingBudget: 0 }
         }
     });
@@ -227,6 +227,11 @@ async function analyzeWithClaude(prompt) {
             if (attempt === 0) continue;
         } catch (e) {
             console.error(`Claude attempt ${attempt + 1}:`, e.message);
+            // Kredi yetersiz hatasi - retry etme, direkt cik
+            if (e.message && e.message.includes('credit balance')) {
+                console.error('Claude kredisi yetersiz - fallback atlanıyor.');
+                return null;
+            }
             if (attempt === 1) throw e;
         }
     }
@@ -581,6 +586,12 @@ function parseAIResponse(text) {
         .replace(/\t/g, '    ')
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n');
+
+    // 3b. String içindeki kaçırılmamış newline'ları temizle
+    // JSON string değerleri içinde literal newline olmamalı
+    jsonString = jsonString.replace(/"((?:[^"\\]|\\.)*)"/g, (match) => {
+        return match.replace(/\n/g, '\\n').replace(/\r/g, '');
+    });
 
     // 4. Direkt dene
     try {
