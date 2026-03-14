@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dion Youtube Analyzer - YouTube Video Analizi & AI Video Uretim Araci</title>
-    <meta name="description" content="YouTube videolarini AI ile analiz edin, icerik stratejileri olusturun ve tek tusta video uretim paketleri hazirlayin. Sora, Runway, Pika, Kling destegi.">
-    <meta property="og:title" content="Dion Youtube Analyzer - YouTube AI Analiz & Video Uretim">
-    <meta property="og:description" content="YouTube videolarini AI ile analiz edin, tek tusta video uretim paketi alin.">
+    <title>Dion Youtube Analyzer - YouTube Video Analizi & AI Video Üretim Aracı</title>
+    <meta name="description" content="YouTube videolarını AI ile analiz edin, içerik stratejileri oluşturun ve tek tuşta video üretim paketleri hazırlayın. Sora, Runway, Pika, Kling desteği.">
+    <meta property="og:title" content="Dion Youtube Analyzer - YouTube AI Analiz & Video Üretim">
+    <meta property="og:description" content="YouTube videolarını AI ile analiz edin, tek tuşta video üretim paketi alın.">
     <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -78,6 +78,19 @@
             transition: background 0.2s !important;
         }
         .nav-cta:hover { background: var(--primary-dark) !important; }
+
+        .lang-btn {
+            background: var(--card);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-btn:hover { color: var(--text); border-color: #333; }
 
         /* HERO */
         .hero {
@@ -230,26 +243,17 @@
             margin-bottom: 20px;
         }
 
-        .feature-card h3 {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
+        .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+        .feature-card p { font-size: 14px; color: var(--text-dim); line-height: 1.7; }
 
-        .feature-card p {
-            font-size: 14px;
-            color: var(--text-dim);
-            line-height: 1.7;
-        }
-
-        .icon-red { background: rgba(255,0,0,0.1); }
+        .icon-red    { background: rgba(255,0,0,0.1); }
         .icon-purple { background: rgba(139,92,246,0.1); }
-        .icon-green { background: rgba(46,160,67,0.1); }
-        .icon-blue { background: rgba(47,129,247,0.1); }
-        .icon-cyan { background: rgba(6,182,212,0.1); }
+        .icon-green  { background: rgba(46,160,67,0.1); }
+        .icon-blue   { background: rgba(47,129,247,0.1); }
+        .icon-cyan   { background: rgba(6,182,212,0.1); }
         .icon-orange { background: rgba(245,158,11,0.1); }
 
-        /* VIDEO PRODUCTION SHOWCASE */
+        /* SHOWCASE */
         .showcase {
             background: var(--card);
             border: 1px solid var(--border);
@@ -258,19 +262,10 @@
             margin-top: 40px;
         }
 
-        .showcase h3 {
-            font-size: 24px;
-            font-weight: 800;
-            margin-bottom: 8px;
-        }
-
+        .showcase h3 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
         .showcase p { color: var(--text-dim); margin-bottom: 32px; }
 
-        .platform-logos {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
+        .platform-logos { display: flex; gap: 16px; flex-wrap: wrap; }
 
         .platform-tag {
             padding: 10px 20px;
@@ -280,15 +275,7 @@
             border: 1px solid;
         }
 
-        /* PRICING */
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
+        /* COMMUNITY */
         .price-card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -300,29 +287,9 @@
 
         .price-card:hover { transform: translateY(-4px); }
 
-        .price-card.featured {
-            border-color: var(--primary);
-            position: relative;
-        }
-
-        .price-card.featured::before {
-            content: 'POPULER';
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--primary);
-            color: #fff;
-            padding: 4px 16px;
-            border-radius: 100px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
+        .price-card.featured { border-color: var(--primary); position: relative; }
 
         .price-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text-dim); }
-        .price-amount { font-size: 42px; font-weight: 900; margin-bottom: 4px; }
-        .price-period { font-size: 14px; color: var(--text-dim); margin-bottom: 24px; }
 
         .price-features {
             list-style: none;
@@ -341,11 +308,7 @@
             gap: 8px;
         }
 
-        .price-features li::before {
-            content: '\2713';
-            color: var(--green);
-            font-weight: 700;
-        }
+        .price-features li::before { content: '\2713'; color: var(--green); font-weight: 700; }
 
         .price-btn {
             width: 100%;
@@ -358,23 +321,13 @@
             transition: all 0.2s;
         }
 
-        .price-btn-free { background: var(--border); color: var(--text); }
-        .price-btn-free:hover { background: #2a2a2a; }
-
         .price-btn-pro { background: var(--primary); color: #fff; }
         .price-btn-pro:hover { background: var(--primary-dark); }
 
         /* HOW IT WORKS */
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
-        }
+        .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
 
-        .step-card {
-            text-align: center;
-            padding: 24px;
-        }
+        .step-card { text-align: center; padding: 24px; }
 
         .step-num {
             width: 40px;
@@ -391,14 +344,10 @@
         }
 
         .step-card h4 { font-size: 15px; margin-bottom: 8px; }
-        .step-card p { font-size: 13px; color: var(--text-dim); }
+        .step-card p  { font-size: 13px; color: var(--text-dim); }
 
         /* FOOTER */
-        footer {
-            border-top: 1px solid var(--border);
-            padding: 48px 24px;
-            text-align: center;
-        }
+        footer { border-top: 1px solid var(--border); padding: 48px 24px; }
 
         .footer-inner {
             max-width: 1200px;
@@ -419,10 +368,9 @@
         @media (max-width: 768px) {
             .hero h1 { font-size: 36px; }
             .features-grid { grid-template-columns: 1fr; }
-            .pricing-grid { grid-template-columns: 1fr; }
             .steps { grid-template-columns: 1fr 1fr; }
             .stats { gap: 24px; }
-            .nav-links a:not(.nav-cta) { display: none; }
+            .nav-links a:not(.nav-cta):not(.lang-btn) { display: none; }
         }
     </style>
 </head>
@@ -432,26 +380,32 @@
         <div class="nav-inner">
             <div class="nav-logo">Dion Youtube Analyzer</div>
             <div class="nav-links">
-                <a href="#features">Ozellikler</a>
-                <a href="#how">Nasil Calisir</a>
-                <a href="#pricing">Topluluk</a>
-                <a href="privacy.html">Gizlilik</a>
-                <a href="https://drive.google.com/file/d/1-CtfhLNqrrMfOO2KfsDIAIC8Gdm9ljyG/view?usp=sharing" target="_blank" rel="noopener" class="nav-cta">İndir</a>
+                <a href="#features"  data-i18n="nav_features"></a>
+                <a href="#how"       data-i18n="nav_how"></a>
+                <a href="#community" data-i18n="nav_community"></a>
+                <a href="privacy.html" data-i18n="nav_privacy"></a>
+                <button class="lang-btn" id="lang-toggle"></button>
+                <a href="https://drive.google.com/file/d/1-CtfhLNqrrMfOO2KfsDIAIC8Gdm9ljyG/view?usp=sharing"
+                   target="_blank" rel="noopener" class="nav-cta" data-i18n="nav_download"></a>
             </div>
         </div>
     </nav>
 
     <!-- HERO -->
     <section class="hero">
-        <div class="hero-badge">Yeni: AI Video Uretim Paketi</div>
-        <h1>YouTube Videolarini <span>AI ile Analiz Et</span>, Video Uret</h1>
-        <p>Herhangi bir YouTube videosunu tek tikla analiz edin. SEO skoru, viral potansiyel, icerik stratejisi ve Sora/Runway/Pika icin hazir video uretim paketleri alin.</p>
+        <div class="hero-badge" data-i18n="hero_badge"></div>
+        <h1 data-i18n-html="hero_h1"></h1>
+        <p data-i18n="hero_p"></p>
         <div class="hero-buttons">
-            <a href="https://drive.google.com/file/d/1-CtfhLNqrrMfOO2KfsDIAIC8Gdm9ljyG/view?usp=sharing" target="_blank" rel="noopener" class="btn-hero btn-primary">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Uzantıyı İndir (Ücretsiz)
+            <a href="https://drive.google.com/file/d/1-CtfhLNqrrMfOO2KfsDIAIC8Gdm9ljyG/view?usp=sharing"
+               target="_blank" rel="noopener" class="btn-hero btn-primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span data-i18n="btn_download"></span>
             </a>
-            <a href="#features" class="btn-hero btn-secondary">Ozellikleri Gor</a>
+            <a href="#features" class="btn-hero btn-secondary" data-i18n="btn_features"></a>
         </div>
     </section>
 
@@ -459,66 +413,65 @@
     <div class="stats">
         <div class="stat">
             <div class="stat-value">30+</div>
-            <div class="stat-label">Analiz Bolumu</div>
+            <div class="stat-label" data-i18n="stat_sections"></div>
         </div>
         <div class="stat">
             <div class="stat-value">5</div>
-            <div class="stat-label">AI Video Platform</div>
+            <div class="stat-label" data-i18n="stat_platforms"></div>
         </div>
         <div class="stat">
             <div class="stat-value">8</div>
-            <div class="stat-label">Sahne Storyboard</div>
+            <div class="stat-label" data-i18n="stat_scenes"></div>
         </div>
         <div class="stat">
             <div class="stat-value">3</div>
-            <div class="stat-label">Ucretsiz Analiz</div>
+            <div class="stat-label" data-i18n="stat_free"></div>
         </div>
     </div>
 
     <!-- FEATURES -->
     <section class="section" id="features">
         <div class="section-header">
-            <h2>Tum Ozellikler</h2>
-            <p>YouTube icerik uretimini bir sonraki seviyeye tasiyin</p>
+            <h2 data-i18n="features_title"></h2>
+            <p data-i18n="features_sub"></p>
         </div>
 
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon icon-red">&#128200;</div>
-                <h3>Derin Video Analizi</h3>
-                <p>SEO skoru, viral potansiyel, izleyici tutma stratejisi, rakip analizi, yorum sentiment analizi ve daha fazlasi.</p>
+                <h3 data-i18n="f1_title"></h3>
+                <p data-i18n="f1_desc"></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon icon-purple">&#127916;</div>
-                <h3>Video Uretim Merkezi</h3>
-                <p>8 sahneli storyboard, her sahne icin AI video promptu, seslendirme metni ve text overlay. Tek tusta kopyala.</p>
+                <h3 data-i18n="f2_title"></h3>
+                <p data-i18n="f2_desc"></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon icon-cyan">&#127908;</div>
-                <h3>Seslendirme Paketi</h3>
-                <p>Tam seslendirme metni otomatik olusturulur. Voiceover studio'ya hazir, sahne sahne veya toplu kopyala.</p>
+                <h3 data-i18n="f3_title"></h3>
+                <p data-i18n="f3_desc"></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon icon-green">&#9998;</div>
-                <h3>AI Prompt Toolkit</h3>
-                <p>ChatGPT, Midjourney, DALL-E, TikTok, LinkedIn, Twitter, blog ve email icin hazir promptlar.</p>
+                <h3 data-i18n="f4_title"></h3>
+                <p data-i18n="f4_desc"></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon icon-blue">&#128221;</div>
-                <h3>Script & Basliklar</h3>
-                <p>10 yuksek CTR baslik, 15 SEO tag, tam senaryo sablonu, 5 farkli hook varyasyonu ve hikaye cercevesi.</p>
+                <h3 data-i18n="f5_title"></h3>
+                <p data-i18n="f5_desc"></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon icon-orange">&#127917;</div>
-                <h3>Karakter Donusumu</h3>
-                <p>Ayni icerigi 5 farkli tonda yeniden yaz: agresif satis, egitici, belgesel, motivasyonel, tartismali.</p>
+                <h3 data-i18n="f6_title"></h3>
+                <p data-i18n="f6_desc"></p>
             </div>
         </div>
 
-        <!-- Video Production Showcase -->
         <div class="showcase">
-            <h3>AI Video Uretim Platformlari</h3>
-            <p>Analiz sonuclarindan tek tusta platform-spesifik promptlar alin</p>
+            <h3 data-i18n="showcase_title"></h3>
+            <p data-i18n="showcase_sub"></p>
             <div class="platform-logos">
                 <span class="platform-tag" style="color:#10a37f;border-color:#10a37f33;background:rgba(16,163,127,0.08)">OpenAI Sora</span>
                 <span class="platform-tag" style="color:#6366f1;border-color:#6366f133;background:rgba(99,102,241,0.08)">Runway Gen-3</span>
@@ -534,77 +487,254 @@
     <!-- HOW IT WORKS -->
     <section class="section" id="how">
         <div class="section-header">
-            <h2>Nasil Calisir?</h2>
-            <p>4 adimda analiz ve video uretim paketi</p>
+            <h2 data-i18n="how_title"></h2>
+            <p data-i18n="how_sub"></p>
         </div>
-
         <div class="steps">
             <div class="step-card">
                 <div class="step-num">1</div>
-                <h4>Extension'i Yukle</h4>
-                <p>Chrome Web Store'dan ucretsiz yukleyin ve Google ile giris yapin.</p>
+                <h4 data-i18n="step1_title"></h4>
+                <p data-i18n="step1_desc"></p>
             </div>
             <div class="step-card">
                 <div class="step-num">2</div>
-                <h4>YouTube'a Git</h4>
-                <p>Analiz etmek istediginiz YouTube videosunu acin.</p>
+                <h4 data-i18n="step2_title"></h4>
+                <p data-i18n="step2_desc"></p>
             </div>
             <div class="step-card">
                 <div class="step-num">3</div>
-                <h4>Analiz Et</h4>
-                <p>Extension popup'indan "Analiz Baslat" butonuna tiklayin. AI 30+ bolumde analiz yapar.</p>
+                <h4 data-i18n="step3_title"></h4>
+                <p data-i18n="step3_desc"></p>
             </div>
             <div class="step-card">
                 <div class="step-num">4</div>
-                <h4>Video Uret</h4>
-                <p>Video Uretim Merkezi'nden promptlari kopyalayin, Sora/Runway'e yapistirin.</p>
+                <h4 data-i18n="step4_title"></h4>
+                <p data-i18n="step4_desc"></p>
             </div>
         </div>
     </section>
 
     <!-- COMMUNITY -->
-    <section class="section" id="pricing">
+    <section class="section" id="community">
         <div class="section-header">
-            <h2>Toplulugumuza Katil</h2>
-            <p>Dion Youtube Analyzer topluluguna katil, Pro erisim kazan</p>
+            <h2 data-i18n="comm_title"></h2>
+            <p data-i18n="comm_sub"></p>
         </div>
-
         <div style="display:flex;justify-content:center">
             <div class="price-card featured" style="max-width:420px;width:100%">
-                <div class="price-name">OmniCore Toplulugu</div>
+                <div class="price-name">OmniCore</div>
                 <div style="font-size:52px;margin:12px 0">&#127758;</div>
                 <ul class="price-features" style="margin-bottom:28px">
-                    <li>Sinirsiz video analizi</li>
-                    <li>Tum analiz bolumleri</li>
-                    <li>Video uretim paketi</li>
-                    <li>Oncelikli destek</li>
-                    <li>Topluluk erişimi</li>
+                    <li data-i18n="comm_f1"></li>
+                    <li data-i18n="comm_f2"></li>
+                    <li data-i18n="comm_f3"></li>
+                    <li data-i18n="comm_f4"></li>
+                    <li data-i18n="comm_f5"></li>
                 </ul>
-                <a href="https://www.skool.com/omnicore-8861" target="_blank" rel="noopener" class="price-btn price-btn-pro" style="display:block;text-align:center;text-decoration:none">Topluluğa Katıl &rarr;</a>
+                <a href="https://www.skool.com/omnicore-8861" target="_blank" rel="noopener"
+                   class="price-btn price-btn-pro" style="display:block;text-align:center;text-decoration:none"
+                   data-i18n="comm_btn"></a>
             </div>
         </div>
     </section>
 
     <!-- CTA -->
     <section class="section" id="install" style="text-align:center;padding-bottom:120px">
-        <h2 style="font-size:40px;font-weight:900;margin-bottom:16px">Hemen Baslayin</h2>
-        <p style="color:var(--text-dim);font-size:16px;margin-bottom:36px;max-width:440px;margin-left:auto;margin-right:auto">3 ucretsiz analiz hakkinizla YouTube icerik uretimini donusturun.</p>
-        <a href="https://drive.google.com/file/d/1-CtfhLNqrrMfOO2KfsDIAIC8Gdm9ljyG/view?usp=sharing" target="_blank" rel="noopener" class="btn-hero btn-primary" style="font-size:18px;padding:18px 48px">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Uzantıyı İndir (Ücretsiz)
+        <h2 style="font-size:40px;font-weight:900;margin-bottom:16px" data-i18n="cta_title"></h2>
+        <p style="color:var(--text-dim);font-size:16px;margin-bottom:36px;max-width:440px;margin-left:auto;margin-right:auto"
+           data-i18n="cta_sub"></p>
+        <a href="https://drive.google.com/file/d/1-CtfhLNqrrMfOO2KfsDIAIC8Gdm9ljyG/view?usp=sharing"
+           target="_blank" rel="noopener" class="btn-hero btn-primary" style="font-size:18px;padding:18px 48px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span data-i18n="btn_download"></span>
         </a>
     </section>
 
     <!-- FOOTER -->
     <footer>
         <div class="footer-inner">
-            <div class="footer-copy">2025 Dion Youtube Analyzer. Tum haklari saklidir.</div>
+            <div class="footer-copy" data-i18n="footer_copy"></div>
             <div class="footer-links">
-                <a href="privacy.html">Gizlilik Politikasi</a>
-                <a href="terms.html">Kullanim Sartlari</a>
-                <a href="mailto:onurtncs@gmail.com">Iletisim</a>
+                <a href="privacy.html"         data-i18n="footer_privacy"></a>
+                <a href="terms.html"           data-i18n="footer_terms"></a>
+                <a href="mailto:onurtncs@gmail.com" data-i18n="footer_contact"></a>
             </div>
         </div>
     </footer>
+
+    <script>
+        const translations = {
+            tr: {
+                nav_features:   'Özellikler',
+                nav_how:        'Nasıl Çalışır',
+                nav_community:  'Topluluk',
+                nav_privacy:    'Gizlilik',
+                nav_download:   'İndir',
+                lang_toggle:    'EN',
+
+                hero_badge:  'Yeni: AI Video Üretim Paketi',
+                hero_h1:     'YouTube Videolarını <span>AI ile Analiz Et</span>, Video Üret',
+                hero_p:      'Herhangi bir YouTube videosunu tek tıkla analiz edin. SEO skoru, viral potansiyel, içerik stratejisi ve Sora/Runway/Pika için hazır video üretim paketleri alın.',
+                btn_download: 'Uzantıyı İndir (Ücretsiz)',
+                btn_features: 'Özellikleri Gör',
+
+                stat_sections:  'Analiz Bölümü',
+                stat_platforms: 'AI Video Platform',
+                stat_scenes:    'Sahne Storyboard',
+                stat_free:      'Ücretsiz Analiz',
+
+                features_title: 'Tüm Özellikler',
+                features_sub:   'YouTube içerik üretimini bir sonraki seviyeye taşıyın',
+
+                f1_title: 'Derin Video Analizi',
+                f1_desc:  'SEO skoru, viral potansiyel, izleyici tutma stratejisi, rakip analizi, yorum duygu analizi ve daha fazlası.',
+                f2_title: 'Video Üretim Merkezi',
+                f2_desc:  '8 sahneli storyboard, her sahne için AI video promptu, seslendirme metni ve metin katmanı. Tek tıkla kopyala.',
+                f3_title: 'Seslendirme Paketi',
+                f3_desc:  'Tam seslendirme metni otomatik oluşturulur. Voiceover stüdyosuna hazır, sahne sahne veya toplu kopyala.',
+                f4_title: 'AI Prompt Araç Seti',
+                f4_desc:  'ChatGPT, Midjourney, DALL-E, TikTok, LinkedIn, Twitter, blog ve e-posta için hazır promptlar.',
+                f5_title: 'Senaryo & Başlıklar',
+                f5_desc:  '10 yüksek tıklanma oranlı başlık, 15 SEO etiketi, tam senaryo şablonu, 5 farklı kanca varyasyonu ve hikâye çerçevesi.',
+                f6_title: 'Karakter Dönüşümü',
+                f6_desc:  'Aynı içeriği 5 farklı tonda yeniden yaz: agresif satış, eğitici, belgesel, motivasyonel, tartışmalı.',
+
+                showcase_title: 'AI Video Üretim Platformları',
+                showcase_sub:   'Analiz sonuçlarından tek tıkla platforma özel promptlar alın',
+
+                how_title: 'Nasıl Çalışır?',
+                how_sub:   '4 adımda analiz ve video üretim paketi',
+
+                step1_title: 'Uzantıyı Yükle',
+                step1_desc:  'Bağlantıdan ücretsiz indirin ve Google ile giriş yapın.',
+                step2_title: "YouTube'a Git",
+                step2_desc:  'Analiz etmek istediğiniz YouTube videosunu açın.',
+                step3_title: 'Analiz Et',
+                step3_desc:  'Uzantı açılır penceresinden "Analizi Başlat" düğmesine tıklayın. AI 30+ bölümde analiz yapar.',
+                step4_title: 'Video Üret',
+                step4_desc:  "Video Üretim Merkezi'nden promptları kopyalayın, Sora/Runway'e yapıştırın.",
+
+                comm_title: 'Topluluğumuza Katılın',
+                comm_sub:   'Dion Youtube Analyzer topluluğuna katılın, Pro erişim kazanın',
+                comm_f1:    'Sınırsız video analizi',
+                comm_f2:    'Tüm analiz bölümleri',
+                comm_f3:    'Video üretim paketi',
+                comm_f4:    'Öncelikli destek',
+                comm_f5:    'Topluluk erişimi',
+                comm_btn:   'Topluluğa Katıl →',
+
+                cta_title:  'Hemen Başlayın',
+                cta_sub:    '3 ücretsiz analiz hakkınızla YouTube içerik üretimini dönüştürün.',
+
+                footer_copy:    '© 2025 Dion Youtube Analyzer. Tüm hakları saklıdır.',
+                footer_privacy: 'Gizlilik Politikası',
+                footer_terms:   'Kullanım Şartları',
+                footer_contact: 'İletişim',
+            },
+            en: {
+                nav_features:   'Features',
+                nav_how:        'How It Works',
+                nav_community:  'Community',
+                nav_privacy:    'Privacy',
+                nav_download:   'Download',
+                lang_toggle:    'TR',
+
+                hero_badge:  'New: AI Video Production Pack',
+                hero_h1:     'Analyze YouTube Videos <span>with AI</span>, Create Content',
+                hero_p:      'Analyze any YouTube video in one click. Get SEO scores, viral potential, content strategy and ready-to-use video production prompts for Sora, Runway, and Pika.',
+                btn_download: 'Download Extension (Free)',
+                btn_features: 'See Features',
+
+                stat_sections:  'Analysis Sections',
+                stat_platforms: 'AI Video Platforms',
+                stat_scenes:    'Scene Storyboards',
+                stat_free:      'Free Analyses',
+
+                features_title: 'All Features',
+                features_sub:   'Take your YouTube content creation to the next level',
+
+                f1_title: 'Deep Video Analysis',
+                f1_desc:  'SEO score, viral potential, viewer retention strategy, competitor analysis, comment sentiment analysis and more.',
+                f2_title: 'Video Production Hub',
+                f2_desc:  '8-scene storyboard, AI video prompt per scene, voiceover text and text overlay. Copy with one click.',
+                f3_title: 'Voiceover Package',
+                f3_desc:  'Full voiceover script generated automatically. Ready for voiceover studio — copy scene by scene or all at once.',
+                f4_title: 'AI Prompt Toolkit',
+                f4_desc:  'Ready-made prompts for ChatGPT, Midjourney, DALL-E, TikTok, LinkedIn, Twitter, blog and email.',
+                f5_title: 'Script & Titles',
+                f5_desc:  '10 high-CTR titles, 15 SEO tags, full script template, 5 hook variations and story framework.',
+                f6_title: 'Character Transformation',
+                f6_desc:  'Rewrite the same content in 5 different tones: aggressive sales, educational, documentary, motivational, controversial.',
+
+                showcase_title: 'AI Video Production Platforms',
+                showcase_sub:   'Get platform-specific prompts from your analysis results with one click',
+
+                how_title: 'How It Works',
+                how_sub:   'Analysis and video production pack in 4 steps',
+
+                step1_title: 'Install Extension',
+                step1_desc:  'Download for free via the link and sign in with Google.',
+                step2_title: 'Go to YouTube',
+                step2_desc:  'Open the YouTube video you want to analyze.',
+                step3_title: 'Analyze',
+                step3_desc:  'Click "Start Analysis" in the extension popup. AI analyzes 30+ sections.',
+                step4_title: 'Create Video',
+                step4_desc:  'Copy prompts from the Video Production Hub and paste into Sora/Runway.',
+
+                comm_title: 'Join Our Community',
+                comm_sub:   'Join the Dion Youtube Analyzer community and get Pro access',
+                comm_f1:    'Unlimited video analyses',
+                comm_f2:    'All analysis sections',
+                comm_f3:    'Video production package',
+                comm_f4:    'Priority support',
+                comm_f5:    'Community access',
+                comm_btn:   'Join the Community →',
+
+                cta_title:  'Get Started Now',
+                cta_sub:    'Transform your YouTube content creation with 3 free analyses.',
+
+                footer_copy:    '© 2025 Dion Youtube Analyzer. All rights reserved.',
+                footer_privacy: 'Privacy Policy',
+                footer_terms:   'Terms of Service',
+                footer_contact: 'Contact',
+            }
+        };
+
+        function detectLang() {
+            const saved = localStorage.getItem('dion_lang');
+            if (saved) return saved;
+            const browser = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+            return browser.startsWith('tr') ? 'tr' : 'en';
+        }
+
+        function applyLang(lang) {
+            const t = translations[lang];
+            document.documentElement.lang = lang;
+            localStorage.setItem('dion_lang', lang);
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key] !== undefined) el.textContent = t[key];
+            });
+
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                const key = el.getAttribute('data-i18n-html');
+                if (t[key] !== undefined) el.innerHTML = t[key];
+            });
+
+            document.getElementById('lang-toggle').textContent = t['lang_toggle'];
+        }
+
+        let currentLang = detectLang();
+        applyLang(currentLang);
+
+        document.getElementById('lang-toggle').addEventListener('click', () => {
+            currentLang = currentLang === 'tr' ? 'en' : 'tr';
+            applyLang(currentLang);
+        });
+    </script>
 </body>
 </html>
