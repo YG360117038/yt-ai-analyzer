@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Pro upgrade
     proUpgradeBanner.addEventListener('click', () => {
-        chrome.tabs.create({ url: 'https://www.skool.com/omnicore-8861' });
+        chrome.tabs.create({ url: CONFIG.SKOOL_URL });
         window.close();
     });
 

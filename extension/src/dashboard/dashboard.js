@@ -1267,8 +1267,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="font-size:28px;margin-bottom:10px">&#128274;</div>
                 <h3>Pro Gerekli</h3>
                 <p>Bu bölüm yalnızca Pro kullanıcılara açıktır. Clone This Video, Content Factory ve daha fazlası için Pro'ya geçin.</p>
-                <button class="lock-cta" onclick="chrome.tabs.create({url:'https://www.skool.com/omnicore-8861'})">Pro'ya Yükselt</button>`;
+                <button class="lock-cta js-upgrade-btn">Pro'ya Yükselt</button>`;
             tab.appendChild(lockBanner);
+            lockBanner.querySelector('.js-upgrade-btn').addEventListener('click', () => {
+                chrome.tabs.create({ url: CONFIG.SKOOL_URL });
+            });
         });
 
         ['export-txt', 'export-json', 'copy-all'].forEach(id => {
@@ -1381,7 +1384,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const paywallUpgradeBtn = document.getElementById('paywall-upgrade-btn');
     if (paywallUpgradeBtn) {
         paywallUpgradeBtn.addEventListener('click', () => {
-            chrome.tabs.create({ url: 'https://www.skool.com/omnicore-8861' });
+            chrome.tabs.create({ url: CONFIG.SKOOL_URL });
         });
     }
 

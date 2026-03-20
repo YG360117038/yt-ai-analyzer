@@ -446,6 +446,24 @@ app.post('/api/channel-analyze', authMiddleware, usageCheck, analyzeRateLimit, a
             updated_at: new Date().toISOString()
         }).eq('id', req.user.id);
 
+        // Gate channel analysis for Free users
+        if (req.profile.plan !== 'pro') {
+            const freeChannelKeys = ['channel_health_score'];
+            const freeResults = {};
+            for (const key of freeChannelKeys) {
+                if (analysis[key] !== undefined) freeResults[key] = analysis[key];
+            }
+            return res.json({
+                id: data?.[0]?.id,
+                channelName,
+                videoCount: sanitizedVideos.length,
+                analysis_results: freeResults,
+                is_limited: true,
+                upgrade_message: 'Tam kanal analizi için Pro plana geçin.',
+                created_at: new Date().toISOString()
+            });
+        }
+
         res.json({
             id: data?.[0]?.id,
             channelName,
