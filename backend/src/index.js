@@ -303,9 +303,7 @@ app.post('/api/analyze', authMiddleware, usageCheck, analyzeRateLimit, async (re
         // Free user ise kısıtlı sonuç gönder
         if (req.profile.plan !== 'pro') {
             const freeKeys = [
-                'video_score', 'content_style_breakdown', 'tone_analysis',
-                'target_audience', 'hook_structure', 'deep_digest_summary',
-                'comment_sentiment'
+                'viral_score', 'hook_analysis', 'viral_patterns'
             ];
             const freeResults = {};
             for (const key of freeKeys) {
@@ -345,9 +343,7 @@ app.get('/api/analysis/:id', authMiddleware, async (req, res) => {
         const profile = await getOrCreateProfile(req.user);
         if (profile && !profile._error && profile.plan !== 'pro') {
             const freeKeys = [
-                'video_score', 'content_style_breakdown', 'tone_analysis',
-                'target_audience', 'hook_structure', 'deep_digest_summary',
-                'comment_sentiment'
+                'viral_score', 'hook_analysis', 'viral_patterns'
             ];
             const freeResults = {};
             for (const key of freeKeys) {
@@ -393,6 +389,74 @@ app.get('/api/analyses', authMiddleware, async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: 'Geçmiş analizler yüklenirken hata oluştu.' });
+    }
+});
+
+// ==================== CHANNEL ANALYSIS ====================
+app.post('/api/channel-analyze', authMiddleware, usageCheck, analyzeRateLimit, async (req, res) => {
+    try {
+        const { videos, channelName } = req.body;
+
+        if (!channelName || typeof channelName !== 'string') {
+            return res.status(400).json({ error: "Kanal adı gerekli." });
+        }
+
+        if (!videos || !Array.isArray(videos) || videos.length === 0) {
+            return res.status(400).json({ error: "Video listesi gerekli." });
+        }
+
+        if (videos.length > 50) {
+            return res.status(400).json({ error: "Maksimum 50 video analiz edilebilir." });
+        }
+
+        // Sanitize video array
+        const sanitizedVideos = videos.slice(0, 50).map(v => ({
+            videoId: typeof v.videoId === 'string' ? v.videoId.substring(0, 20) : '',
+            title: typeof v.title === 'string' ? v.title.substring(0, 200) : '',
+            viewCount: typeof v.viewCount === 'string' ? v.viewCount.substring(0, 30) : '',
+            thumbnail: typeof v.thumbnail === 'string' ? v.thumbnail.substring(0, 300) : '',
+            publishDate: typeof v.publishDate === 'string' ? v.publishDate.substring(0, 50) : '',
+            duration: typeof v.duration === 'string' ? v.duration.substring(0, 20) : ''
+        }));
+
+        const language = (req.body.language === 'en') ? 'en' : 'tr';
+
+        const { analyzeChannel } = require('./services/aiService');
+        const analysis = await analyzeChannel({ channelName, videos: sanitizedVideos }, { language });
+
+        // Save to DB
+        const { data, error } = await supabase
+            .from('analyses')
+            .insert([{
+                video_id: `channel_${channelName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30)}_${Date.now()}`,
+                video_metadata: { channelName, videoCount: sanitizedVideos.length, type: 'channel' },
+                analysis_results: analysis,
+                user_id: req.user.id
+            }])
+            .select();
+
+        if (error) {
+            console.error("Supabase kayıt hatası:", error.message);
+            // Non-fatal: return result even if save fails
+        }
+
+        // Increment usage counter
+        await supabase.from('profiles').update({
+            analysis_count: req.profile.analysis_count + 1,
+            updated_at: new Date().toISOString()
+        }).eq('id', req.user.id);
+
+        res.json({
+            id: data?.[0]?.id,
+            channelName,
+            videoCount: sanitizedVideos.length,
+            analysis_results: analysis,
+            created_at: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error("Kanal analiz hatası:", error.message);
+        res.status(500).json({ error: error.message || 'Kanal analizi sırasında bir hata oluştu.' });
     }
 });
 

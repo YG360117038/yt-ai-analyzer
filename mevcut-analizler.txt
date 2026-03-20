@@ -1,245 +1,252 @@
 ================================================================================
-              YT AI ANALYZER - MEVCUT ANALİZ RAPORU
+              YT AI ANALYZER - MEVCUT ANALİZ RAPORU (v3.0)
 ================================================================================
 
-1. VERİ KAYNAĞI (Scraper - extension/src/content/scraper.js)
+FELSEFESİ:
+  "Elite YouTube growth strategist" yaklaşımı.
+  Sadece analiz değil — her videodan TEKRARLANABILIR VİRAL SİSTEM çıkarmak.
+  Fluff yok, teori yok. Her şey aksiyonel.
+  En önemli özellik: "Clone This Video" → bir sonraki video hazır.
+
+
+1. VERİ KAYNAĞI (extension/src/content/scraper.js)
 ================================================================================
 
-Sadece sayfadan DOM scraping yapılıyor. Video içeriği izlenmiyor/dinlenmiyor.
+VIDEO SAYFASI (youtube.com/watch?v=...)
+  - Başlık, Açıklama, Kanal Adı, Abone Sayısı
+  - Görüntülenme, Yayın Tarihi, Beğeni Sayısı, Video Süresi
+  - Etiketler (meta og:video:tag), Hashtag'ler
+  - Yorumlar (ilk 30, scroll ile)
+  - Thumbnail URL, Kanal Avatarı, Video ID, URL
 
-Toplanan Veriler:
-  - Başlık                → DOM elementi (h1)
-  - Açıklama              → DOM elementi (#description)
-  - Kanal Adı             → DOM elementi (#channel-name)
-  - Abone Sayısı          → DOM elementi (#owner-sub-count)
-  - Görüntülenme Sayısı   → DOM elementi
-  - Yayın Tarihi          → DOM elementi
-  - Beğeni Sayısı         → DOM elementi (aria-label)
-  - Video Süresi          → DOM elementi (.ytp-time-duration)
-  - Etiketler             → Meta taglar (og:video:tag)
-  - Hashtag'ler           → Link elementleri (/hashtag/)
-  - Yorumlar (ilk 30)     → Sayfa scroll + DOM (#content-text)
-  - Thumbnail URL         → img.youtube.com üzerinden oluşturuluyor
-  - Kanal Avatarı         → DOM elementi (img)
-  - Video URL             → window.location.href
-  - Video ID              → URL parametresi (v=)
+KANAL SAYFASI (youtube.com/@handle veya youtube.com/channel/...)
+  - Kanal Adı, Abone Sayısı, Kanal Handle, Avatar
+  - Video Listesi (max 30): Başlık, ID, Thumbnail,
+    Görüntülenme, Yayın Tarihi, Süre
+  - Otomatik scroll ile video yükleme
 
 
-2. AI ANALİZ ÇIKTISI (backend/src/services/aiService.js)
+2. AI ANALİZ ÇIKTISI — TEK VİDEO
 ================================================================================
 
-Yukarıdaki metin verileri Gemini'ye (fallback: Claude) gönderilip
-aşağıdaki analizler üretiliyor:
+AI MODELLERİ:
+  Birincil (JSON)   : Gemini 2.5 Flash
+  Fallback (JSON)   : Claude Sonnet 4.6
+  Paralel (Yaratıcı): Claude Sonnet 4.6 → claude_creative
 
-──────────────────────────────────────────────────────────────────────────
- #   Analiz Adı                         Detay
-──────────────────────────────────────────────────────────────────────────
- 1   Video Skoru                        overall, SEO, engagement, viral
-                                        potansiyel, içerik kalitesi (0-100)
-                                        + verdict cümlesi
+SISTEM ROLÜ:
+  "Elite YouTube growth strategist, content reverse-engineering expert,
+   and AI video production architect."
 
- 2   İçerik Stili Analizi               Anlatım biçimi, düzenleme stili,
-                                        pacing detaylı analizi
+──────────────────────────────────────────────────────────────────────────────
+ #   Alan                    Tip        Detay
+──────────────────────────────────────────────────────────────────────────────
 
- 3   Psikolojik Tetikleyiciler          Kullanılan psikolojik tetikleyici
-                                        listesi
+ 1   viral_score             object     Viral potansiyel skoru
+     ├─ score                int        0-100 genel viral skor
+     ├─ ctr_potential        int        0-100 tıklanma oranı potansiyeli
+     ├─ retention_potential  int        0-100 izleyici tutma potansiyeli
+     ├─ growth_potential     int        0-100 büyüme potansiyeli
+     └─ why                  string     Kısa açıklama (neden bu skor)
 
- 4   Hook Yapısı                        Hook tipi (soru, şok, merak boşluğu),
-                                        neden işe yaradığı, ilk 5 saniye
-                                        tahmini
+ 2   hook_analysis           object     Hook & dikkat analizi
+     ├─ type                 string     curiosity|shock|story|promise|
+     │                                 controversy|question
+     ├─ why_it_works         string     Neden işe yaradığının özlü açıklaması
+     └─ first_10_seconds     string     İlk 10 saniyede tam olarak ne oluyor
 
- 5   Retention Stratejisi               İzleyici tutma stratejisi analizi
+ 3   video_structure         object     İçerik yapısı (tersine mühendislik)
+     ├─ hook                 string     Hook bölümü özeti
+     ├─ setup                string     Setup bölümü özeti
+     ├─ buildup              string     Buildup bölümü özeti
+     ├─ payoff               string     Payoff bölümü özeti
+     └─ cta                  string     CTA bölümü özeti
 
- 6   Thumbnail Psikolojisi              Küçük resim analizi + iyileştirme
-                                        önerileri
+ 4   viral_patterns          array      Tekrarlanabilir viral kalıplar
+                                        ["curiosity gap: ...", "pattern interrupt: ..."]
 
- 7   Hedef Kitle                        Demografi, psikografi, izleyici
-                                        niyeti
+ 5   title_thumbnail         object     Başlık & thumbnail stratejisi
+     ├─ why_title_works      string     Mevcut başlığın neden çalıştığı
+     ├─ ctr_angle            string     CTR açısı (merak/korku/fayda/şok/hikaye)
+     ├─ thumbnail_psychology string     Thumbnail psikolojisi analizi
+     ├─ improved_titles      array[5]   Her biri: {title, ctr_score, angle}
+     └─ thumbnail_text_ideas array[5]   Thumbnail metin fikirleri
 
- 8   Ton Analizi                        Resmi/samimi, enerjik/sakin vs.
+ 6   script_extraction       object     Script özeti (tersine mühendislik)
+     ├─ opening              string     Açılış bölümü
+     ├─ key_points           array[3+]  Ana noktalar
+     └─ ending               string     Kapanış bölümü
 
- 9   Senaryo Tersine Mühendisliği       Videonun senaryo yapısının analizi
+ 7   clone_this_video        object     ★ EN ÖNEMLİ BÖLÜM ★
+     ├─ new_video_idea       string     Aynı format, farklı açı — yeni video fikri
+     ├─ full_hook            string     Hazır hook metni (hemen kullanılabilir)
+     ├─ script_outline       string     Tam senaryo taslağı (bölümler halinde)
+     ├─ scene_plan           array[5]   Her sahne:
+     │    ├─ scene           int        Sahne numarası
+     │    ├─ time            string     Zaman aralığı (örn: "0:00-0:15")
+     │    ├─ description     string     Sahne açıklaması
+     │    ├─ voiceover       string     Seslendirme metni (TR)
+     │    └─ ai_video_prompt string     Runway/Sora için detaylı prompt (EN)
+     └─ seo_tags             array[10]  Kullanıma hazır SEO tag'leri
 
-10   CTA Stratejisi                     Call-to-action analizi
+ 8   content_factory         object     İçerik fabrikası
+     ├─ video_ideas          array[10]  Her biri: {title, hook, why}
+     │                                 10 video fikri — hook metni + neden viral olur
+     └─ high_ctr_titles      array[5]   Her biri: {title, ctr_score}
 
-11   Rakip Analizi                      Niş konumlandırma, farklılaşma,
-                                        pazar boşluğu
+ 9   shorts_opportunities    array[3]   Shorts/Reels fırsatları
+                                        Her biri: {title, timestamp, duration, hook, why}
 
-12   Yorum Duygu Analizi                Genel mood, öne çıkan temalar,
-                                        izleyici soruları, yeni video
-                                        fikirleri
+10   monetization            object     Para kazanma içgörüleri
+     ├─ how_it_makes_money   string     Bu videonun para kazanma mekanizması
+     ├─ strategies           array[3]   Kullanıcıya özel monetizasyon stratejileri
+     └─ best_cta             string     En etkili CTA önerisi
 
-13   Video Akış Grafiği                 Mermaid.js (graph TD) formatında
-                                        akış diyagramı
+── CLAUDE CREATIVE (Paralel çalışır, CLAUDE_API_KEY varsa) ──────────────────
 
-14   Deep Digest Özet                   5 önemli çıkarım, aksiyon planı,
-                                        tek cümle özet
-
-15   Podcast Senaryosu                  Sunucu + Uzman formatında 2 dk'lık
-                                        doğal tartışma senaryosu
-
-16   Tahmini Retention Heatmap          20 elemanlı dizi (0-100 arası)
-
-17   Benzer Video Prompt'ları           5 adet farklı açıdan video prompt'u
-
-18   Viral Hook Prompt'ları             5 adet viral potansiyelli giriş
-
-19   Başlık Varyasyonları               5 alternatif başlık
-
-20   SEO Açıklamaları                   3 adet SEO uyumlu açıklama
-
-21   Yüksek CTR Başlıkları             10 adet yüksek tıklama oranlı başlık
-
-22   Thumbnail Metin Fikirleri          10 adet thumbnail yazı önerisi
-
-23   SEO Tag'leri                       15 adet önerilen tag
-
-24   Tam Senaryo Şablonu               Giriş, gelişme, sonuç bölümlü
-                                        senaryo template'i
-
-25   Hook Varyasyonları                 5 alternatif giriş hook'u
-
-26   Hikaye Anlatım Framework'ü        Yapı, kahraman, çatışma, çözüm,
-                                        template
-
-27   Agresif Satış Tonu                 İçeriğin agresif satış tonuyla
-                                        yeniden yazımı
-
-28   Sakin Eğitici Ton                  İçeriğin eğitici tonla yeniden yazımı
-
-29   Belgesel Tarzı                     İçeriğin belgesel anlatımıyla yazımı
-
-30   Motivasyonel Stil                  İçeriğin motivasyonel stille yazımı
-
-31   Tartışmalı/Provokatif Stil         İçeriğin tartışmalı stille yazımı
-
-32   AI Prompt Toolkit:
-     - ChatGPT Prompt'ları              5 adet güçlü prompt
-     - Midjourney Prompt'ları           3 adet thumbnail prompt'u
-     - Blog Yazısı Prompt'u            Video → blog dönüşüm prompt'u
-     - Twitter Thread Prompt'u         Video → Twitter thread prompt'u
-     - LinkedIn Post Prompt'u          Video → LinkedIn paylaşım prompt'u
-     - TikTok Script Prompt'u          Video → kısa video senaryosu prompt'u
-     - Email Newsletter Prompt'u       Video → email bülteni prompt'u
-
-33   İçerik Yeniden Kullanım           5 adet farklı format ve platform
-     Fikirleri                          önerisi
-
-34   Monetizasyon Fikirleri             3 adet para kazanma önerisi
-
-35   Video Prodüksiyon:
-     - Storyboard                      8 sahneli (kamera açısı, ses, metin,
-                                        AI video prompt [EN], voiceover
-                                        script [TR], text overlay, süre)
-     - Genel Görsel Stil               Sinematik, minimal, enerjik vs.
-     - Renk Paleti                     Önerilen renkler
-     - Müzik Mood                      Arka plan müzik tarz önerisi
-     - Geçiş Stili                     Cut, fade, zoom, glitch vs.
-     - En-Boy Oranı Önerisi            16:9, 9:16, 1:1 + neden
-     - Full Voiceover Script           Tüm sahnelerin birleşik seslendirmesi
-     - Müzik Önerileri                 3 adet (isim, mood, nerede kullanılmalı)
-     - Export-Ready Prompt'lar:
-       · Sora Prompt                   OpenAI Sora için optimize [EN]
-       · Runway Prompt                 Runway Gen-3 için optimize [EN]
-       · Pika Prompt                   Pika Labs için optimize [EN]
-       · Kling Prompt                  Kling AI için optimize [EN]
-       · Luma Prompt                   Luma Dream Machine için optimize [EN]
-
-36   AI Video Prompt'ları:
-     - Runway ML Prompt'ları           3 adet detaylı [EN]
-     - Luma AI Prompt'ları             3 adet detaylı [EN]
-     - Kling AI Prompt'ları            3 adet detaylı [EN]
-     - OpenAI Sora Prompt'ları         3 adet detaylı [EN]
-     - Pika Labs Prompt'ları           3 adet detaylı [EN]
-     - Shorts/Reels Prompt'ları        3 adet kısa video [EN]
-     - DALL-E/Midjourney Thumbnail     3 adet thumbnail prompt'u [EN]
-
-37   B-Roll Önerileri                   5 adet (sahne açıklaması + AI prompt)
-
-38   Content Briefing:
-     - Timeline                        5-8 bölüm (timestamp, konu, özet)
-     - Çalışma Notları                 300+ kelime detaylı eğitici not
-     - Hızlı Özet                      30 saniyede okunabilir (3-4 cümle)
-
-39   FAQ                                7+ soru-cevap (izleyici perspektifli)
-
-40   Anahtar Kavramlar                  5+ terim (tanım + önem)
-
-41   Content DNA:
-     - Format Formülü                  Hook + Problem + Çözüm + CTA gibi
-     - Benzersiz Elemanlar             3 adet
-     - Tekrar Kullanılabilir Kalıplar  3 adet
-     - Başarı Faktörleri               3 adet
-     - İçerik Sütunları               3 ana tema
-     - Duygusal Arc                    Merak → şaşkınlık → motivasyon gibi
-
-42   Recreation Mega Prompt             200+ kelime, doğrudan AI'a
-                                        yapıştırılabilir tam prompt
+11   claude_creative         object     Claude'a özel yaratıcı çıktılar
+     ├─ power_hooks                     5 güçlü hook varyasyonu
+     ├─ viral_thumbnail_concepts        3 thumbnail konsepti
+     ├─ one_liner_hooks                 5 tek satırlık viral açıklama
+     ├─ ab_test_titles                  A/B test başlık çiftleri
+     ├─ rewritten_title_options         Yeniden yazılmış başlık seçenekleri
+     └─ storytelling_upgrade            Storytelling geliştirme önerileri
 
 
-3. ANALİZ KATMANLARI
+3. AI ANALİZ ÇIKTISI — KANAL ANALİZİ
 ================================================================================
 
-Sistem 3 katmanlı veri kaynağı kullanıyor:
+Endpoint : POST /api/channel-analyze
+Giriş    : { channelName, videos: [{videoId, title, viewCount,
+             thumbnail, publishDate, duration}] }
 
-Katman 1 - Metadata (varsayılan, her zaman):
-  Scraper ile DOM'dan toplanan veriler (başlık, açıklama, yorumlar, etiketler)
+──────────────────────────────────────────────────────────────────────────────
+ #   Alan                    Detay
+──────────────────────────────────────────────────────────────────────────────
+ 1   channel_health_score    overall, content_consistency,
+                             growth_potential, monetization_readiness
+                             + channel_verdict
 
-Katman 2 - Transcript (otomatik, sunucuda yt-dlp+python varsa):
-  yt-dlp ile altyazı (auto-generated) indiriliyor
-  TR > EN öncelikli, SRV1 formatında parse ediliyor
-  Videonun sözlü içeriği AI'a ekleniyor
-  → Daha doğru senaryo, ton, hook analizi
+ 2   performance_patterns    En iyi/kötü performans kalıpları,
+                             ortak başarı faktörleri
 
-Katman 3 - Video Understanding (Pro, VIDEO_ANALYSIS_ENABLED=true):
-  yt-dlp ile video indiriliyor (maks 720p, maks 10dk)
-  Gemini File API'ye upload ediliyor
-  Gemini videoyu GERÇEKTEN İZLEYİP analiz ediyor
-  → Görsel stil, kamera açıları, metin overlay, sahne geçişleri gerçek veriye dayalı
+ 3   content_gaps            İçerik boşlukları, fırsat alanları
 
-Not: Katman 2 ve 3 yoksa analizler tahminidir (metadata bazlı).
+ 4   optimal_posting_schedule En iyi gün/saat, frekans tavsiyesi
+
+ 5   audience_insights       Kitleye özel bulgular
+
+ 6   competitor_positioning  Rakiplere göre konum, diferansiyasyon
+
+ 7   next_video_ideas        5 adet: {title, ctr_score, why, format}
+
+ 8   growth_strategy         Büyüme stratejisi (kısa/orta/uzun vade)
+
+ 9   channel_dna             Kanal DNA'sı, viral formülü, marka sesi
+
+10   channel_strategy        ← Entegre bölüm
+     ├─ channel_dna          Stil + ton + format (tek paragraf)
+     ├─ best_patterns        En iyi performans kalıpları [3+]
+     ├─ content_gaps         Eksik içerik alanları [3+]
+     ├─ double_down          Üzerine basılması gerekenler [2+]
+     ├─ channel_formula      "Hook → X → Y → Payoff → CTA" formatı
+     ├─ growth_plan
+     │    ├─ 7_days          Bu hafta 3 aksiyon
+     │    ├─ 30_days         Bu ay yapılacaklar
+     │    └─ 90_days         3 aylık strateji
+     └─ next_5_videos        [{title, why, expected_ctr, format}]
 
 
-4. TEKNİK DETAYLAR
+4. ANALİZ KATMANLARI
 ================================================================================
 
-AI Modelleri:
-  - Birincil:  Gemini 2.5 Flash (responseMimeType: application/json)
-  - Fallback:  Claude Sonnet 4 (claude-sonnet-4-20250514)
-
-Timeout:       90 saniye
-Retry:         Her model 2 deneme yapıyor
-Max Tokens:    Gemini: 65536 / Claude: 16000
-Temperature:   0.7
-
-JSON Parse:    5 aşamalı (direkt → regex extract → temizlik → bracket
-               dengeleme → son deneme)
-
-Prompt Dili:   Dinamik - kullanıcı diline göre (TR/EN)
-               AI video prompt'ları her zaman İngilizce
+  Katman 1 │ Metadata    │ Her zaman. DOM scraping (başlık, açıklama, yorumlar)
+  Katman 2 │ Transcript  │ yt-dlp ile altyazı — TR > EN öncelikli, SRV1 parse
+           │             │ → Gerçek hook/script/ton analizi
+  Katman 3 │ Video       │ Pro + VIDEO_ANALYSIS_ENABLED=true
+           │ Understanding│ yt-dlp ile video indir → Gemini File API → izleyip analiz
+           │             │ → Gerçek görsel stil, kamera, sahne geçişleri
+  Katman 4 │ Claude      │ CLAUDE_API_KEY varsa paralel çalışır
+           │ Creative    │ → power_hooks, thumbnail konseptleri, A/B başlıklar
 
 
-5. UYGULANAN ÖZELLİKLER (Son Güncellemeler)
+5. TEKNİK DETAYLAR
 ================================================================================
 
-i18n (Çoklu Dil Desteği):
-  - Türkçe (tr) ve İngilizce (en) tam destek
-  - Tarayıcı diline göre otomatik algılama
-  - Popup, dashboard ve backend prompt'ları dil destekli
-  - AI analiz çıktıları kullanıcının seçtiği dilde üretiliyor
-  - Tarih formatları locale-aware (toLocaleDateString)
+Modeller:
+  Yapısal JSON   → Gemini 2.5 Flash (birincil) / Claude Sonnet 4.6 (fallback)
+  Yaratıcı       → Claude Sonnet 4.6 (paralel)
 
-Güvenlik & Lansman Hazırlığı:
-  - Content Security Policy (CSP) manifest.json'a eklendi
-  - Admin e-postaları .env değişkenine taşındı (ADMIN_EMAILS)
-  - Input validation: videoId regex (11 char), title (maks 500),
-    description (maks 10000), language whitelist
-  - Chrome Web Store bilingual açıklama eklendi
+Timeout        : 180s (AI) / 180s (video)
+Retry          : Her model 2 deneme
+Max Tokens     : Gemini 24576 / Claude JSON 16000 / Claude Creative 4096
+Temperature    : 0.4 (Gemini) / 0.85 (Claude Creative)
 
-UX İyileştirmeler:
-  - Collapsible kartlar: Uzun içerikli kartlar otomatik daraltılıyor
-  - "Devamını gör" / "Daralt" toggle butonu
-  - Gradient fade efekti ile görsel geçiş
-  - Tüm card ve card-full bölümlerinde aktif
-    (Analiz kartları, Timeline, Study Notes, FAQ, Key Concepts,
-     Content DNA, Mega Prompt, Storyboard, Voiceover, Platform Prompts)
+JSON Parse     : 7 aşamalı recovery sistemi
+                 direkt → brace extract → temizlik → string-aware bracket
+                 dengeleme → line removal → truncated recovery → son deneme
+
+Geriye Dönük Uyumluluk (migrateOldSchema):
+  Eski v1 analizler → dashboard otomatik dönüştürür:
+  video_score          → viral_score
+  hook_structure       → hook_analysis
+  tone_analysis +
+  content_style_breakdown → style_and_tone (v2 geçiş)
+  similar_video_prompts +
+  viral_hook_prompts   → content_factory.video_ideas
+  high_ctr_titles      → content_factory.high_ctr_titles
+  title_variations     → title_thumbnail.improved_titles
+  seo_tags             → clone_this_video.seo_tags
+  storytelling_framework → script_extraction
+  shorts_moments       → shorts_opportunities
+  monetization_ideas   → monetization.strategies
+  recreation_mega_prompt → clone_this_video.script_outline
+
+
+6. DASHBOARD SEKMELERİ (v3.0)
+================================================================================
+
+  Sekme                İçerik                                    Plan
+  ─────────────────────────────────────────────────────────────────────────
+  🔥 Viral Skor        4 büyük gauge (Viral/CTR/Retention/Growth) FREE
+                       Hook analizi, viral pattern chip'leri
+
+  🎬 Clone This Video  ★ HERO SEKME ★                            PRO
+                       Yeni video fikri (büyük kart)
+                       Hazır hook metni (kopyalanabilir)
+                       5 sahne planı (voiceover + AI video prompt)
+                       SEO tag chip'leri
+
+  🏭 Content Factory   10 video fikri (hook + neden viral)        PRO
+                       5 yüksek CTR başlık (skor barı ile)
+
+  🎣 Yapı & Script     Hook→Setup→Buildup→Payoff→CTA              PRO
+                       Script özeti, 3 Shorts fırsatı
+
+  🎯 SEO & Başlık      5 geliştirilmiş başlık (CTR skoru + açı)   PRO
+                       Thumbnail psikolojisi, metin fikirleri
+
+  📺 Kanal Analizi     Kanal DNA, channel_strategy                PRO
+                       Growth plan (7/30/90 gün)
+                       Sonraki 5 video önerisi
+
+  💰 Monetizasyon      Para kazanma mekanizması, stratejiler,     PRO
+                       en etkili CTA önerisi
+
+  📁 Geçmiş            Tüm geçmiş analizler (video + kanal)       FREE
+
+
+7. ÜCRETLENDİRME
+================================================================================
+
+  Free  → 🔥 Viral Skor sekmesi (4 skor + hook + viral patterns)
+  Pro   → Tüm sekmeler + kanal analizi + export (TXT/JSON)
+          $9.99/ay — PayTR (TR) / Stripe (ileride)
+
+
+8. DEPLOYMENT
+================================================================================
+
+  Backend   : https://yt-ai-analyzer-production.up.railway.app
+  Supabase  : https://sxlyfxqepyrjevfrjkwz.supabase.co
+  Extension : chrome-store-upload.zip (854KB) — store'a hazır

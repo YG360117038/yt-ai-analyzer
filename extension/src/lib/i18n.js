@@ -37,9 +37,16 @@ const I18N = (() => {
         'login_failed': { tr: 'Giriş yapılamadı', en: 'Login failed' },
         'login_cancelled': { tr: 'Giriş iptal edildi', en: 'Login cancelled' },
 
-        // ==================== DASHBOARD SIDEBAR ====================
+        // ==================== DASHBOARD SIDEBAR (8 tabs) ====================
         'nav_analysis': { tr: 'Analiz', en: 'Analysis' },
         'nav_other': { tr: 'Diğer', en: 'Other' },
+        'tab_analysis': { tr: 'Analiz', en: 'Analysis' },
+        'tab_seo': { tr: 'SEO & Büyüme', en: 'SEO & Growth' },
+        'tab_content': { tr: 'İçerik Stüdyo', en: 'Content Studio' },
+        'tab_production': { tr: 'Prodüksiyon', en: 'Production' },
+        'tab_aihub': { tr: 'AI Prompt Hub', en: 'AI Prompt Hub' },
+        'tab_learn': { tr: 'Özet & Öğren', en: 'Summary & Learn' },
+        'tab_channel': { tr: 'Kanal Analizi', en: 'Channel Analysis' },
         'deep_analysis': { tr: 'Derin Analiz', en: 'Deep Analysis' },
         'prompt_toolkit': { tr: 'Prompt Toolkit', en: 'Prompt Toolkit' },
         'notebook_mode': { tr: 'Notebook Modu', en: 'Notebook Mode' },
@@ -48,6 +55,19 @@ const I18N = (() => {
         'video_production': { tr: 'Video Üretim Merkezi', en: 'Video Production' },
         'history': { tr: 'Geçmiş Analizler', en: 'Analysis History' },
         'admin_panel': { tr: 'Admin Panel', en: 'Admin Panel' },
+
+        // ==================== POPUP NEW KEYS ====================
+        'analyze_channel': { tr: 'Kanalı Analiz Et', en: 'Analyze Channel' },
+        'on_video_page': { tr: 'Video sayfasındasınız', en: 'You are on a video page' },
+        'on_channel_page': { tr: 'Kanal sayfasındasınız', en: 'You are on a channel page' },
+        'youtube_video': { tr: 'YouTube Video', en: 'YouTube Video' },
+        'youtube_channel': { tr: 'YouTube Kanalı', en: 'YouTube Channel' },
+
+        // ==================== CHANNEL ANALYSIS KEYS ====================
+        'preparing_channel_data': { tr: 'Kanal verileri hazırlanıyor...', en: 'Preparing channel data...' },
+        'channel_analyzing': { tr: 'Kanal analizi yapılıyor...', en: 'Analyzing channel...' },
+        'channel_deep_analyzing': { tr: 'Kanal derinlemesine analiz ediliyor...', en: 'Deep channel analysis in progress...' },
+        'error_no_channel_data': { tr: 'Kanal verisi bulunamadı.', en: 'Channel data not found.' },
 
         // ==================== DASHBOARD HEADER ====================
         'loading': { tr: 'Yükleniyor...', en: 'Loading...' },
@@ -252,7 +272,29 @@ const I18N = (() => {
             'replicable_patterns': 'Tekrar Kullanılabilir Kalıplar',
             'success_factors': 'Başarı Faktörleri', 'content_pillars': 'İçerik Sütunları',
             'emotional_arc': 'Duygusal Yolculuk', 'study_notes': 'Çalışma Notları',
-            'quick_recap': 'Hızlı Özet', 'timeline': 'Zaman Çizelgesi'
+            'quick_recap': 'Hızlı Özet', 'timeline': 'Zaman Çizelgesi',
+            // New 8-tab schema keys
+            'seo_section': 'SEO & Büyüme', 'title_variations': 'Başlık Alternatifleri + CTR',
+            'seo_description': 'SEO Açıklaması', 'best_posting_time': 'En İyi Paylaşım Zamanı',
+            'style_and_tone': 'Stil & Ton Analizi', 'video_ideas': 'Video Fikirleri',
+            'tone_rewrites': 'Ton Yeniden Yazımları', 'shorts_moments': 'Shorts Anları',
+            'hook_variations': 'Hook Alternatifleri', 'full_script': 'Tam Senaryo Şablonu',
+            'deep_digest': 'Derin Özet & Öğren', 'ai_prompt_hub': 'AI Prompt Hub',
+            'channel_health_score': 'Kanal Sağlık Skoru', 'performance_patterns': 'Performans Kalıpları',
+            'content_gaps': 'İçerik Boşlukları', 'optimal_posting_schedule': 'Optimal Yayın Takvimi',
+            'audience_insights': 'İzleyici Profili', 'competitor_positioning': 'Rakip Konumlandırması',
+            'next_video_ideas': 'Sonraki Video Fikirleri', 'growth_strategy': 'Büyüme Stratejisi',
+            'channel_dna': 'Kanal DNA', 'power_hooks': 'Güçlü Hook\'lar',
+            'rewritten_title_options': 'Yeniden Yazılmış Başlıklar',
+            'storytelling_upgrade': 'Hikaye Anlatımı Geliştirme',
+            'viral_thumbnail_concepts': 'Viral Thumbnail Konseptleri',
+            'ab_test_titles': 'A/B Başlık Testi', 'claude_creative': 'Claude AI Yaratıcı İçerik',
+            'overall_tone': 'Genel Ton', 'editing_style': 'Düzenleme Stili',
+            'language_register': 'Dil Kullanımı', 'visual_style': 'Görsel Stil',
+            'best_day': 'En İyi Gün', 'best_hour': 'En İyi Saat',
+            'reasoning': 'Neden', 'angle': 'Farklı Açı', 'hook': 'Hook',
+            'podcast_script': 'Podcast Senaryosu', 'content_briefing': 'İçerik Brifing',
+            'recreation_mega_prompt': 'Mega Yeniden Oluşturma Promptu'
         },
         en: {
             'video_score': 'Video Score', 'content_style_breakdown': 'Content Style Analysis',
@@ -305,7 +347,29 @@ const I18N = (() => {
             'replicable_patterns': 'Replicable Patterns',
             'success_factors': 'Success Factors', 'content_pillars': 'Content Pillars',
             'emotional_arc': 'Emotional Arc', 'study_notes': 'Study Notes',
-            'quick_recap': 'Quick Recap', 'timeline': 'Timeline'
+            'quick_recap': 'Quick Recap', 'timeline': 'Timeline',
+            // New 8-tab schema keys
+            'seo_section': 'SEO & Growth', 'title_variations': 'Title Variations + CTR Score',
+            'seo_description': 'SEO Description', 'best_posting_time': 'Best Posting Time',
+            'style_and_tone': 'Style & Tone Analysis', 'video_ideas': 'Video Ideas',
+            'tone_rewrites': 'Tone Rewrites', 'shorts_moments': 'Shorts Moments',
+            'hook_variations': 'Hook Variations', 'full_script': 'Full Script Template',
+            'deep_digest': 'Deep Digest & Learn', 'ai_prompt_hub': 'AI Prompt Hub',
+            'channel_health_score': 'Channel Health Score', 'performance_patterns': 'Performance Patterns',
+            'content_gaps': 'Content Gaps', 'optimal_posting_schedule': 'Optimal Posting Schedule',
+            'audience_insights': 'Audience Insights', 'competitor_positioning': 'Competitor Positioning',
+            'next_video_ideas': 'Next Video Ideas', 'growth_strategy': 'Growth Strategy',
+            'channel_dna': 'Channel DNA', 'power_hooks': 'Power Hooks',
+            'rewritten_title_options': 'Rewritten Title Options',
+            'storytelling_upgrade': 'Storytelling Upgrade',
+            'viral_thumbnail_concepts': 'Viral Thumbnail Concepts',
+            'ab_test_titles': 'A/B Title Test', 'claude_creative': 'Claude AI Creative',
+            'overall_tone': 'Overall Tone', 'editing_style': 'Editing Style',
+            'language_register': 'Language Register', 'visual_style': 'Visual Style',
+            'best_day': 'Best Day', 'best_hour': 'Best Hour',
+            'reasoning': 'Reasoning', 'angle': 'Different Angle', 'hook': 'Hook',
+            'podcast_script': 'Podcast Script', 'content_briefing': 'Content Briefing',
+            'recreation_mega_prompt': 'Mega Recreation Prompt'
         }
     };
 
