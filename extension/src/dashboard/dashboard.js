@@ -1226,6 +1226,107 @@ document.addEventListener('DOMContentLoaded', async () => {
             grid.appendChild(card);
         }
 
+        // Niche Research
+        if (r.niche_research) {
+            const nr = r.niche_research;
+
+            // Section header
+            const nicheHeader = document.createElement('div');
+            nicheHeader.className = 'col-full';
+            nicheHeader.innerHTML = `<div class="section-divider"><span>&#128300; Niche Araştırması</span></div>`;
+            grid.appendChild(nicheHeader);
+
+            // Trending Niches
+            if (nr.trending_niches && nr.trending_niches.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'card col-full';
+                const itemsHTML = nr.trending_niches.map(n => {
+                    const gp = parseInt(n.growth_potential) || 0;
+                    const compColor = n.competition === 'low' ? 'var(--green)' : n.competition === 'high' ? 'var(--accent)' : 'var(--orange)';
+                    const compLabel = n.competition === 'low' ? 'Düşük' : n.competition === 'high' ? 'Yüksek' : 'Orta';
+                    return `<div class="niche-card">
+                        <div class="niche-card-top">
+                            <div class="niche-name">${sanitizeHTML(n.niche || '')}</div>
+                            <div class="niche-meta">
+                                <span class="niche-badge" style="color:${compColor};border-color:${compColor}20;background:${compColor}10">${compLabel} Rekabet</span>
+                                <span class="niche-score" style="color:${gp>=70?'var(--green)':gp>=50?'var(--orange)':'var(--accent)'}">${gp}/100</span>
+                            </div>
+                        </div>
+                        <div class="niche-bar"><div class="niche-bar-fill" style="width:${gp}%;background:${gp>=70?'var(--green)':gp>=50?'var(--orange)':'var(--accent)'}"></div></div>
+                        <div class="niche-why">${sanitizeHTML(n.why_trending || '')}</div>
+                    </div>`;
+                }).join('');
+                card.innerHTML = `<div class="card-header"><span class="card-title purple">&#128200; Trend Nişler</span></div><div class="card-body"><div class="niche-grid">${itemsHTML}</div></div>`;
+                grid.appendChild(card);
+            }
+
+            // Low Competition + High Monetization side by side
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'col-full';
+            rowDiv.style.display = 'grid';
+            rowDiv.style.gridTemplateColumns = 'repeat(auto-fill,minmax(300px,1fr))';
+            rowDiv.style.gap = '12px';
+
+            if (nr.low_competition_niches && nr.low_competition_niches.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                const itemsHTML = nr.low_competition_niches.map(n => `
+                    <div class="niche-list-item">
+                        <div class="niche-list-name">&#128994; ${sanitizeHTML(n.niche || '')}</div>
+                        <div class="niche-list-desc">${sanitizeHTML(n.explanation || '')}</div>
+                        <span class="niche-badge" style="color:var(--green);border-color:rgba(0,200,81,0.2);background:rgba(0,200,81,0.08)">${n.potential === 'high' ? 'Yüksek Potansiyel' : 'Orta Potansiyel'}</span>
+                    </div>`).join('');
+                card.innerHTML = `<div class="card-header"><span class="card-title green">&#128247; Düşük Rekabet Nişler</span></div><div class="card-body">${itemsHTML}</div>`;
+                rowDiv.appendChild(card);
+            }
+
+            if (nr.high_monetization_niches && nr.high_monetization_niches.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                const itemsHTML = nr.high_monetization_niches.map(n => `
+                    <div class="niche-list-item">
+                        <div class="niche-list-name">&#128176; ${sanitizeHTML(n.niche || '')}</div>
+                        <div class="niche-list-desc">${sanitizeHTML(n.target_audience || '')}</div>
+                        ${n.estimated_rpm ? `<span class="niche-badge" style="color:var(--gold,#f59e0b);border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.08)">RPM ${sanitizeHTML(n.estimated_rpm)}</span>` : ''}
+                    </div>`).join('');
+                card.innerHTML = `<div class="card-header"><span class="card-title gold">&#128176; Yüksek Gelir Nişleri</span></div><div class="card-body">${itemsHTML}</div>`;
+                rowDiv.appendChild(card);
+            }
+
+            if (rowDiv.children.length > 0) grid.appendChild(rowDiv);
+
+            // Viral Formats
+            if (nr.viral_formats && nr.viral_formats.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                const itemsHTML = nr.viral_formats.map((f, i) => `
+                    <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--card-border)">
+                        <div style="width:28px;height:28px;border-radius:50%;background:rgba(123,104,238,0.15);color:var(--purple);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
+                        <div>
+                            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${sanitizeHTML(f.format || '')}</div>
+                            <div style="font-size:12px;color:var(--text-dim)">${sanitizeHTML(f.description || '')}</div>
+                        </div>
+                    </div>`).join('');
+                card.innerHTML = `<div class="card-header"><span class="card-title purple">&#127909; Viral Format Şablonları</span></div><div class="card-body" style="padding:0 16px">${itemsHTML}</div>`;
+                grid.appendChild(card);
+            }
+
+            // Ready-to-Post Ideas
+            if (nr.ready_to_post_ideas && nr.ready_to_post_ideas.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'card col-full';
+                const ideasHTML = nr.ready_to_post_ideas.map(idea => `
+                    <div class="factory-idea-card">
+                        <div class="factory-idea-title">${sanitizeHTML(idea.title || '')}</div>
+                        <div class="factory-idea-hook">"${sanitizeHTML(idea.hook || '')}"</div>
+                        <div class="factory-idea-why">${sanitizeHTML(idea.why_it_will_perform || '')}</div>
+                        ${idea.format ? `<span style="font-size:10px;font-weight:700;color:var(--text-muted);background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:100px;text-transform:uppercase;margin-top:6px;display:inline-block">${sanitizeHTML(idea.format)}</span>` : ''}
+                    </div>`).join('');
+                card.innerHTML = `<div class="card-header"><span class="card-title accent">&#9889; Hemen Çek: Hazır Video Fikirleri</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">${ideasHTML}</div></div>`;
+                grid.appendChild(card);
+            }
+        }
+
         // Video list preview
         if (channelData && channelData.videos && channelData.videos.length > 0) {
             const videoCard = document.createElement('div');

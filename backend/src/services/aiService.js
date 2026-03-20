@@ -109,7 +109,7 @@ async function analyzeChannel(channelData, options = {}) {
         ? 'Respond in ENGLISH. Give specific, data-driven insights based on the video list provided.'
         : 'TÜRKÇE yanıt ver. Video listesine dayanarak spesifik, veri odaklı içgörüler sun.';
 
-    const prompt = `You are an elite YouTube channel strategist and growth hacker. Your job is to reverse-engineer what makes this channel succeed and build an actionable growth system.
+    const prompt = `You are an elite YouTube channel strategist, growth hacker, and niche research analyst. Your job is to reverse-engineer what makes this channel succeed, build an actionable growth system, and identify high-opportunity niches based on current trends, competition level, monetization potential, and content scalability.
 
 CHANNEL: ${channelName}
 VIDEO COUNT: ${(videos || []).length}
@@ -180,6 +180,43 @@ OUTPUT: Valid JSON only — no markdown, no extra text.
             {"title": "Video başlığı 3", "why": "Neden şimdi çekilmeli", "expected_ctr": 75, "format": "reaction"},
             {"title": "Video başlığı 4", "why": "Neden şimdi çekilmeli", "expected_ctr": 70, "format": "tutorial"},
             {"title": "Video başlığı 5", "why": "Neden şimdi çekilmeli", "expected_ctr": 65, "format": "vlog"}
+        ]
+    },
+    "niche_research": {
+        "trending_niches": [
+            {"niche": "Niş adı", "growth_potential": 85, "competition": "medium", "why_trending": "Neden trend olduğunun kısa açıklaması"},
+            {"niche": "Niş adı 2", "growth_potential": 78, "competition": "low", "why_trending": "Açıklama"},
+            {"niche": "Niş adı 3", "growth_potential": 72, "competition": "high", "why_trending": "Açıklama"},
+            {"niche": "Niş adı 4", "growth_potential": 90, "competition": "low", "why_trending": "Açıklama"},
+            {"niche": "Niş adı 5", "growth_potential": 65, "competition": "medium", "why_trending": "Açıklama"}
+        ],
+        "low_competition_niches": [
+            {"niche": "Düşük rekabetli niş 1", "potential": "high", "explanation": "Neden bu niş henüz dolu değil ve nasıl bir fırsat sunuyor"},
+            {"niche": "Niş 2", "potential": "high", "explanation": "Açıklama"},
+            {"niche": "Niş 3", "potential": "medium", "explanation": "Açıklama"},
+            {"niche": "Niş 4", "potential": "high", "explanation": "Açıklama"},
+            {"niche": "Niş 5", "potential": "medium", "explanation": "Açıklama"}
+        ],
+        "high_monetization_niches": [
+            {"niche": "Yüksek RPM niş 1", "rpm_level": "high", "estimated_rpm": "$15-25", "target_audience": "Hedef kitle değeri açıklaması"},
+            {"niche": "Niş 2", "rpm_level": "high", "estimated_rpm": "$10-20", "target_audience": "Açıklama"},
+            {"niche": "Niş 3", "rpm_level": "medium", "estimated_rpm": "$8-15", "target_audience": "Açıklama"},
+            {"niche": "Niş 4", "rpm_level": "high", "estimated_rpm": "$20-40", "target_audience": "Açıklama"},
+            {"niche": "Niş 5", "rpm_level": "medium", "estimated_rpm": "$5-12", "target_audience": "Açıklama"}
+        ],
+        "viral_formats": [
+            {"format": "Tekrarlanabilir format adı 1", "description": "Formatın nasıl çalıştığı ve neden viral olduğu"},
+            {"format": "Format 2", "description": "Açıklama"},
+            {"format": "Format 3", "description": "Açıklama"},
+            {"format": "Format 4", "description": "Açıklama"},
+            {"format": "Format 5", "description": "Açıklama"}
+        ],
+        "ready_to_post_ideas": [
+            {"title": "Hazır video başlığı 1", "hook": "İlk 10 saniye hook metni", "format": "tutorial", "why_it_will_perform": "Neden iyi performans gösterir"},
+            {"title": "Video 2", "hook": "Hook metni", "format": "listicle", "why_it_will_perform": "Açıklama"},
+            {"title": "Video 3", "hook": "Hook metni", "format": "story", "why_it_will_perform": "Açıklama"},
+            {"title": "Video 4", "hook": "Hook metni", "format": "comparison", "why_it_will_perform": "Açıklama"},
+            {"title": "Video 5", "hook": "Hook metni", "format": "challenge", "why_it_will_perform": "Açıklama"}
         ]
     }
 }
