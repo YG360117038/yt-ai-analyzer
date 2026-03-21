@@ -745,6 +745,29 @@
 
         .ai-prompt-text { font-size: 11px; color: var(--text-dim); line-height: 1.6; flex: 1; }
 
+        .clip-prompt-10s-box {
+            background: rgba(255, 107, 53, 0.06);
+            border: 1px solid rgba(255, 107, 53, 0.22);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            margin-top: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .clip-prompt-10s-box:hover { border-color: rgba(255, 107, 53, 0.5); background: rgba(255, 107, 53, 0.1); }
+        .clip-prompt-10s-label {
+            font-size: 9px;
+            color: #ff6b35;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .clip-prompt-10s-text { font-size: 11px; color: var(--text-dim); line-height: 1.6; flex: 1; }
+
         /* ===== FACTORY CARDS ===== */
         .factory-idea-card {
             background: rgba(255,255,255,0.02);

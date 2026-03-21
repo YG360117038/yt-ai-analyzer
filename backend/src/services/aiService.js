@@ -628,38 +628,43 @@ OUTPUT: Valid JSON matching EXACTLY this schema (no extra keys, no markdown, no 
     "scene_plan": [
       {
         "scene": 1,
-        "time": "0:00-0:15",
+        "time": "0:00-0:10",
         "description": "Sahne açıklaması",
         "voiceover": "Tam seslendirme metni (Türkçe)",
-        "ai_video_prompt": "Cinematic shot description for Runway/Sora (EN, detailed: lighting, camera, motion, style)"
+        "ai_video_prompt": "Cinematic shot description for Runway/Sora (EN, detailed: lighting, camera, motion, style)",
+        "clip_prompt_10s": "10-second AI clip prompt optimized for Kling/Runway/Luma. Format: [Camera: slow push-in] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: cinematic 4K, film grain] [Mood: ...] Duration: 10 seconds. No text overlays, no watermarks."
       },
       {
         "scene": 2,
-        "time": "0:15-0:45",
+        "time": "0:10-0:20",
         "description": "Sahne açıklaması",
         "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN"
+        "ai_video_prompt": "AI video prompt EN",
+        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
       },
       {
         "scene": 3,
-        "time": "0:45-1:30",
+        "time": "0:20-0:30",
         "description": "Sahne açıklaması",
         "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN"
+        "ai_video_prompt": "AI video prompt EN",
+        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
       },
       {
         "scene": 4,
-        "time": "1:30-2:30",
+        "time": "0:30-0:40",
         "description": "Sahne açıklaması",
         "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN"
+        "ai_video_prompt": "AI video prompt EN",
+        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
       },
       {
         "scene": 5,
-        "time": "2:30-3:30",
+        "time": "0:40-0:50",
         "description": "Sahne açıklaması",
         "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN"
+        "ai_video_prompt": "AI video prompt EN",
+        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
       }
     ],
     "seo_tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8", "tag9", "tag10"]
@@ -706,8 +711,9 @@ OUTPUT: Valid JSON matching EXACTLY this schema (no extra keys, no markdown, no 
 CRITICAL RULES:
 - ${responseLanguage}
 - clone_this_video.full_hook must be READY TO USE — specific, punchy, no placeholders
-- clone_this_video.scene_plan must have exactly 5 scenes with real voiceover text
+- clone_this_video.scene_plan must have exactly 5 scenes with real voiceover text, each scene is 10 seconds
 - ai_video_prompt fields: detailed EN description (camera angle, lighting, motion, style, mood, 4K cinematic quality)
+- clip_prompt_10s fields: MUST be optimized specifically for Kling/Runway/Luma 10-second clip generation. Use the exact format: [Camera: motion type] [Subject: who/what] [Action: what they do] [Setting: environment] [Lighting: type] [Style: 4K cinematic, film grain] [Mood: atmosphere] Duration: 10 seconds. No text overlays, no watermarks. Be hyper-specific and visual.
 - content_factory.video_ideas must have exactly 10 ideas, each with a real hook sentence
 - All numeric scores must be integers (not strings)
 - viral_patterns must have at least 3 specific patterns observed in this video

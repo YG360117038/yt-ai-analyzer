@@ -248,7 +248,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetchWithTimeout(authFetch(`${BACKEND_URL}/api/analysis/${id}`), 30000);
             if (!response.ok) throw new Error(I18N.t('error_analysis'));
             const data = await response.json();
-            renderAnalysis(data);
+            if (data.video_metadata?.type === 'channel') {
+                renderChannelPage(data.video_metadata, data);
+            } else {
+                renderAnalysis(data);
+            }
         } catch (error) {
             if (error.message === 'AUTH_REQUIRED') { showToast(I18N.t('error_login_required')); return; }
             showToast(I18N.t('error_analysis'));
@@ -739,6 +743,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <div class="ai-prompt-text">${sanitizeHTML(scene.ai_video_prompt)}</div>
                             </div>
                             <span style="color:var(--purple);font-size:14px;flex-shrink:0">&#128203;</span>
+                        </div>` : ''}
+                    ${scene.clip_prompt_10s ? `
+                        <div class="clip-prompt-10s-box" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(scene.clip_prompt_10s)})">
+                            <div style="flex:1">
+                                <div class="clip-prompt-10s-label">&#9201; 10sn Klip Promptu &mdash; Kling / Runway / Luma &mdash; Tıkla Kopyala</div>
+                                <div class="clip-prompt-10s-text">${sanitizeHTML(scene.clip_prompt_10s)}</div>
+                            </div>
+                            <span style="color:#ff6b35;font-size:14px;flex-shrink:0">&#128203;</span>
                         </div>` : ''}`;
                 scenesBody.appendChild(sceneEl);
             });
@@ -1043,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.getElementById('video-title').textContent = channelData.channelName || 'Kanal Analizi';
         const chanName = document.getElementById('channel-name');
-        if (chanName) chanName.textContent = `${(apiData.videoCount || 0)} video analiz edildi`;
+        if (chanName) chanName.textContent = `${(apiData.videoCount || channelData.videoCount || 0)} video analiz edildi`;
         const chanImg = document.getElementById('channel-img');
         if (chanImg && channelData.channelAvatar) {
             chanImg.src = channelData.channelAvatar;

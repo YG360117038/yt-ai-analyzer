@@ -20,6 +20,9 @@ for (const envVar of requiredEnvVars) {
     }
 }
 
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+const FREE_ANALYSIS_LIMIT = 3;
+
 // Supabase Init
 const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -83,88 +86,6 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
-// PayTR Callback (public - hash ile dogrulama)
-app.post('/api/payment/callback', async (req, res) => {
-    try {
-        const { merchant_oid, status, total_amount, hash } = req.body;
-
-        const merchantKey = process.env.PAYTR_MERCHANT_KEY;
-        const merchantSalt = process.env.PAYTR_MERCHANT_SALT;
-
-        if (!merchantKey || !merchantSalt) {
-            console.error('PayTR credentials eksik');
-            return res.send('OK');
-        }
-
-        // PayTR hash dogrulama (timing-safe)
-        const hashStr = `${merchant_oid}${merchantSalt}${status}${total_amount}`;
-        const expectedHash = crypto.createHmac('sha256', merchantKey)
-            .update(hashStr)
-            .digest('base64');
-
-        try {
-            const hashBuffer = Buffer.from(hash || '', 'utf8');
-            const expectedBuffer = Buffer.from(expectedHash, 'utf8');
-            if (hashBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(hashBuffer, expectedBuffer)) {
-                console.error('PayTR hash doğrulama başarısız');
-                return res.send('FAIL');
-            }
-        } catch (e) {
-            console.error('PayTR hash karşılaştırma hatası:', e.message);
-            return res.send('FAIL');
-        }
-
-        if (status === 'success') {
-            const { data: payment, error: paymentError } = await supabase
-                .from('payments')
-                .select('user_id')
-                .eq('merchant_oid', merchant_oid)
-                .single();
-
-            if (paymentError || !payment) {
-                console.error('Ödeme kaydı bulunamadı:', merchant_oid, paymentError?.message);
-                return res.send('OK');
-            }
-
-            // Profili Pro'ya yükselt
-            const subscriptionEnd = new Date();
-            subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
-
-            const { error: updateError } = await supabase.from('profiles').update({
-                plan: 'pro',
-                subscription_status: 'active',
-                subscription_start: new Date().toISOString(),
-                subscription_end: subscriptionEnd.toISOString(),
-                updated_at: new Date().toISOString()
-            }).eq('id', payment.user_id);
-
-            if (updateError) {
-                console.error('Profil Pro güncelleme hatası:', updateError.message);
-            }
-
-            // Ödeme kaydını güncelle
-            const { error: payUpdateError } = await supabase.from('payments').update({
-                status: 'success',
-                callback_data: req.body
-            }).eq('merchant_oid', merchant_oid);
-
-            if (payUpdateError) {
-                console.error('Ödeme kaydı güncelleme hatası:', payUpdateError.message);
-            }
-        } else {
-            await supabase.from('payments').update({
-                status: 'failed',
-                callback_data: req.body
-            }).eq('merchant_oid', merchant_oid);
-        }
-
-        res.send('OK');
-    } catch (error) {
-        console.error('PayTR callback error:', error.message);
-        res.send('OK');
-    }
-});
-
 // ==================== AUTHENTICATED ROUTES ====================
 
 // Profil yoksa otomatik oluştur
@@ -184,7 +105,7 @@ async function getOrCreateProfile(user) {
         avatar_url: user.user_metadata?.avatar_url || null,
         plan: 'free',
         analysis_count: 0,
-        subscription_status: null,
+        subscription_status: 'none',
         subscription_end: null
     };
 
@@ -231,7 +152,8 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
             analysisCount: profile.analysis_count,
             subscriptionStatus: profile.subscription_status,
             subscriptionEnd: profile.subscription_end,
-            freeLimit: 0,
+            freeLimit: FREE_ANALYSIS_LIMIT,
+            remainingAnalyses: profile.plan === 'pro' ? null : Math.max(0, FREE_ANALYSIS_LIMIT - (profile.analysis_count || 0)),
             isAdmin: ADMIN_EMAILS.includes(req.user.email)
         });
     } catch (error) {
@@ -314,7 +236,7 @@ app.post('/api/analyze', authMiddleware, usageCheck, analyzeRateLimit, async (re
                 ...data[0],
                 analysis_results: freeResults,
                 is_limited: true,
-                upgrade_message: 'Tam analiz için Pro plana geçin.'
+                upgrade_message: 'Tam analiz için Skool topluluğumuza katılın ve Pro üye olun.'
             };
             return res.json(limitedData);
         }
@@ -459,7 +381,7 @@ app.post('/api/channel-analyze', authMiddleware, usageCheck, analyzeRateLimit, a
                 videoCount: sanitizedVideos.length,
                 analysis_results: freeResults,
                 is_limited: true,
-                upgrade_message: 'Tam kanal analizi için Pro plana geçin.',
+                upgrade_message: 'Tam kanal analizi için Skool topluluğumuza katılın ve Pro üye olun.',
                 created_at: new Date().toISOString()
             });
         }
@@ -495,8 +417,6 @@ app.delete('/api/analysis/:id', authMiddleware, async (req, res) => {
 });
 
 // ==================== ADMIN ROUTES ====================
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
 
 function adminMiddleware(req, res, next) {
     if (!req.user || !ADMIN_EMAILS.includes(req.user.email)) {
@@ -572,138 +492,59 @@ app.get('/api/admin/analyses', authMiddleware, adminMiddleware, async (req, res)
     }
 });
 
-// ==================== PAYMENT ROUTES ====================
 
-// PayTR Ödeme Tokeni Oluştur
-app.post('/api/payment/create', authMiddleware, async (req, res) => {
+// Admin: Kullanıcıyı Pro/Free yap (email ile)
+app.post('/api/admin/set-plan', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const user = req.user;
-        const merchantId = process.env.PAYTR_MERCHANT_ID;
-        const merchantKey = process.env.PAYTR_MERCHANT_KEY;
-        const merchantSalt = process.env.PAYTR_MERCHANT_SALT;
+        const { email, plan } = req.body;
 
-        if (!merchantId || !merchantKey || !merchantSalt) {
-            return res.status(500).json({ error: 'Ödeme sistemi yapılandırılmamış.' });
+        if (!email || typeof email !== 'string') {
+            return res.status(400).json({ error: 'Email gerekli.' });
+        }
+        if (!['pro', 'free'].includes(plan)) {
+            return res.status(400).json({ error: "plan 'pro' veya 'free' olmalı." });
         }
 
-        const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
-        const merchantOid = `${user.id.replace(/-/g, '').slice(0, 16)}_${Date.now()}`;
-        const paymentAmount = 999; // $9.99 (cent cinsinden) - PayTR TL karsiligi otomatik
-        const currency = 'USD';
-        const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
-        const email = user.email;
-        const userName = user.user_metadata?.full_name || 'Kullanıcı';
-        const merchantOkUrl = `${backendUrl}/api/payment/success`;
-        const merchantFailUrl = `${backendUrl}/api/payment/fail`;
-        const noInstallment = 1;
-        const maxInstallment = 0;
-        const userBasket = Buffer.from(JSON.stringify([['Pro Aylik Abonelik', '9.99', 1]])).toString('base64');
-        const testMode = process.env.PAYTR_TEST_MODE === '1' ? '1' : '0';
+        const { data: profile, error: findError } = await supabase
+            .from('profiles')
+            .select('id, email, plan')
+            .eq('email', email.toLowerCase().trim())
+            .single();
 
-        // PayTR hash olustur
-        const hashStr = `${merchantId}${userIp}${merchantOid}${email}${paymentAmount}${userBasket}${noInstallment}${maxInstallment}${currency}${testMode}`;
-        const paytrToken = crypto.createHmac('sha256', merchantKey)
-            .update(hashStr + merchantSalt)
-            .digest('base64');
-
-        // Odeme kaydini olustur
-        const { error: insertError } = await supabase.from('payments').insert({
-            user_id: user.id,
-            merchant_oid: merchantOid,
-            amount: 9.99,
-            status: 'pending'
-        });
-
-        if (insertError) {
-            console.error('Ödeme kaydı oluşturma hatası:', insertError.message);
-            return res.status(500).json({ error: 'Ödeme kaydedilemedi.' });
+        if (findError || !profile) {
+            return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
         }
 
-        // PayTR'den token al
-        const params = new URLSearchParams({
-            merchant_id: merchantId,
-            user_ip: userIp,
-            merchant_oid: merchantOid,
-            email: email,
-            payment_amount: paymentAmount.toString(),
-            paytr_token: paytrToken,
-            user_basket: userBasket,
-            no_installment: noInstallment.toString(),
-            max_installment: maxInstallment.toString(),
-            currency: currency,
-            user_name: userName,
-            user_address: 'Türkiye',
-            user_phone: '05000000000',
-            merchant_ok_url: merchantOkUrl,
-            merchant_fail_url: merchantFailUrl,
-            debug_on: '0',
-            test_mode: testMode,
-            lang: 'tr'
-        });
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-
-        try {
-            const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
-                method: 'POST',
-                body: params,
-                signal: controller.signal
-            });
-            clearTimeout(timeout);
-
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                res.json({ token: result.token });
-            } else {
-                console.error('PayTR token error:', result.reason);
-                res.status(400).json({ error: 'Ödeme başlatılamadı. Lütfen tekrar deneyin.' });
+        const updateData = plan === 'pro'
+            ? {
+                plan: 'pro',
+                subscription_status: 'active',
+                subscription_start: new Date().toISOString(),
+                subscription_end: null, // Manuel Pro → süresiz
+                updated_at: new Date().toISOString()
             }
-        } catch (fetchErr) {
-            clearTimeout(timeout);
-            if (fetchErr.name === 'AbortError') {
-                res.status(504).json({ error: 'Ödeme sistemi yanıtlamıyor. Lütfen tekrar deneyin.' });
-            } else {
-                throw fetchErr;
-            }
+            : {
+                plan: 'free',
+                subscription_status: 'none',
+                subscription_end: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', profile.id);
+
+        if (updateError) {
+            return res.status(500).json({ error: 'Güncelleme başarısız: ' + updateError.message });
         }
+
+        console.log(`Admin ${req.user.email} → ${email} kullanıcısını ${plan} yaptı`);
+        res.json({ success: true, email: profile.email, plan });
     } catch (error) {
-        console.error('Payment create error:', error.message);
-        res.status(500).json({ error: 'Ödeme oluşturulurken hata oluştu.' });
+        console.error('set-plan error:', error.message);
+        res.status(500).json({ error: 'İşlem sırasında hata oluştu.' });
     }
-});
-
-// Odeme Basarili Sayfasi
-app.get('/api/payment/success', (req, res) => {
-    res.send(`
-        <html>
-        <head><title>Ödeme Başarılı</title></head>
-        <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-            <div style="text-align:center">
-                <h1 style="color:#2ea043;font-size:48px">&#10003;</h1>
-                <h2>Ödeme Başarılı!</h2>
-                <p style="color:#888">Pro aboneliğiniz aktif edildi. Bu sekmeyi kapatabilirsiniz.</p>
-            </div>
-        </body>
-        </html>
-    `);
-});
-
-// Odeme Basarisiz Sayfasi
-app.get('/api/payment/fail', (req, res) => {
-    res.send(`
-        <html>
-        <head><title>Ödeme Başarısız</title></head>
-        <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-            <div style="text-align:center">
-                <h1 style="color:#ff0000;font-size:48px">&#10007;</h1>
-                <h2>Ödeme Başarısız</h2>
-                <p style="color:#888">Ödeme işlenemedi. Lütfen tekrar deneyin.</p>
-            </div>
-        </body>
-        </html>
-    `);
 });
 
 // ==================== GLOBAL ERROR HANDLERS ====================
