@@ -10,23 +10,32 @@ function createUsageCheck(supabase, getOrCreateProfile) {
             }
 
             // Pro kullanici - sadece subscription_end kontrolü (null ise Skool üyesi, süresiz)
-            if (profile.plan === 'pro' && profile.subscription_status === 'active') {
+            if (profile.plan === 'pro') {
+                if (profile.subscription_status !== 'active') {
+                    // Pro ama aktif değil - upgrade mesajı göster
+                    return res.status(403).json({
+                        error: 'Ücretsiz analiz hakkınız doldu.',
+                        upgrade_required: true,
+                        upgrade_message: 'Sınırsız analiz için Skool topluluğumuza katılın ve Pro üye olun.',
+                        skool_url: process.env.SKOOL_COMMUNITY_URL || 'https://www.skool.com'
+                    });
+                }
                 if (profile.subscription_end && new Date(profile.subscription_end) < new Date()) {
-                    // Abonelik süresi dolmuş (Skool dışı eski kullanıcılar için)
-                    const { error: updateError } = await supabase.from('profiles').update({
+                    // Abonelik süresi dolmuş
+                    await supabase.from('profiles').update({
                         plan: 'free',
                         subscription_status: 'expired'
                     }).eq('id', req.user.id);
-
-                    if (!updateError) {
-                        profile.plan = 'free';
-                        profile.subscription_status = 'expired';
-                    }
-                } else {
-                    // Pro ve geçerli - geç
-                    req.profile = profile;
-                    return next();
+                    return res.status(403).json({
+                        error: 'Ücretsiz analiz hakkınız doldu.',
+                        upgrade_required: true,
+                        upgrade_message: 'Aboneliğiniz sona erdi. Sınırsız analiz için Skool topluluğumuza katılın ve Pro üye olun.',
+                        skool_url: process.env.SKOOL_COMMUNITY_URL || 'https://www.skool.com'
+                    });
                 }
+                // Pro ve geçerli - geç
+                req.profile = profile;
+                return next();
             }
 
             // Free kullanici - 3 analiz hakkı kontrolü

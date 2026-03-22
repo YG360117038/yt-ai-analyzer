@@ -60,10 +60,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         history:   'active'
     };
 
+    const VIDEO_ONLY_TABS = ['viral', 'clone', 'factory', 'structure', 'seo', 'monetize'];
+    let currentMode = null;
+
+    function showVideoOnlyMessage(tabName) {
+        const pane = document.getElementById(`tab-${tabName}`);
+        if (!pane) return;
+        if (pane.querySelector('.video-only-msg')) return;
+        pane.innerHTML = `<div class="video-only-msg" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:16px;color:var(--text-dim);text-align:center;padding:40px">
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" opacity="0.4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+            <div>
+                <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Bu sekme video analizine özel</div>
+                <div style="font-size:13px">Lütfen bir YouTube videosu açıp analiz edin.</div>
+            </div>
+        </div>`;
+    }
+
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const tabName = item.getAttribute('data-tab');
             if (!tabName) return;
+
+            if (currentMode === 'channel' && VIDEO_ONLY_TABS.includes(tabName)) {
+                showVideoOnlyMessage(tabName);
+            }
+
             navItems.forEach(n => n.classList.remove('active', 'active-clone', 'active-purple', 'active-green'));
             const cls = NAV_ACTIVE_CLASS[tabName] || 'active';
             item.classList.add(cls);
@@ -175,6 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ==================== CHANNEL ANALYSIS ====================
     async function startChannelAnalysis() {
+        currentMode = 'channel';
         try {
             setStep(1);
             updateProgress(I18N.t('preparing_channel_data', 'Kanal verileri hazırlanıyor...'), 15);
