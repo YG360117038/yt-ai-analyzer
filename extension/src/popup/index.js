@@ -2,6 +2,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     await I18N.init();
     I18N.applyToDOM();
 
+    // ==================== ONBOARDING ====================
+    const onboardingOverlay = document.getElementById('onboarding-overlay');
+    const onboardingSteps = document.querySelectorAll('.onboarding-step');
+    const onboardingDots = document.querySelectorAll('.onboarding-dot');
+    let currentOnboardingStep = 0;
+
+    function showOnboardingStep(step) {
+        onboardingSteps.forEach((s, i) => s.classList.toggle('active', i === step));
+        onboardingDots.forEach((d, i) => d.classList.toggle('active', i === step));
+        const nextBtn = document.getElementById('onboarding-next');
+        if (step === onboardingSteps.length - 1) {
+            nextBtn.textContent = 'Başla!';
+        } else {
+            nextBtn.textContent = 'Devam Et →';
+        }
+    }
+
+    function closeOnboarding() {
+        onboardingOverlay.style.display = 'none';
+        chrome.storage.local.set({ onboarding_complete: true });
+    }
+
+    document.getElementById('onboarding-next').addEventListener('click', () => {
+        if (currentOnboardingStep < onboardingSteps.length - 1) {
+            currentOnboardingStep++;
+            showOnboardingStep(currentOnboardingStep);
+        } else {
+            closeOnboarding();
+        }
+    });
+
+    document.getElementById('onboarding-skip').addEventListener('click', closeOnboarding);
+
+    // Show onboarding if first time
+    const stored = await chrome.storage.local.get('onboarding_complete');
+    if (!stored.onboarding_complete) {
+        onboardingOverlay.style.display = 'flex';
+        showOnboardingStep(0);
+    }
+
     const analyzeBtn = document.getElementById('analyze-btn');
     const channelBtn = document.getElementById('channel-btn');
     const dashboardBtn = document.getElementById('dashboard-btn');
@@ -262,6 +302,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     dashboardBtn.addEventListener('click', () => {
         chrome.tabs.create({
             url: chrome.runtime.getURL('src/dashboard/index.html?mode=history')
+        });
+        window.close();
+    });
+
+    // Demo modu
+    document.getElementById('demo-btn').addEventListener('click', () => {
+        chrome.tabs.create({
+            url: chrome.runtime.getURL('src/dashboard/index.html?mode=demo')
         });
         window.close();
     });

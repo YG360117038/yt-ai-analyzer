@@ -389,6 +389,64 @@
             font-size: 10px;
             color: #3a3a3a;
         }
+
+        /* Demo button */
+        .btn-demo {
+            width: 100%;
+            padding: 9px 14px;
+            border: 1px dashed rgba(123,104,238,0.4);
+            border-radius: 10px;
+            background: rgba(123,104,238,0.06);
+            color: #a99af5;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+        .btn-demo:hover { background: rgba(123,104,238,0.12); border-color: rgba(123,104,238,0.6); }
+
+        /* Onboarding overlay */
+        .onboarding-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .onboarding-step {
+            display: none;
+            text-align: center;
+            animation: fadeInUp 0.3s ease-out both;
+        }
+        .onboarding-step.active { display: block; }
+        .onboarding-icon { font-size: 42px; margin-bottom: 16px; }
+        .onboarding-title { font-size: 18px; font-weight: 800; margin-bottom: 10px; color: #fff; }
+        .onboarding-desc { font-size: 13px; color: #999; line-height: 1.6; margin-bottom: 24px; }
+        .onboarding-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; }
+        .onboarding-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+        .onboarding-dot.active { background: #ff4444; width: 18px; border-radius: 3px; }
+        .onboarding-next {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ff4444, #cc2222);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .onboarding-skip {
+            background: none; border: none; color: #555; font-size: 12px; cursor: pointer;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -511,9 +569,46 @@
             </button>
         </div>
 
+        <button id="demo-btn" class="btn-demo">&#127909; Demo Analizi Görüntüle</button>
+
         <div class="footer" data-i18n="popup_footer">
             Sağ tıkla > "Analyze with AI" veya popup'tan analiz başlat
         </div>
+    </div>
+
+    <!-- Onboarding Overlay -->
+    <div class="onboarding-overlay" id="onboarding-overlay" style="display:none">
+        <div class="onboarding-dots" id="onboarding-dots">
+            <div class="onboarding-dot active" data-step="0"></div>
+            <div class="onboarding-dot" data-step="1"></div>
+            <div class="onboarding-dot" data-step="2"></div>
+        </div>
+
+        <div class="onboarding-step active" data-step="0">
+            <div class="onboarding-icon">&#128293;</div>
+            <div class="onboarding-title">Dion YouTube Analyzer'a Hoş Geldin!</div>
+            <div class="onboarding-desc">AI ile YouTube videolarını saniyeler içinde analiz et. Viral skor, hook analizi, senaryo taslağı ve çok daha fazlası.</div>
+        </div>
+
+        <div class="onboarding-step" data-step="1">
+            <div class="onboarding-icon">&#127919;</div>
+            <div class="onboarding-title">Nasıl Kullanılır?</div>
+            <div class="onboarding-desc">
+                1. Bir YouTube videosuna git<br>
+                2. Extension popup'ı aç<br>
+                3. "Videoyu Analiz Et" butonuna bas<br>
+                4. Saniyeler içinde AI analizi hazır!
+            </div>
+        </div>
+
+        <div class="onboarding-step" data-step="2">
+            <div class="onboarding-icon">&#9889;</div>
+            <div class="onboarding-title">Demo İle Başla</div>
+            <div class="onboarding-desc">Giriş yapmadan önce demo analizi görüntüleyerek ne alabileceğini gör. Ya da hemen Google ile giriş yap!</div>
+        </div>
+
+        <button class="onboarding-next" id="onboarding-next">Devam Et →</button>
+        <button class="onboarding-skip" id="onboarding-skip">Atla</button>
     </div>
 
     <script src="../config.js"></script>

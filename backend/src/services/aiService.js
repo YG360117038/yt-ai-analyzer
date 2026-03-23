@@ -823,4 +823,74 @@ function parseAIResponse(text) {
     return null;
 }
 
-module.exports = { analyzeVideo, analyzeChannel };
+// ==================== SCRIPT GENERATOR ====================
+async function generateScript(analysisData, language = 'tr') {
+    const meta = analysisData.video_metadata || {};
+    const r = analysisData.analysis_results || {};
+    const clone = r.clone_this_video || {};
+    const hook = r.hook_analysis || {};
+    const structure = r.video_structure || {};
+    const viral = r.viral_score || {};
+
+    const lang = language === 'en' ? 'English' : 'Türkçe';
+    const prompt = `Sen dünyaca ünlü bir YouTube senaryo yazarısın. Aşağıdaki analiz verilerini kullanarak WORD-FOR-WORD (kelimesi kelimesine) bir video senaryosu yaz.
+
+VİDEO BİLGİSİ:
+Başlık: ${meta.title || 'Başlık yok'}
+Kanal: ${meta.channelName || ''}
+Viral Skor: ${viral.score || '?'}/100
+
+KANCA (HOOK):
+${clone.full_hook || hook.first_10_seconds || 'Hook verisi yok'}
+
+SENARYO TASLAGI:
+${clone.script_outline || 'Taslak yok'}
+
+VIDEO YAPISI:
+- Hook/Giriş: ${structure.hook || ''}
+- Setup: ${structure.setup || ''}
+- Gelişme: ${structure.buildup || ''}
+- Sonuç: ${structure.payoff || ''}
+- CTA: ${structure.cta || ''}
+
+GÖREV: ${lang} dilinde TAM BİR VİDEO SENARYOSU yaz. Kurallar:
+1. İlk 30 saniye çok güçlü hook ile başlasın
+2. Her bölüme başlık ve tahmini süre yaz (örn: === GİRİŞ (0:00-0:30) ===)
+3. WORD-FOR-WORD konuşma metni — doğal YouTube tarzı, sanki kameraya konuşuyormuş gibi
+4. Köşeli parantez içinde yönetmen notları ekle: [B-ROLL: ...], [EKRAN: ...], [GRAFIK: ...]
+5. Güçlü bir CTA ile bitsin
+6. Yaklaşık 8-12 dakika için yaz (~1800-2200 kelime konuşma)
+
+Format:
+=== [BÖLÜM ADI] (0:00-0:00) ===
+[Konuşma metni]
+[Yönetmen notu]`;
+
+    // Önce Claude dene (daha iyi senaryo yazarı)
+    if (anthropic) {
+        try {
+            const response = await withTimeout(
+                anthropic.messages.create({
+                    model: 'claude-opus-4-6',
+                    max_tokens: 4096,
+                    messages: [{ role: 'user', content: prompt }]
+                }),
+                90000
+            );
+            return response.content[0]?.text || '';
+        } catch (e) {
+            console.error('Claude script gen failed, falling back to Gemini:', e.message);
+        }
+    }
+
+    // Gemini fallback
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const result = await withTimeout(model.generateContent(prompt), 90000);
+        return result.response.text() || '';
+    } catch (e) {
+        throw new Error('Senaryo oluşturulamadı: ' + e.message);
+    }
+}
+
+module.exports = { analyzeVideo, analyzeChannel, generateScript };

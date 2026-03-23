@@ -54,13 +54,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         clone:     'active-clone',
         factory:   'active-purple',
         structure: 'active-purple',
+        script:    'active-purple',
         seo:       'active-purple',
         channel:   'active-green',
         monetize:  'active-green',
         history:   'active'
     };
 
-    const VIDEO_ONLY_TABS = ['viral', 'clone', 'factory', 'structure', 'seo', 'monetize'];
+    const VIDEO_ONLY_TABS = ['viral', 'clone', 'factory', 'structure', 'script', 'seo', 'monetize'];
     let currentMode = null;
 
     function showVideoOnlyMessage(tabName) {
@@ -109,10 +110,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) { /* admin check silent */ }
 
     // ==================== ROUTING ====================
+    const shareToken = urlParams.get('share');
+
     if (mode === 'new') {
         startNewAnalysis();
     } else if (mode === 'channel') {
         startChannelAnalysis();
+    } else if (mode === 'demo') {
+        loadDemoAnalysis();
     } else if (mode === 'upgrade') {
         loadingScreen.style.display = 'none';
         document.getElementById('paywall-overlay').style.display = 'flex';
@@ -121,11 +126,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('topbar').style.display = 'none';
         activateTab('history');
         loadHistory();
+    } else if (shareToken) {
+        loadSharedAnalysis(shareToken);
     } else if (analysisId) {
         loadingScreen.style.display = 'none';
         loadAnalysis(analysisId);
     } else {
         loadingScreen.style.display = 'none';
+    }
+
+    // ==================== DEMO MODE ====================
+    async function loadDemoAnalysis() {
+        try {
+            updateProgress('Demo analizi yükleniyor...', 50);
+            const res = await fetch(`${BACKEND_URL}/api/demo`);
+            if (!res.ok) throw new Error('Demo yüklenemedi');
+            const data = await res.json();
+            loadingScreen.style.display = 'none';
+            currentMode = 'video';
+            renderAnalysis(data);
+            showToast('Demo modu — Gerçek analiz için giriş yapın');
+        } catch (e) {
+            showError('Demo Yüklenemedi', 'Sunucuya bağlanılamıyor. Lütfen tekrar deneyin.');
+        }
+    }
+
+    // ==================== SHARED ANALYSIS ====================
+    async function loadSharedAnalysis(id) {
+        try {
+            updateProgress('Paylaşılan analiz yükleniyor...', 50);
+            const res = await fetch(`${BACKEND_URL}/api/share/${id}`);
+            if (!res.ok) throw new Error('Analiz bulunamadı');
+            const data = await res.json();
+            loadingScreen.style.display = 'none';
+            currentMode = 'video';
+            renderAnalysis(data);
+            showToast('Paylaşılan analiz yüklendi');
+        } catch (e) {
+            showError('Analiz Bulunamadı', 'Bu link geçersiz veya analiz silinmiş olabilir.');
+        }
     }
 
     // ==================== NEW VIDEO ANALYSIS ====================
@@ -511,7 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (r.viral_score) renderScoreBanner(r.viral_score);
 
         // Clear containers
-        const containers = ['viral-content', 'clone-content', 'factory-content', 'structure-content', 'seo-content', 'channel-content', 'monetize-content'];
+        const containers = ['viral-content', 'clone-content', 'factory-content', 'structure-content', 'script-content', 'seo-content', 'channel-content', 'monetize-content'];
         containers.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = '';
@@ -522,6 +561,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTabClone(r);
         renderTabFactory(r);
         renderTabStructure(r);
+        renderTabScript(data);
         renderTabSEO(r);
         renderTabMonetize(r);
 
@@ -1409,7 +1449,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        ['export-txt', 'export-json', 'copy-all'].forEach(id => {
+        ['export-txt', 'export-json', 'export-pdf', 'share-btn', 'copy-all'].forEach(id => {
             const btn = document.getElementById(id);
             if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed'; }
         });
@@ -1508,12 +1548,172 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('JSON indirildi.');
     });
 
+    document.getElementById('export-pdf').addEventListener('click', () => {
+        if (!currentAnalysisData || currentAnalysisData.is_limited) return;
+        // Show all tab panes temporarily for print
+        const panes = document.querySelectorAll('.tab-pane');
+        panes.forEach(p => p.style.setProperty('display', 'block', 'important'));
+        window.print();
+        setTimeout(() => {
+            panes.forEach(p => p.style.removeProperty('display'));
+        }, 1000);
+    });
+
+    // ==================== SHARE ====================
+    const shareModal = document.getElementById('share-modal');
+    const shareUrlInput = document.getElementById('share-url-input');
+
+    document.getElementById('share-btn').addEventListener('click', () => {
+        if (!currentAnalysisData) return;
+        const id = currentAnalysisData.id || '';
+        const shareUrl = id && id !== 'demo'
+            ? `${BACKEND_URL}/api/share/${id}`
+            : '';
+        if (shareUrl) {
+            shareUrlInput.value = shareUrl;
+        } else {
+            shareUrlInput.value = 'Demo analiz paylaşılamaz';
+        }
+        shareModal.classList.add('show');
+    });
+
+    document.getElementById('share-modal-close').addEventListener('click', () => {
+        shareModal.classList.remove('show');
+    });
+
+    shareModal.addEventListener('click', (e) => {
+        if (e.target === shareModal) shareModal.classList.remove('show');
+    });
+
+    document.getElementById('share-copy-link').addEventListener('click', () => {
+        const url = shareUrlInput.value;
+        if (!url || url.includes('Demo')) return;
+        copyToClipboard(url);
+        showToast('Link kopyalandı!');
+        shareModal.classList.remove('show');
+    });
+
+    document.getElementById('share-copy-text').addEventListener('click', () => {
+        if (!currentAnalysisData) return;
+        const text = generateMarkdownReport(currentAnalysisData);
+        copyToClipboard(text);
+        showToast('Markdown kopyalandı!');
+        shareModal.classList.remove('show');
+    });
+
+    document.getElementById('share-download-md').addEventListener('click', () => {
+        if (!currentAnalysisData) return;
+        const md = generateMarkdownReport(currentAnalysisData);
+        const title = (currentAnalysisData.video_metadata?.title || 'analiz').substring(0, 40).replace(/[^a-zA-Z0-9]/g, '-');
+        downloadFile(md, `${title}.md`, 'text/markdown');
+        showToast('Markdown indirildi!');
+        shareModal.classList.remove('show');
+    });
+
     document.getElementById('copy-all').addEventListener('click', () => {
         if (!currentAnalysisData || currentAnalysisData.is_limited) return;
         const text = generateTextReport(currentAnalysisData);
         copyToClipboard(text);
         showToast('Rapor kopyalandı.');
     });
+
+    // ==================== SCRIPT GENERATOR TAB ====================
+    function renderTabScript(data) {
+        const container = document.getElementById('script-content');
+        if (!container) return;
+
+        const analysisId = data.id;
+        const isDemo = data.is_demo === true || analysisId === 'demo';
+
+        container.innerHTML = `
+            <div style="max-width:800px">
+                <div class="card purple" style="margin-bottom:20px">
+                    <div class="card-header">
+                        <span class="card-title purple">&#9999; AI Script Generator</span>
+                    </div>
+                    <div class="card-body">
+                        <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px">
+                            Bu videodaki analiz verilerini kullanarak word-for-word bir senaryo oluştur. Claude AI ile yazılır, 8-12 dakikalık video için.
+                        </p>
+                        <div class="script-toolbar">
+                            <select class="script-lang-select" id="script-lang">
+                                <option value="tr">🇹🇷 Türkçe</option>
+                                <option value="en">🇺🇸 English</option>
+                            </select>
+                        </div>
+                        <button class="script-generate-btn" id="generate-script-btn" ${isDemo ? 'disabled title="Demo modda script üretilemez"' : ''}>
+                            <span id="script-btn-icon">&#9889;</span>
+                            <span id="script-btn-text">${isDemo ? 'Demo — Giriş yaparak script üret' : 'Senaryo Üret (AI)'}</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="script-result" style="display:none">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                        <span style="font-size:13px;font-weight:600;color:var(--purple)">&#9989; Senaryo Hazır</span>
+                        <div style="display:flex;gap:8px">
+                            <button class="action-btn" id="script-copy-btn">Kopyala</button>
+                            <button class="action-btn" id="script-download-btn">&#8595; İndir</button>
+                        </div>
+                    </div>
+                    <div class="script-output" id="script-output"></div>
+                </div>
+            </div>`;
+
+        if (isDemo) return;
+
+        const generateBtn = document.getElementById('generate-script-btn');
+        const scriptResult = document.getElementById('script-result');
+        const scriptOutput = document.getElementById('script-output');
+
+        generateBtn.addEventListener('click', async () => {
+            const lang = document.getElementById('script-lang').value;
+            generateBtn.disabled = true;
+            document.getElementById('script-btn-icon').textContent = '⏳';
+            document.getElementById('script-btn-text').textContent = 'Senaryo yazılıyor... (30-60 sn)';
+            scriptResult.style.display = 'none';
+
+            try {
+                const res = await authFetch(`${BACKEND_URL}/api/generate-script`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ analysisId, language: lang })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Senaryo oluşturulamadı');
+                }
+                const { script } = await res.json();
+                // Highlight section headers
+                const formatted = sanitizeHTML(script).replace(
+                    /=== (.+?) ===/g,
+                    '<span class="script-section-header">=== $1 ===</span>'
+                );
+                scriptOutput.innerHTML = formatted;
+                scriptResult.style.display = 'block';
+                showToast('Senaryo hazır!');
+
+                document.getElementById('script-copy-btn').addEventListener('click', () => {
+                    copyToClipboard(script);
+                    showToast('Senaryo kopyalandı!');
+                });
+                document.getElementById('script-download-btn').addEventListener('click', () => {
+                    const title = (data.video_metadata?.title || 'senaryo').substring(0, 40).replace(/[^a-zA-Z0-9]/g, '-');
+                    downloadFile(script, `${title}-senaryo.txt`, 'text/plain');
+                    showToast('Senaryo indirildi!');
+                });
+            } catch (err) {
+                showToast('Hata: ' + err.message);
+                document.getElementById('script-btn-icon').textContent = '⚠️';
+                document.getElementById('script-btn-text').textContent = 'Tekrar Dene';
+                generateBtn.disabled = false;
+                return;
+            }
+
+            document.getElementById('script-btn-icon').textContent = '✅';
+            document.getElementById('script-btn-text').textContent = 'Yeniden Üret';
+            generateBtn.disabled = false;
+        });
+    }
 
     // Paywall upgrade button
     const paywallUpgradeBtn = document.getElementById('paywall-upgrade-btn');
@@ -1536,6 +1736,57 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             requestAnimationFrame(update);
         }, delay);
+    }
+
+    function generateMarkdownReport(data) {
+        const meta = data.video_metadata || {};
+        const r = data.analysis_results || {};
+        const vs = r.viral_score || {};
+        const hook = r.hook_analysis || {};
+        const clone = r.clone_this_video || {};
+        const seo = r.title_thumbnail || {};
+
+        let md = `# 🎬 ${meta.title || 'YouTube Video Analizi'}\n\n`;
+        md += `**Kanal:** ${meta.channelName || '-'} | **Görüntülenme:** ${meta.viewCount || '-'} | **Tarih:** ${new Date().toLocaleDateString('tr-TR')}\n\n`;
+        md += `> *Dion YouTube Analyzer tarafından oluşturulmuştur*\n\n---\n\n`;
+
+        if (vs.score) {
+            md += `## 📊 Skorlar\n`;
+            md += `| Viral Skor | CTR Potansiyeli | Retention | Büyüme |\n`;
+            md += `|-----------|----------------|-----------|--------|\n`;
+            md += `| ${vs.score}/100 | ${vs.ctr_potential || '-'}/100 | ${vs.retention_potential || '-'}/100 | ${vs.growth_potential || '-'}/100 |\n\n`;
+            if (vs.why) md += `> ${vs.why}\n\n`;
+        }
+
+        if (hook.why_it_works) {
+            md += `## 🎣 Hook Analizi\n`;
+            md += `**Tip:** ${hook.type || '-'}\n\n`;
+            md += `**Neden Çalışıyor:** ${hook.why_it_works}\n\n`;
+            if (hook.first_10_seconds) md += `**İlk 10 Saniye:** ${hook.first_10_seconds}\n\n`;
+        }
+
+        if (clone.full_hook || clone.script_outline) {
+            md += `## 🎬 Clone This Video\n`;
+            if (clone.new_video_idea) md += `**Fikir:** ${clone.new_video_idea}\n\n`;
+            if (clone.full_hook) md += `**Hook:**\n\`\`\`\n${clone.full_hook}\n\`\`\`\n\n`;
+            if (clone.script_outline) md += `**Senaryo Taslağı:**\n\`\`\`\n${clone.script_outline}\n\`\`\`\n\n`;
+        }
+
+        if (seo.improved_titles && seo.improved_titles.length) {
+            md += `## 🎯 Önerilen Başlıklar\n`;
+            seo.improved_titles.forEach(t => {
+                md += `- **[${t.ctr_score || '-'}]** ${t.title || ''}\n`;
+            });
+            md += '\n';
+        }
+
+        if (clone.seo_tags && clone.seo_tags.length) {
+            md += `## 🏷️ SEO Etiketleri\n`;
+            md += clone.seo_tags.map(t => `\`${t}\``).join(' ') + '\n\n';
+        }
+
+        md += `---\n*Analiz: ${new Date().toLocaleString('tr-TR')} — Dion YouTube Analyzer*\n`;
+        return md;
     }
 
     function generateTextReport(data) {
