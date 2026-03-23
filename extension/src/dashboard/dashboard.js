@@ -201,7 +201,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response.status === 403) {
                 const err = await response.json().catch(() => ({}));
-                if (err.requiresUpgrade) { showPaywall(); return; }
+                if (err.requiresUpgrade || err.upgrade_required) { showPaywall(); return; }
+                showError('Erişim Engellendi', err.error || 'Analiz hakkınız dolmuş olabilir. Pro\'ya geçerek sınırsız analiz yapabilirsiniz.');
+                return;
             }
             if (response.status === 401) { showError(I18N.t('error_auth'), I18N.t('error_auth_desc')); return; }
             if (response.status === 429) { showError(I18N.t('error_rate_limit'), I18N.t('error_rate_limit_desc')); return; }
@@ -271,7 +273,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response.status === 403) {
                 const err = await response.json().catch(() => ({}));
-                if (err.requiresUpgrade) { showPaywall(); return; }
+                if (err.requiresUpgrade || err.upgrade_required) { showPaywall(); return; }
+                showError('Erişim Engellendi', err.error || 'Analiz hakkınız dolmuş olabilir. Pro\'ya geçerek sınırsız analiz yapabilirsiniz.');
+                return;
             }
             if (response.status === 401) { showError(I18N.t('error_auth'), I18N.t('error_auth_desc')); return; }
             if (response.status === 429) { showError(I18N.t('error_rate_limit'), I18N.t('error_rate_limit_desc')); return; }
@@ -342,7 +346,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sub && subtitle) sub.textContent = subtitle;
         const steps = document.querySelector('.loading-steps');
         if (steps) {
-            steps.innerHTML = `<button onclick="window.location.reload()" style="margin-top:16px;padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Tekrar Dene</button>`;
+            steps.innerHTML = `<button id="retry-btn" style="margin-top:16px;padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Tekrar Dene</button>`;
+            const retryBtn = document.getElementById('retry-btn');
+            if (retryBtn) retryBtn.addEventListener('click', () => window.location.reload());
         }
     }
 
@@ -799,7 +805,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="voiceover-text">${sanitizeHTML(scene.voiceover)}</div>
                         </div>` : ''}
                     ${scene.ai_video_prompt ? `
-                        <div class="ai-prompt-box" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(scene.ai_video_prompt)})">
+                        <div class="ai-prompt-box data-copy-trigger" data-copy="${encodeURIComponent(scene.ai_video_prompt || '')}">
                             <div style="flex:1">
                                 <div class="ai-prompt-label">&#127918; AI Video Prompt — Tıkla Kopyala</div>
                                 <div class="ai-prompt-text">${sanitizeHTML(scene.ai_video_prompt)}</div>
@@ -807,7 +813,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <span style="color:var(--purple);font-size:14px;flex-shrink:0">&#128203;</span>
                         </div>` : ''}
                     ${scene.clip_prompt_10s ? `
-                        <div class="clip-prompt-10s-box" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(scene.clip_prompt_10s)})">
+                        <div class="clip-prompt-10s-box data-copy-trigger" data-copy="${encodeURIComponent(scene.clip_prompt_10s || '')}">
                             <div style="flex:1">
                                 <div class="clip-prompt-10s-label">&#9201; 10sn Klip Promptu &mdash; Kling / Runway / Luma &mdash; Tıkla Kopyala</div>
                                 <div class="clip-prompt-10s-text">${sanitizeHTML(scene.clip_prompt_10s)}</div>
@@ -826,7 +832,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tagsCard = document.createElement('div');
             tagsCard.className = 'card green';
             const tagsHTML = clone.seo_tags.map(tag =>
-                `<span class="tag" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(String(tag))})">${sanitizeHTML(String(tag))}</span>`
+                `<span class="tag data-copy-trigger" data-copy="${encodeURIComponent(String(tag))}">${sanitizeHTML(String(tag))}</span>`
             ).join('');
             tagsCard.innerHTML = `
                 <div class="card-header">
@@ -1009,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const score = parseInt(item.ctr_score) || 0;
                 const color = score >= 80 ? 'var(--green)' : score >= 65 ? 'var(--orange)' : 'var(--accent)';
                 const bg = score >= 80 ? 'rgba(0,200,81,0.1)' : score >= 65 ? 'rgba(245,158,11,0.1)' : 'rgba(255,68,68,0.1)';
-                return `<div class="ctr-title-item" style="cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(item.title || '')})">
+                return `<div class="ctr-title-item data-copy-trigger" style="cursor:pointer" data-copy="${encodeURIComponent(item.title || '')}">
                     <div class="ctr-score-badge" style="background:${bg};color:${color}">${score}</div>
                     <div class="ctr-title-text">
                         <h4>${sanitizeHTML(item.title || '')}</h4>
@@ -1036,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const card = document.createElement('div');
             card.className = 'card gold';
             const itemsHTML = tt.thumbnail_text_ideas.map(item =>
-                `<div class="prompt-item" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(String(item))})">${sanitizeHTML(String(item))}</div>`
+                `<div class="prompt-item data-copy-trigger" data-copy="${encodeURIComponent(String(item))}">${sanitizeHTML(String(item))}</div>`
             ).join('');
             card.innerHTML = `<div class="card-header"><span class="card-title orange">&#128247; Thumbnail Metin Fikirleri</span></div><div class="card-body"><div class="prompt-list">${itemsHTML}</div></div>`;
             grid.appendChild(card);
@@ -1048,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const card = document.createElement('div');
             card.className = 'card green';
             const tagsHTML = cloneTags.map(tag =>
-                `<span class="tag" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(String(tag))})">${sanitizeHTML(String(tag))}</span>`
+                `<span class="tag data-copy-trigger" data-copy="${encodeURIComponent(String(tag))}">${sanitizeHTML(String(tag))}</span>`
             ).join('');
             card.innerHTML = `
                 <div class="card-header">
@@ -1816,6 +1822,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         return String(value);
     }
+
+    // ==================== EVENT DELEGATION (CSP-safe copy) ====================
+    // Replaces all inline onclick="navigator.clipboard..." handlers
+    document.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-copy]');
+        if (!el) return;
+        try {
+            const text = decodeURIComponent(el.dataset.copy || '');
+            if (!text) return;
+            copyToClipboard(text);
+            showToast('Kopyalandı');
+        } catch (err) { /* ignore decode error */ }
+    });
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(String(text || '')).catch(() => {
