@@ -9,10 +9,15 @@ function createUsageCheck(supabase, getOrCreateProfile) {
                 return res.status(500).json({ error: 'Profil olusturulamadi.' });
             }
 
-            // Pro kullanici - sadece subscription_end kontrolü (null ise Skool üyesi, süresiz)
+            // Pro kullanici kontrolü
             if (profile.plan === 'pro') {
+                // Lifetime/manuel Pro (subscription_end null) → direkt geç
+                if (!profile.subscription_end) {
+                    req.profile = profile;
+                    return next();
+                }
+                // Zamanli abonelik: durum ve bitis tarihi kontrolü
                 if (profile.subscription_status !== 'active') {
-                    // Pro ama aktif değil - upgrade mesajı göster
                     return res.status(403).json({
                         error: 'Ücretsiz analiz hakkınız doldu.',
                         upgrade_required: true,

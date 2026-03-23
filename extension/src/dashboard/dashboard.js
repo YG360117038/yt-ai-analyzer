@@ -136,19 +136,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==================== DEMO MODE ====================
-    async function loadDemoAnalysis() {
-        try {
-            updateProgress('Demo analizi yükleniyor...', 50);
-            const res = await fetch(`${BACKEND_URL}/api/demo`);
-            if (!res.ok) throw new Error('Demo yüklenemedi');
-            const data = await res.json();
-            loadingScreen.style.display = 'none';
-            currentMode = 'video';
-            renderAnalysis(data);
-            showToast('Demo modu — Gerçek analiz için giriş yapın');
-        } catch (e) {
-            showError('Demo Yüklenemedi', 'Sunucuya bağlanılamıyor. Lütfen tekrar deneyin.');
+    const DEMO_DATA = {
+        id: 'demo',
+        video_id: 'dQw4w9WgXcQ',
+        is_demo: true,
+        video_metadata: {
+            title: 'How I Made $100K on YouTube WITHOUT Millions of Subscribers',
+            channelName: 'DemoChannel',
+            viewCount: '2.4M görüntülenme',
+            publishDate: '15 Mart 2024',
+            duration: '14:22',
+            thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        },
+        analysis_results: {
+            _analysisType: 'transcript',
+            viral_score: { score: 92, ctr_potential: 88, retention_potential: 85, growth_potential: 90, why: 'Güçlü merak boşluğu + parasal başarı hikayesi = viral formül' },
+            hook_analysis: { type: 'curiosity', why_it_works: 'Zıtlık prensibi: Para kazandım + az abonem var. İzleyici nasıl olduğunu merak ediyor.', first_10_seconds: '"Bu videoyu izlediğinizde neden abone sayısının hiç önemi olmadığını anlayacaksınız..."' },
+            video_structure: { hook: 'İlk 30 saniyede büyük iddia: Abone sayısı olmadan gelir nasıl elde edildi', setup: 'Klasik başarısızlık hikayesi — 2 yıl boyunca sıfır gelir', buildup: '3 kritik strateji açıklaması: Niche seçimi, SEO odağı, monetizasyon çeşitliliği', payoff: 'Gerçek gelir ekran görüntüleri + adım adım sistem', cta: 'Sistemi öğrenmek için kanalı takip et + ücretsiz checklist indir' },
+            viral_patterns: ['Para kazanma vaadi + düşük engel ("herkes yapabilir")', 'İspat + şeffaflık: Gerçek rakamlar gösteriliyor', 'Zıtlık: "Beklediğiniz yol değil" → merak boşluğu'],
+            title_thumbnail: {
+                why_title_works: 'Rakam ($100K) + zıtlık (without millions) = güçlü CTR formülü',
+                ctr_angle: 'Okuyucu anında "nasıl?" diye soruyor — bu içeri çeken kanca',
+                thumbnail_psychology: 'Şaşkın yüz + büyük rakam + kırmızı ok = dikkat çekici kombinasyon',
+                improved_titles: [
+                    { title: 'Sıfırdan $100K: Abone Sayısı Olmadan YouTube\'da Para Kazanmak', ctr_score: 94, angle: 'Sıfırdan başlama' },
+                    { title: 'Neden Az Abonem Var Ama Çok Kazanıyorum? (Gerçek Rakamlar)', ctr_score: 91, angle: 'Şeffaflık + merak' },
+                    { title: 'Bu 3 Strateji Olmadan YouTube\'da Para Kazanamazsınız', ctr_score: 88, angle: 'Negatif framing' }
+                ]
+            },
+            clone_this_video: {
+                new_video_idea: 'Kendi nişinizde: "X olmadan Y\'yi nasıl başardım" formatı',
+                full_hook: '"Bugün size bir itirafım var. [Nişinizde yaygın yanlış inanç] sanılıyor. Ama ben bunu yapmadan [hedefe] ulaştım..."',
+                script_outline: '1. Hook (0:00-0:45): Büyük iddia\n2. Problem (0:45-2:00): Klasik yaklaşımın neden işe yaramadığı\n3. Çözüm (2:00-3:30): Farklı stratejik yaklaşım\n4. Strateji 1 (3:30-6:00): Niche optimizasyonu\n5. Strateji 2 (6:00-9:00): SEO odaklı içerik\n6. Strateji 3 (9:00-12:00): Çoklu gelir\n7. Kanıt (12:00-13:30): Gerçek rakamlar\n8. CTA (13:30-14:22)',
+                scene_plan: [
+                    { scene: 1, time: '0:00-0:10', description: 'Şaşırtıcı istatistik gösterilir', voiceover: '"Bu videoyu izleyenlerin %90\'ı bunu yanlış yapıyor..."', ai_video_prompt: 'Close-up of person looking surprised at laptop screen', clip_prompt_10s: 'A creator looking shocked at their laptop, modern home office' },
+                    { scene: 2, time: '0:10-0:20', description: 'Para rakamları animasyon', voiceover: '"$100,000 dolar. Hiç düşünmediğiniz bir yoldan."', ai_video_prompt: 'Animated dollar signs and growth charts', clip_prompt_10s: 'Money counter animation, green numbers rising' }
+                ],
+                seo_tags: ['youtube para kazanma', 'youtube monetizasyon', 'az abone ile para', 'youtube büyüme', 'içerik üreticisi']
+            },
+            content_factory: {
+                video_ideas: [
+                    { title: 'İlk 1000 Aboneyi 30 Günde Nasıl Aldım', hook: 'Kimse bu stratejiyi söylemiyor...', why: 'Milestone içeriği viral olur' },
+                    { title: 'YouTube Algoritması Hakkında Bildiğiniz 5 Yalan', hook: 'Gurular bunu size söylemez...', why: 'Myth-busting yüksek paylaşım alır' },
+                    { title: 'Tek Bir Video İle Nasıl $5000 Kazandım', hook: 'Tek bir video, değişen her şey...', why: 'Spesifik rakam + kısa süre = güçlü hook' }
+                ],
+                high_ctr_titles: [
+                    { title: 'YouTube\'da GERÇEKTEN Para Kazanmanın 7 Yolu (2024)', ctr_score: 89 },
+                    { title: 'Bu Hatayı Yapıyorsanız YouTube\'da Asla Büyüyemezsiniz', ctr_score: 86 }
+                ]
+            },
+            shorts_opportunities: [
+                { title: 'En Büyük YouTube Hatası', timestamp: '3:45', duration: '45 sn', hook: 'Herkesin yaptığı bu hata...', why: 'Kısa ve güçlü - viral short potansiyeli' },
+                { title: 'İlk $1000 Nasıl Geldi', timestamp: '8:20', duration: '60 sn', hook: 'İlk büyük rakamı gördüğümde...', why: 'Duygusal an - özgün ve ilişkilendirilebilir' }
+            ],
+            monetization: {
+                how_it_makes_money: 'AdSense + kurs satışı + affiliate link + üyelik sistemi',
+                strategies: ['Yüksek CPM nişe odaklanmak (finans, eğitim)', 'Email listesi oluşturup kurs satmak', 'Affiliate marketing entegrasyonu'],
+                best_cta: '"Ücretsiz YouTube Büyüme Checklist\'im için açıklamadaki linke tıkla"'
+            }
         }
+    };
+
+    function loadDemoAnalysis() {
+        loadingScreen.style.display = 'none';
+        currentMode = 'video';
+        renderAnalysis(DEMO_DATA);
+        showToast('Demo modu — Gerçek analiz için giriş yapın');
     }
 
     // ==================== SHARED ANALYSIS ====================
