@@ -3,9 +3,20 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const Sentry = require('@sentry/node');
 const { createClient } = require('@supabase/supabase-js');
 const { authMiddleware } = require('./middlewares/auth');
 const { createUsageCheck } = require('./middlewares/usageCheck');
+
+// Sentry (opsiyonel — SENTRY_DSN env yoksa devre dışı)
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.NODE_ENV || 'production',
+        tracesSampleRate: 0.2,
+    });
+}
 
 const app = express();
 app.set('trust proxy', 1);
@@ -20,7 +31,7 @@ for (const envVar of requiredEnvVars) {
     }
 }
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 const FREE_ANALYSIS_LIMIT = 3;
 
 // Supabase Init
@@ -30,6 +41,19 @@ const supabase = createClient(
 );
 
 // ==================== MIDDLEWARE ====================
+
+// Security headers
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Chrome extension için
+    contentSecurityPolicy: false, // API server — CSP gerekmez
+}));
+
+// Request ID — her isteğe izlenebilir ID ekle
+app.use((req, res, next) => {
+    req.id = req.headers['x-request-id'] || crypto.randomUUID();
+    res.setHeader('X-Request-ID', req.id);
+    next();
+});
 
 // CORS - sadece izinli originler
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
@@ -60,6 +84,15 @@ const analyzeRateLimit = rateLimit({
 const generalRateLimit = rateLimit({
     windowMs: 60 * 1000,
     max: 60,
+    message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Public endpoint rate limit (share, demo)
+const publicRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
     message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
     standardHeaders: true,
     legacyHeaders: false
@@ -286,7 +319,7 @@ app.get('/api/analysis/:id', authMiddleware, async (req, res) => {
 app.get('/api/analyses', authMiddleware, async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-        const offset = parseInt(req.query.offset) || 0;
+        const offset = Math.max(0, parseInt(req.query.offset) || 0);
 
         const { data, error, count } = await supabase
             .from('analyses')
@@ -419,7 +452,7 @@ app.delete('/api/analysis/:id', authMiddleware, async (req, res) => {
 // ==================== ADMIN ROUTES ====================
 
 function adminMiddleware(req, res, next) {
-    if (!req.user || !ADMIN_EMAILS.includes(req.user.email)) {
+    if (!req.user || !ADMIN_EMAILS.includes((req.user.email || '').toLowerCase())) {
         return res.status(403).json({ error: 'Admin yetkisi gerekli.' });
     }
     next();
@@ -539,6 +572,18 @@ app.post('/api/admin/set-plan', authMiddleware, adminMiddleware, async (req, res
             return res.status(500).json({ error: 'Güncelleme başarısız: ' + updateError.message });
         }
 
+        // Audit log — DB'ye yaz (hata olursa sessizce geç)
+        await supabase.from('audit_logs').insert({
+            admin_email: req.user.email,
+            action: 'set_user_plan',
+            target_email: email,
+            new_plan: plan,
+            ip_address: req.ip || null,
+            created_at: new Date().toISOString()
+        }).then(({ error }) => {
+            if (error) console.error('Audit log yazılamadı:', error.message);
+        });
+
         console.log(`Admin ${req.user.email} → ${email} kullanıcısını ${plan} yaptı`);
         res.json({ success: true, email: profile.email, plan });
     } catch (error) {
@@ -549,7 +594,7 @@ app.post('/api/admin/set-plan', authMiddleware, adminMiddleware, async (req, res
 
 // ==================== PUBLIC SHARE ====================
 // Analizi UUID token ile herkese aç (UUID 128-bit entropy = unguessable)
-app.get('/api/share/:id', async (req, res) => {
+app.get('/api/share/:id', publicRateLimit, async (req, res) => {
     const { id } = req.params;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
@@ -690,17 +735,29 @@ const DEMO_ANALYSIS = {
     is_demo: true
 };
 
-app.get('/api/demo', (req, res) => {
+app.get('/api/demo', publicRateLimit, (req, res) => {
     res.json(DEMO_ANALYSIS);
 });
 
 // ==================== GLOBAL ERROR HANDLERS ====================
+
+// Express error handler (Sentry + generic 500)
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+    if (process.env.SENTRY_DSN) Sentry.captureException(err);
+    console.error(`[${req.id}] Unhandled error:`, err.message);
+    const status = err.status || 500;
+    res.status(status).json({ error: status === 500 ? 'Sunucu hatası oluştu.' : err.message });
+});
+
 process.on('uncaughtException', (err) => {
+    if (process.env.SENTRY_DSN) Sentry.captureException(err);
     console.error('UNCAUGHT EXCEPTION:', err.message, err.stack);
     process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
+    if (process.env.SENTRY_DSN) Sentry.captureException(reason);
     console.error('UNHANDLED REJECTION:', reason);
 });
 

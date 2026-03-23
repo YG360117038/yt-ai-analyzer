@@ -92,3 +92,21 @@ CREATE POLICY "Service role full access payments"
 CREATE POLICY "Service role full access analyses"
     ON analyses FOR ALL
     USING (auth.role() = 'service_role');
+
+-- 5. Audit Logs (Admin Aksiyonlari)
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_email TEXT NOT NULL,
+    action TEXT NOT NULL,
+    target_email TEXT,
+    new_plan TEXT,
+    ip_address TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Sadece service role yazabilir/okuyabilir
+CREATE POLICY "Service role full access audit_logs"
+    ON audit_logs FOR ALL
+    USING (auth.role() = 'service_role');
