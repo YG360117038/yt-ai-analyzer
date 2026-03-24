@@ -898,7 +898,7 @@ Format:
 
     // Gemini fallback
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
         const result = await withTimeout(model.generateContent(prompt), 90000);
         return result.response.text() || '';
     } catch (e) {
