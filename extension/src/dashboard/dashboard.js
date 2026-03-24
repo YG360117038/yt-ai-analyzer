@@ -1500,9 +1500,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             lockBanner.className = 'lock-banner';
             lockBanner.innerHTML = `
                 <div style="font-size:28px;margin-bottom:10px">&#128274;</div>
-                <h3>Pro Gerekli</h3>
-                <p>Bu bölüm yalnızca Pro kullanıcılara açıktır. Clone This Video, Content Factory ve daha fazlası için Pro'ya geçin.</p>
-                <button class="lock-cta js-upgrade-btn">Pro'ya Yükselt</button>`;
+                <h3>Pro Özellik</h3>
+                <p>Bu bölüm Pro üyelere özel. Topluluğumuza katılarak Pro erişim kazan.</p>
+                <button class="lock-cta js-upgrade-btn">&#127758; Topluluğa Katıl → Pro Ol</button>`;
             tab.appendChild(lockBanner);
             lockBanner.querySelector('.js-upgrade-btn').addEventListener('click', () => {
                 chrome.tabs.create({ url: CONFIG.SKOOL_URL });
