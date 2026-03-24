@@ -520,9 +520,46 @@ async function analyzeWithClaude(prompt) {
     return null;
 }
 
+// ==================== DURATION HELPERS ====================
+function parseDurationToSeconds(duration) {
+    if (!duration || typeof duration !== 'string') return 600;
+    const parts = duration.replace(/[^0-9:]/g, '').split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return 600;
+}
+
+function formatSeconds(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function buildSceneSchema(totalSecs) {
+    // 1 sahne / ~60sn, min 6, max 14 — video süresini proportional kapsar
+    const sceneCount = Math.min(14, Math.max(6, Math.ceil(totalSecs / 60)));
+    const interval = totalSecs / sceneCount;
+    const scenes = [];
+    for (let i = 0; i < sceneCount; i++) {
+        const startSec = Math.round(i * interval);
+        const endSec = Math.min(startSec + 10, totalSecs);
+        scenes.push({
+            scene: i + 1,
+            time: `${formatSeconds(startSec)}-${formatSeconds(endSec)}`,
+            description: "Bu sahnenin içeriği ve amacı (videonun bu noktasında ne oluyor)",
+            voiceover: "Bu 10 saniyede söylenen tam seslendirme metni",
+            ai_video_prompt: "Production-ready Runway/Kling/Luma prompt (EN): [Camera: TYPE + movement] [Subject: who/what, appearance, expression] [Action: exact motion] [Setting: location, props, background] [Lighting: type, color temp, shadows] [Color grade: style] [Mood: emotion] [Technical: 4K 24fps, anamorphic lens, film grain, shallow DOF] No text, no watermarks.",
+            clip_prompt_10s: `[Camera: TYPE] [Subject: DESCRIPTION] [Action: MOVEMENT] [Setting: ENVIRONMENT] [Lighting: TYPE, COLOR TEMP] [Color grade: CINEMATIC STYLE] [Mood: EMOTION] [Technical: 4K, 24fps, film grain, anamorphic 2.39:1, shallow DOF] Duration: 10 seconds. No text overlays, no watermarks, no subtitles.`
+        });
+    }
+    return JSON.stringify(scenes, null, 2);
+}
+
 // ==================== PROMPT ====================
 function buildPrompt(videoData, transcript = null, language = 'tr') {
     const isEnglish = language === 'en';
+    const totalSecs = parseDurationToSeconds(videoData.duration);
+    const scenePlanSchema = buildSceneSchema(totalSecs);
     let transcriptSection = '';
     if (transcript) {
         const truncated = transcript.fullText.substring(0, 15000);
@@ -558,6 +595,15 @@ RULES:
 - Think like a YouTube strategist, not a teacher
 - Focus on RESULTS, not explanations
 - The "clone_this_video" section is THE MOST IMPORTANT — make it feel like "here is your next video ready to produce"
+
+SCENE PLAN RULES — fill every scene in clone_this_video.scene_plan:
+- Timestamps are pre-calculated from the actual video duration (${Math.floor(totalSecs/60)}:${String(totalSecs%60).padStart(2,'0')} total)
+- Each scene is a 10-second window distributed across the FULL video
+- description: what happens at that exact moment in the original video narrative
+- voiceover: the exact words spoken in YOUR cloned video at this point (match the original pacing)
+- ai_video_prompt: full cinematic description for Runway/Sora EN — include [Camera: type+movement] [Subject: who/what, detail] [Action: motion] [Setting: location] [Lighting: type, color temp K] [Color grade: style] [Mood: emotion] [Technical: 4K 24fps, anamorphic, film grain]
+- clip_prompt_10s: production-ready for Kling/Runway/Luma — MUST follow this exact format: "[Camera: MOVEMENT] [Subject: DETAIL] [Action: EXACT MOTION] [Setting: ENVIRONMENT] [Lighting: TYPE, TEMP] [Color grade: CINEMATIC LUT] [Mood: EMOTION] [Technical: 4K, 24fps, film grain, anamorphic 2.39:1, shallow DOF f/1.8] Duration: 10 seconds. No text overlays, no watermarks, no subtitles."
+- Make every clip_prompt_10s UNIQUE and specific to that scene — no generic placeholders
 
 SCORING RUBRIC — calculate each score based on THIS specific video's actual data:
 - viral_score.score (0-100): Overall viral potential. Consider: view/subscriber ratio, likes/views ratio, title hook strength, niche competition. A video with 10M views on a 100K channel = 95+. A 500 view video on a 50K channel = 20-35.
@@ -633,48 +679,7 @@ IMPORTANT: Replace ALL numeric placeholders with values calculated from the actu
     "new_video_idea": "Aynı format, farklı açıdan yeni video fikri",
     "full_hook": "Tam hook metni — hemen kullanılabilir, çarpıcı ve spesifik",
     "script_outline": "Tam senaryo taslağı bölümler halinde: Giriş → Setup → Buildup → Payoff → CTA",
-    "scene_plan": [
-      {
-        "scene": 1,
-        "time": "0:00-0:10",
-        "description": "Sahne açıklaması",
-        "voiceover": "Tam seslendirme metni (Türkçe)",
-        "ai_video_prompt": "Cinematic shot description for Runway/Sora (EN, detailed: lighting, camera, motion, style)",
-        "clip_prompt_10s": "10-second AI clip prompt optimized for Kling/Runway/Luma. Format: [Camera: slow push-in] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: cinematic 4K, film grain] [Mood: ...] Duration: 10 seconds. No text overlays, no watermarks."
-      },
-      {
-        "scene": 2,
-        "time": "0:10-0:20",
-        "description": "Sahne açıklaması",
-        "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN",
-        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
-      },
-      {
-        "scene": 3,
-        "time": "0:20-0:30",
-        "description": "Sahne açıklaması",
-        "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN",
-        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
-      },
-      {
-        "scene": 4,
-        "time": "0:30-0:40",
-        "description": "Sahne açıklaması",
-        "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN",
-        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
-      },
-      {
-        "scene": 5,
-        "time": "0:40-0:50",
-        "description": "Sahne açıklaması",
-        "voiceover": "Seslendirme metni",
-        "ai_video_prompt": "AI video prompt EN",
-        "clip_prompt_10s": "10-second AI clip prompt for Kling/Runway/Luma. [Camera: ...] [Subject: ...] [Action: ...] [Setting: ...] [Lighting: ...] [Style: 4K cinematic] Duration: 10 seconds. No text, no watermarks."
-      }
-    ],
+    "scene_plan": ${scenePlanSchema},
     "seo_tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8", "tag9", "tag10"]
   },
   "content_factory": {
