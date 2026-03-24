@@ -559,6 +559,13 @@ RULES:
 - Focus on RESULTS, not explanations
 - The "clone_this_video" section is THE MOST IMPORTANT — make it feel like "here is your next video ready to produce"
 
+SCORING RUBRIC — calculate each score based on THIS specific video's actual data:
+- viral_score.score (0-100): Overall viral potential. Consider: view/subscriber ratio, likes/views ratio, title hook strength, niche competition. A video with 10M views on a 100K channel = 95+. A 500 view video on a 50K channel = 20-35.
+- ctr_potential (0-100): How likely someone scrolls past and clicks. Based on: title formula, curiosity gap, thumbnail implied quality, keyword strength.
+- retention_potential (0-100): How long viewers will watch. Based on: hook quality (first_10_seconds), content structure, pacing signals from description/comments.
+- growth_potential (0-100): Channel growth opportunity from this content type. Based on: niche trend, searchability, shareability, series potential.
+CRITICAL: These MUST be unique per video. Do NOT use the same numbers repeatedly. A cooking tutorial and a controversial expose should have very different scores.
+
 ${transcriptNote}
 
 VIDEO DATA:
@@ -576,14 +583,15 @@ Hashtags: ${(videoData.hashtags || []).join(', ')}
 URL: ${videoData.url || ''}
 ${transcriptSection}
 
-OUTPUT: Valid JSON matching EXACTLY this schema (no extra keys, no markdown, no explanation):
+OUTPUT: Valid JSON matching EXACTLY this schema (no extra keys, no markdown, no explanation).
+IMPORTANT: Replace ALL numeric placeholders with values calculated from the actual video data above:
 
 {
   "viral_score": {
-    "score": 85,
-    "ctr_potential": 80,
-    "retention_potential": 75,
-    "growth_potential": 90,
+    "score": <integer 0-100, calculated from this video's actual performance>,
+    "ctr_potential": <integer 0-100, based on title/thumbnail strength>,
+    "retention_potential": <integer 0-100, based on hook and structure>,
+    "growth_potential": <integer 0-100, based on niche and shareability>,
     "why": "Kısa açıklama neden bu skoru aldı"
   },
   "hook_analysis": {
@@ -608,11 +616,11 @@ OUTPUT: Valid JSON matching EXACTLY this schema (no extra keys, no markdown, no 
     "ctr_angle": "CTR açısı (merak/korku/fayda vs.)",
     "thumbnail_psychology": "Thumbnail psikolojisi",
     "improved_titles": [
-      {"title": "Geliştirilmiş başlık 1", "ctr_score": 88, "angle": "merak boşluğu"},
-      {"title": "Başlık 2", "ctr_score": 82, "angle": "korku"},
-      {"title": "Başlık 3", "ctr_score": 79, "angle": "fayda"},
-      {"title": "Başlık 4", "ctr_score": 75, "angle": "şok"},
-      {"title": "Başlık 5", "ctr_score": 71, "angle": "hikaye"}
+      {"title": "Bu videoya özel başlık alternatifi 1", "ctr_score": 0, "angle": "merak boşluğu"},
+      {"title": "Bu videoya özel başlık alternatifi 2", "ctr_score": 0, "angle": "korku"},
+      {"title": "Bu videoya özel başlık alternatifi 3", "ctr_score": 0, "angle": "fayda"},
+      {"title": "Bu videoya özel başlık alternatifi 4", "ctr_score": 0, "angle": "şok"},
+      {"title": "Bu videoya özel başlık alternatifi 5", "ctr_score": 0, "angle": "hikaye"}
     ],
     "thumbnail_text_ideas": ["Metin 1", "Metin 2", "Metin 3", "Metin 4", "Metin 5"]
   },
@@ -683,11 +691,11 @@ OUTPUT: Valid JSON matching EXACTLY this schema (no extra keys, no markdown, no 
       {"title": "Video fikri 10", "hook": "Hook metni", "why": "Neden viral olur"}
     ],
     "high_ctr_titles": [
-      {"title": "Yüksek CTR başlık 1", "ctr_score": 90},
-      {"title": "Başlık 2", "ctr_score": 87},
-      {"title": "Başlık 3", "ctr_score": 84},
-      {"title": "Başlık 4", "ctr_score": 80},
-      {"title": "Başlık 5", "ctr_score": 76}
+      {"title": "Bu videoya özel yüksek CTR başlık 1", "ctr_score": 0},
+      {"title": "Bu videoya özel yüksek CTR başlık 2", "ctr_score": 0},
+      {"title": "Bu videoya özel yüksek CTR başlık 3", "ctr_score": 0},
+      {"title": "Bu videoya özel yüksek CTR başlık 4", "ctr_score": 0},
+      {"title": "Bu videoya özel yüksek CTR başlık 5", "ctr_score": 0}
     ]
   },
   "shorts_opportunities": [
