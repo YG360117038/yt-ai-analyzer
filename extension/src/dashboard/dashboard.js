@@ -58,10 +58,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         seo:       'active-purple',
         channel:   'active-green',
         monetize:  'active-green',
+        battle:    'active',
         history:   'active'
     };
 
-    const VIDEO_ONLY_TABS = ['viral', 'clone', 'factory', 'structure', 'script', 'seo', 'monetize'];
+    const VIDEO_ONLY_TABS = ['viral', 'clone', 'factory', 'structure', 'script', 'seo', 'monetize', 'battle'];
     let currentMode = null;
 
     function showVideoOnlyMessage(tabName) {
@@ -610,7 +611,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (r.viral_score) renderScoreBanner(r.viral_score);
 
         // Clear containers
-        const containers = ['viral-content', 'clone-content', 'factory-content', 'structure-content', 'script-content', 'seo-content', 'channel-content', 'monetize-content'];
+        const containers = ['viral-content', 'clone-content', 'factory-content', 'structure-content', 'script-content', 'seo-content', 'channel-content', 'monetize-content', 'battle-content'];
         containers.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = '';
@@ -624,6 +625,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderTabScript(data);
         renderTabSEO(r);
         renderTabMonetize(r);
+        renderTabBattle(r);
 
         // Free user locked state
         if (isLimited) renderLockedState();
@@ -726,6 +728,70 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span style="font-size:13px;color:var(--text-dim);line-height:1.5">${sanitizeHTML(String(p))}</span>
                 </div>`).join('');
             card.innerHTML = `<div class="card-header"><span class="card-title">&#9889; Viral Kalıplar</span></div><div class="card-body">${patternsHTML}</div>`;
+            grid.appendChild(card);
+        }
+
+        // Niche Benchmark
+        if (r.niche_benchmark) {
+            const nb = r.niche_benchmark;
+            const verdictColor = {
+                'ÜSTÜN': '#00c851', 'ORTALAMANIN ÜZERİNDE': '#06b6d4',
+                'ORTALAMA': '#f59e0b', 'ORTALAMANIN ALTINDA': '#f97316', 'ZAYIF': '#ff4444'
+            };
+            const vc = verdictColor[nb.performance_verdict] || '#aaa';
+            const pct = Math.min(100, Math.max(0, parseInt(nb.percentile) || 0));
+            const card = document.createElement('div');
+            card.className = 'card accent';
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="card-title">&#128202; Niche Benchmark</span>
+                    ${nb.niche ? `<span style="background:#ffffff10;color:var(--text-dim);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600">${sanitizeHTML(nb.niche)}</span>` : ''}
+                </div>
+                <div class="card-body">
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+                        <div style="text-align:center">
+                            <div style="font-size:28px;font-weight:900;color:${vc}">${pct}</div>
+                            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Yüzdelik</div>
+                        </div>
+                        <div style="flex:1">
+                            <div style="background:${vc}22;color:${vc};padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700;display:inline-block;margin-bottom:8px">${sanitizeHTML(nb.performance_verdict || '')}</div>
+                            <div style="height:6px;background:rgba(255,255,255,0.05);border-radius:10px;overflow:hidden">
+                                <div style="height:100%;width:${pct}%;background:${vc};border-radius:10px"></div>
+                            </div>
+                        </div>
+                    </div>
+                    ${nb.typical_view_range ? `<div class="dna-row"><div class="dna-lbl">Niche Ortalaması</div><div class="dna-val">${sanitizeHTML(nb.typical_view_range)}</div></div>` : ''}
+                    ${nb.benchmark_context ? `<div class="dna-row"><div class="dna-lbl">Yorum</div><div class="dna-val">${sanitizeHTML(nb.benchmark_context)}</div></div>` : ''}
+                </div>`;
+            grid.appendChild(card);
+        }
+
+        // Trend Signal
+        if (r.trend_signal) {
+            const ts = r.trend_signal;
+            const statusColor = {
+                'RISING': '#00c851', 'EMERGING': '#06b6d4', 'PEAK': '#f59e0b',
+                'DECLINING': '#f97316', 'EVERGREEN': '#7b68ee'
+            };
+            const statusIcon = {
+                'RISING': '&#128200;', 'EMERGING': '&#9889;', 'PEAK': '&#127942;',
+                'DECLINING': '&#128201;', 'EVERGREEN': '&#9752;'
+            };
+            const sc = statusColor[ts.status] || '#aaa';
+            const si = statusIcon[ts.status] || '&#128202;';
+            const longevityLabel = { SHORT: 'Kısa Vadeli', MEDIUM: 'Orta Vadeli', LONG: 'Uzun Vadeli', EVERGREEN: 'Evergreen' };
+            const card = document.createElement('div');
+            card.className = 'card accent';
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="card-title">&#128293; Trend Sinyali</span>
+                    ${ts.status ? `<span style="background:${sc}22;color:${sc};padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700">${si} ${sanitizeHTML(ts.status)}</span>` : ''}
+                </div>
+                <div class="card-body">
+                    ${ts.longevity ? `<div class="dna-row"><div class="dna-lbl">Trend Ömrü</div><div class="dna-val" style="color:${sc};font-weight:600">${sanitizeHTML(longevityLabel[ts.longevity] || ts.longevity)}</div></div>` : ''}
+                    ${ts.momentum ? `<div class="dna-row"><div class="dna-lbl">Momentum</div><div class="dna-val">${sanitizeHTML(ts.momentum)}</div></div>` : ''}
+                    ${ts.action ? `<div style="margin-top:12px;padding:10px 14px;background:${sc}15;border-left:3px solid ${sc};border-radius:0 8px 8px 0;font-size:13px;color:var(--text);font-weight:500">&#128161; ${sanitizeHTML(ts.action)}</div>` : ''}
+                </div>`;
             grid.appendChild(card);
         }
 
@@ -1170,6 +1236,113 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.appendChild(grid);
     }
 
+    // ==================== TAB: BATTLE PLAN ====================
+    function renderTabBattle(r) {
+        const container = document.getElementById('battle-content');
+        if (!container) return;
+
+        const bp = r.battle_plan;
+        const nb = r.niche_benchmark;
+        const ts = r.trend_signal;
+
+        if (!bp && !nb && !ts) {
+            container.innerHTML = `<div class="empty-state"><div class="icon">&#9876;</div><h3>Rakip verisi yok</h3><p>Bu analiz henüz rakip karşılaştırması içermiyor. Videoyu yeniden analiz edin.</p></div>`;
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'grid-2';
+
+        // Hero banner
+        const hero = document.createElement('div');
+        hero.className = 'clone-hero-banner col-full';
+        hero.style.cssText = 'background:linear-gradient(135deg,rgba(255,68,68,0.12),rgba(123,104,238,0.12));border:1px solid rgba(255,68,68,0.2)';
+        hero.innerHTML = `
+            <div class="clone-hero-icon">&#9876;</div>
+            <div class="clone-hero-text">
+                <h2>Rakip Analizi & Karşı Strateji</h2>
+                <p>Bu videonun zayıf noktalarını exploit et. Trend'ini yakala. Rakibi geç.</p>
+            </div>`;
+        container.appendChild(hero);
+
+        // Weakness + Gap
+        if (bp) {
+            if (bp.weakness || bp.gap) {
+                const card = document.createElement('div');
+                card.className = 'card accent';
+                let html = '';
+                if (bp.weakness) html += `<div class="dna-row"><div class="dna-lbl" style="color:#ff4444">&#128245; Zayıf Nokta</div><div class="dna-val">${sanitizeHTML(bp.weakness)}</div></div>`;
+                if (bp.gap) html += `<div class="dna-row"><div class="dna-lbl" style="color:#f59e0b">&#128270; Doldurulmamış Boşluk</div><div class="dna-val">${sanitizeHTML(bp.gap)}</div></div>`;
+                if (bp.differentiation) html += `<div class="dna-row"><div class="dna-lbl" style="color:#06b6d4">&#9889; Farklılaşma</div><div class="dna-val">${sanitizeHTML(bp.differentiation)}</div></div>`;
+                card.innerHTML = `<div class="card-header"><span class="card-title">&#128245; Rakip Zayıflıkları</span></div><div class="card-body">${html}</div>`;
+                grid.appendChild(card);
+            }
+
+            // Counter video idea + hook
+            if (bp.counter_video_idea || bp.counter_hook) {
+                const card = document.createElement('div');
+                card.className = 'card purple';
+                let html = '';
+                if (bp.counter_video_idea) {
+                    html += `
+                        <div style="background:rgba(123,104,238,0.08);border:1px solid rgba(123,104,238,0.2);border-radius:10px;padding:14px;margin-bottom:12px">
+                            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--purple);font-weight:700;margin-bottom:6px">&#127916; Karşı Video Fikri</div>
+                            <div style="font-size:14px;font-weight:600;color:var(--text)">${sanitizeHTML(bp.counter_video_idea)}</div>
+                        </div>`;
+                }
+                if (bp.counter_hook) {
+                    html += `
+                        <div style="background:rgba(255,68,68,0.06);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 14px">
+                            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:6px">&#128165; Hook — Hemen Kullan</div>
+                            <div style="font-size:13px;font-weight:500;color:var(--text);font-style:italic">"${sanitizeHTML(bp.counter_hook)}"</div>
+                            <button class="action-btn battle-copy-hook" data-copy="${sanitizeHTML(bp.counter_hook)}" style="margin-top:10px">Kopyala</button>
+                        </div>`;
+                }
+                card.innerHTML = `<div class="card-header"><span class="card-title" style="color:var(--purple)">&#127919; Karşı Strateji</span></div><div class="card-body">${html}</div>`;
+                card.querySelectorAll('.battle-copy-hook').forEach(btn => {
+                    btn.addEventListener('click', () => { copyToClipboard(btn.dataset.copy); showToast('Hook kopyalandı!'); });
+                });
+                grid.appendChild(card);
+            }
+
+            // Counter titles
+            if (bp.counter_titles && bp.counter_titles.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'card col-full purple';
+                const titlesHTML = bp.counter_titles.map((t, i) => `
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(123,104,238,0.05);border:1px solid rgba(123,104,238,0.12);border-radius:8px;margin-bottom:8px">
+                        <span style="background:var(--purple);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">${i + 1}</span>
+                        <span style="font-size:13px;color:var(--text);flex:1;font-weight:500">${sanitizeHTML(String(t))}</span>
+                        <button class="action-btn battle-copy-title" data-copy="${sanitizeHTML(String(t))}">Kopyala</button>
+                    </div>`).join('');
+                card.innerHTML = `<div class="card-header"><span class="card-title" style="color:var(--purple)">&#127942; Rakibe Karşı Başlıklar</span></div><div class="card-body">${titlesHTML}</div>`;
+                card.querySelectorAll('.battle-copy-title').forEach(btn => {
+                    btn.addEventListener('click', () => { copyToClipboard(btn.dataset.copy); showToast('Başlık kopyalandı!'); });
+                });
+                grid.appendChild(card);
+            }
+        }
+
+        // Niche + Trend summary in battle context
+        if (nb || ts) {
+            const card = document.createElement('div');
+            card.className = 'card col-full';
+            let html = '';
+            if (nb && nb.benchmark_context) {
+                html += `<div class="dna-row"><div class="dna-lbl">&#128202; Niche Bağlamı</div><div class="dna-val">${sanitizeHTML(nb.benchmark_context)}</div></div>`;
+            }
+            if (ts && ts.action) {
+                html += `<div class="dna-row"><div class="dna-lbl">&#128293; Trend Aksiyonu</div><div class="dna-val" style="color:var(--green);font-weight:600">${sanitizeHTML(ts.action)}</div></div>`;
+            }
+            if (html) {
+                card.innerHTML = `<div class="card-header"><span class="card-title">&#128161; Strateji Özeti</span></div><div class="card-body">${html}</div>`;
+                grid.appendChild(card);
+            }
+        }
+
+        container.appendChild(grid);
+    }
+
     // ==================== CHANNEL PAGE RENDER ====================
     function renderChannelPage(channelData, apiData) {
         const channelNavItem = document.getElementById('channel-nav-item');
@@ -1482,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ==================== FREE USER LOCKED STATE ====================
     function renderLockedState() {
-        const lockedTabs = ['tab-clone', 'tab-factory', 'tab-structure', 'tab-seo', 'tab-monetize'];
+        const lockedTabs = ['tab-clone', 'tab-factory', 'tab-structure', 'tab-seo', 'tab-monetize', 'tab-script', 'tab-battle'];
         lockedTabs.forEach(tabId => {
             const tab = document.getElementById(tabId);
             if (!tab) return;
@@ -1623,17 +1796,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const shareModal = document.getElementById('share-modal');
     const shareUrlInput = document.getElementById('share-url-input');
 
-    document.getElementById('share-btn').addEventListener('click', () => {
+    document.getElementById('share-btn').addEventListener('click', async () => {
         if (!currentAnalysisData) return;
         const id = currentAnalysisData.id || '';
-        const shareUrl = id && id !== 'demo'
-            ? `${BACKEND_URL}/api/share/${id}`
-            : '';
-        if (shareUrl) {
-            shareUrlInput.value = shareUrl;
-        } else {
+        if (!id || id === 'demo') {
             shareUrlInput.value = 'Demo analiz paylaşılamaz';
+            shareModal.classList.add('show');
+            return;
         }
+        try {
+            await authFetch(`${BACKEND_URL}/api/analyses/${id}/share`, { method: 'POST' });
+        } catch (e) { /* sessizce devam et */ }
+        shareUrlInput.value = `${BACKEND_URL}/api/share/${id}`;
         shareModal.classList.add('show');
     });
 
@@ -1733,11 +1907,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             scriptResult.style.display = 'none';
 
             try {
-                const res = await authFetch(`${BACKEND_URL}/api/generate-script`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ analysisId, language: lang })
-                });
+                const res = await fetchWithTimeout(
+                    authFetch(`${BACKEND_URL}/api/generate-script`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ analysisId, language: lang })
+                    }),
+                    120000
+                );
                 if (!res.ok) {
                     const err = await res.json();
                     throw new Error(err.error || 'Senaryo oluşturulamadı');
@@ -1752,11 +1929,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 scriptResult.style.display = 'block';
                 showToast('Senaryo hazır!');
 
-                document.getElementById('script-copy-btn').addEventListener('click', () => {
+                const copyBtn = document.getElementById('script-copy-btn');
+                const dlBtn = document.getElementById('script-download-btn');
+                const newCopyBtn = copyBtn.cloneNode(true);
+                const newDlBtn = dlBtn.cloneNode(true);
+                copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
+                dlBtn.parentNode.replaceChild(newDlBtn, dlBtn);
+
+                newCopyBtn.addEventListener('click', () => {
                     copyToClipboard(script);
                     showToast('Senaryo kopyalandı!');
                 });
-                document.getElementById('script-download-btn').addEventListener('click', () => {
+                newDlBtn.addEventListener('click', () => {
                     const title = (data.video_metadata?.title || 'senaryo').substring(0, 40).replace(/[^a-zA-Z0-9]/g, '-');
                     downloadFile(script, `${title}-senaryo.txt`, 'text/plain');
                     showToast('Senaryo indirildi!');
@@ -1892,12 +2076,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(String(text || '')).catch(() => {
-            const ta = document.createElement('textarea');
-            ta.value = String(text || '');
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
+            // navigator.clipboard unavailable (non-secure context) — silent fail
         });
     }
 

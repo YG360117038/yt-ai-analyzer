@@ -392,14 +392,15 @@ app.post('/api/channel-analyze', authMiddleware, usageCheck, analyzeRateLimit, a
 
         if (error) {
             console.error("Supabase kayıt hatası:", error.message);
-            // Non-fatal: return result even if save fails
         }
 
-        // Increment usage counter
-        await supabase.from('profiles').update({
-            analysis_count: req.profile.analysis_count + 1,
-            updated_at: new Date().toISOString()
-        }).eq('id', req.user.id);
+        // Increment usage counter only if save succeeded
+        if (!error) {
+            await supabase.from('profiles').update({
+                analysis_count: req.profile.analysis_count + 1,
+                updated_at: new Date().toISOString()
+            }).eq('id', req.user.id);
+        }
 
         // Gate channel analysis for Free users
         if (req.profile.plan !== 'pro') {
@@ -593,7 +594,32 @@ app.post('/api/admin/set-plan', authMiddleware, adminMiddleware, async (req, res
 });
 
 // ==================== PUBLIC SHARE ====================
-// Analizi UUID token ile herkese aç (UUID 128-bit entropy = unguessable)
+// Paylaşımı aktif et (kullanıcının kendi analizi)
+app.post('/api/analyses/:id/share', authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+        return res.status(400).json({ error: 'Geçersiz ID.' });
+    }
+    try {
+        const { data, error } = await supabase
+            .from('analyses')
+            .update({ is_shared: true })
+            .eq('id', id)
+            .eq('user_id', req.user.id)
+            .select('id')
+            .single();
+
+        if (error || !data) {
+            return res.status(404).json({ error: 'Analiz bulunamadı.' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'İşlem sırasında hata oluştu.' });
+    }
+});
+
+// Paylaşılan analizi getir (UUID 128-bit entropy = unguessable link)
 app.get('/api/share/:id', publicRateLimit, async (req, res) => {
     const { id } = req.params;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -604,7 +630,7 @@ app.get('/api/share/:id', publicRateLimit, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('analyses')
-            .select('id, video_id, video_metadata, analysis_results, created_at')
+            .select('id, video_id, video_metadata, analysis_results, created_at, is_shared')
             .eq('id', id)
             .single();
 
@@ -612,14 +638,19 @@ app.get('/api/share/:id', publicRateLimit, async (req, res) => {
             return res.status(404).json({ error: 'Analiz bulunamadı veya herkese açık değil.' });
         }
 
-        res.json(data);
+        if (!data.is_shared) {
+            return res.status(403).json({ error: 'Bu analiz paylaşıma kapalı.' });
+        }
+
+        const { is_shared, ...publicData } = data;
+        res.json(publicData);
     } catch (error) {
         res.status(500).json({ error: 'Analiz yüklenirken hata oluştu.' });
     }
 });
 
 // ==================== SCRIPT GENERATOR ====================
-app.post('/api/generate-script', authMiddleware, analyzeRateLimit, async (req, res) => {
+app.post('/api/generate-script', authMiddleware, usageCheck, analyzeRateLimit, async (req, res) => {
     try {
         const { analysisId, language } = req.body;
 

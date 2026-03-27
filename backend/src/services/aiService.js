@@ -523,6 +523,12 @@ async function analyzeWithClaude(prompt) {
 // ==================== DURATION HELPERS ====================
 function parseDurationToSeconds(duration) {
     if (!duration || typeof duration !== 'string') return 600;
+    // ISO 8601: PT1H14M22S / PT14M22S / PT45S
+    const iso = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+    if (iso) {
+        return (parseInt(iso[1] || 0) * 3600) + (parseInt(iso[2] || 0) * 60) + parseInt(iso[3] || 0);
+    }
+    // HH:MM:SS / MM:SS
     const parts = duration.replace(/[^0-9:]/g, '').split(':').map(Number);
     if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
     if (parts.length === 2) return parts[0] * 60 + parts[1];
@@ -536,8 +542,9 @@ function formatSeconds(s) {
 }
 
 function buildSceneSchema(totalSecs) {
-    // 1 sahne / ~60sn, min 6, max 14 — video süresini proportional kapsar
-    const sceneCount = Math.min(14, Math.max(6, Math.ceil(totalSecs / 60)));
+    // 1 sahne / ~60sn, min 3 (kısa video), max 14 — video süresini proportional kapsar
+    const minScenes = totalSecs < 120 ? 3 : totalSecs < 300 ? 4 : 6;
+    const sceneCount = Math.min(14, Math.max(minScenes, Math.ceil(totalSecs / 60)));
     const interval = totalSecs / sceneCount;
     const scenes = [];
     for (let i = 0; i < sceneCount; i++) {
@@ -718,6 +725,31 @@ IMPORTANT: Replace ALL numeric placeholders with values calculated from the actu
     "how_it_makes_money": "Bu videonun para kazanma mekanizması",
     "strategies": ["Strateji 1", "Strateji 2", "Strateji 3"],
     "best_cta": "En etkili CTA önerisi"
+  },
+  "niche_benchmark": {
+    "niche": "Bu videonun niche'i (Gaming/Finance/Education/ASMR/vb.)",
+    "performance_verdict": "ÜSTÜN | ORTALAMANIN ÜZERİNDE | ORTALAMA | ORTALAMANIN ALTINDA | ZAYIF",
+    "percentile": <0-100, bu niche'de kaçıncı yüzdelik dilim>,
+    "typical_view_range": "Bu niche'de ortalama video kaç görüntülenme alır",
+    "benchmark_context": "Bu görüntülenme sayısının bu niche için ne anlama geldiğinin kısa açıklaması. Mutlak sayı değil, bağlamsal yorum."
+  },
+  "trend_signal": {
+    "status": "RISING | PEAK | DECLINING | EVERGREEN | EMERGING",
+    "momentum": "Bu konunun şu anki momentum analizi — yayın tarihi ve görüntülenme hızına bakarak",
+    "longevity": "SHORT (günler) | MEDIUM (haftalar) | LONG (aylar) | EVERGREEN",
+    "action": "Bu trende göre şimdi ne yapmalısın — actionable tavsiye"
+  },
+  "battle_plan": {
+    "weakness": "Bu videonun exploit edilebilir en büyük zayıflığı (eksik konu, yüzeysel bölüm, yanıtsız soru)",
+    "gap": "İzleyicilerin bu videodan alamadığı şey — comments/description'dan çıkar",
+    "counter_video_idea": "Bu videoya karşı üretebileceğin spesifik video fikri",
+    "counter_hook": "Karşı video hook'u — hemen kullanılabilir, rakipten daha güçlü",
+    "differentiation": "Rakipten nasıl farklılaşacaksın — format, açı, derinlik veya kitle",
+    "counter_titles": [
+      "Rakibe karşı başlık 1 — merak/şok/fayda açısı",
+      "Rakibe karşı başlık 2",
+      "Rakibe karşı başlık 3"
+    ]
   }
 }
 
