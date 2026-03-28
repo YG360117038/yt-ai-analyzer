@@ -377,22 +377,19 @@ const I18N = (() => {
      * Detect browser language and set current language
      */
     async function init() {
-        // Check stored preference first
+        // Read stored preference only — no auto-detect
         try {
             const stored = await chrome.storage.local.get('user_language');
-            if (stored.user_language) {
+            if (stored.user_language === 'tr' || stored.user_language === 'en') {
                 currentLang = stored.user_language;
                 return currentLang;
             }
         } catch (e) { /* ignore */ }
 
-        // Auto-detect from browser
-        const browserLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-        currentLang = browserLang.startsWith('tr') ? 'tr' : 'en';
-
-        // Save preference
+        // Default to Turkish
+        currentLang = 'tr';
         try {
-            await chrome.storage.local.set({ user_language: currentLang });
+            await chrome.storage.local.set({ user_language: 'tr' });
         } catch (e) { /* ignore */ }
 
         return currentLang;

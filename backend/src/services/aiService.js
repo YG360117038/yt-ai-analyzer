@@ -304,7 +304,7 @@ JSON only, no extra text.`;
                 max_tokens: 4096,
                 messages: [{ role: "user", content: prompt }]
             }),
-            60000
+            90000
         );
 
         const text = message.content?.[0]?.text;
@@ -877,7 +877,8 @@ async function generateScript(analysisData, language = 'tr') {
     const structure = r.video_structure || {};
     const viral = r.viral_score || {};
 
-    const lang = language === 'en' ? 'English' : 'Türkçe';
+    const langMap = { en: 'English', tr: 'Türkçe', es: 'Español', de: 'Deutsch', no: 'Norsk' };
+    const lang = langMap[language] || 'Türkçe';
     const prompt = `Sen dünyaca ünlü bir YouTube senaryo yazarısın. Aşağıdaki analiz verilerini kullanarak WORD-FOR-WORD (kelimesi kelimesine) bir video senaryosu yaz.
 
 VİDEO BİLGİSİ:
@@ -916,11 +917,11 @@ Format:
         try {
             const response = await withTimeout(
                 anthropic.messages.create({
-                    model: 'claude-opus-4-6',
+                    model: 'claude-sonnet-4-6',
                     max_tokens: 4096,
                     messages: [{ role: 'user', content: prompt }]
                 }),
-                90000
+                120000
             );
             return response.content[0]?.text || '';
         } catch (e) {
@@ -931,7 +932,7 @@ Format:
     // Gemini fallback
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-        const result = await withTimeout(model.generateContent(prompt), 90000);
+        const result = await withTimeout(model.generateContent(prompt), 150000);
         return result.response.text() || '';
     } catch (e) {
         throw new Error('Senaryo oluşturulamadı: ' + e.message);

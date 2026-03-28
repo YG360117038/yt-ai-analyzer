@@ -37,6 +37,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     await I18N.init();
     I18N.applyToDOM();
 
+    // ==================== LANGUAGE TOGGLE ====================
+    const langToggleBtn = document.getElementById('lang-toggle');
+    const langToggleLabel = document.getElementById('lang-toggle-label');
+    if (langToggleBtn && langToggleLabel) {
+        langToggleLabel.textContent = I18N.getLang().toUpperCase();
+        langToggleBtn.addEventListener('click', async () => {
+            const newLang = I18N.getLang() === 'tr' ? 'en' : 'tr';
+            await I18N.setLang(newLang);
+            location.reload();
+        });
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('id');
     const mode = urlParams.get('mode');
@@ -1873,6 +1885,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <select class="script-lang-select" id="script-lang">
                                 <option value="tr">🇹🇷 Türkçe</option>
                                 <option value="en">🇺🇸 English</option>
+                                <option value="es">🇪🇸 Español</option>
+                                <option value="de">🇩🇪 Deutsch</option>
+                                <option value="no">🇳🇴 Norsk</option>
                             </select>
                         </div>
                         <button class="script-generate-btn" id="generate-script-btn" ${isDemo ? 'disabled title="Demo modda script üretilemez"' : ''}>
@@ -1913,7 +1928,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ analysisId, language: lang })
                     }),
-                    120000
+                    180000
                 );
                 if (!res.ok) {
                     const err = await res.json();
