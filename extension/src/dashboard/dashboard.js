@@ -37,18 +37,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await I18N.init();
     I18N.applyToDOM();
 
-    // ==================== LANGUAGE TOGGLE ====================
-    const langToggleBtn = document.getElementById('lang-toggle');
-    const langToggleLabel = document.getElementById('lang-toggle-label');
-    if (langToggleBtn && langToggleLabel) {
-        langToggleLabel.textContent = I18N.getLang().toUpperCase();
-        langToggleBtn.addEventListener('click', async () => {
-            const newLang = I18N.getLang() === 'tr' ? 'en' : 'tr';
-            await I18N.setLang(newLang);
-            location.reload();
-        });
-    }
-
     const urlParams = new URLSearchParams(window.location.search);
     const analysisId = urlParams.get('id');
     const mode = urlParams.get('mode');
@@ -288,6 +276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             renderAnalysis(data);
             await chrome.storage.local.remove('pending_analysis');
+            if (data.id) history.replaceState(null, '', `?id=${data.id}`);
 
             setTimeout(() => {
                 loadingScreen.style.opacity = '0';
@@ -360,6 +349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             renderChannelPage(channelData, data);
             await chrome.storage.local.remove('pending_channel_analysis');
+            if (data.id) history.replaceState(null, '', `?id=${data.id}`);
 
             setTimeout(() => {
                 loadingScreen.style.opacity = '0';
@@ -413,9 +403,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sub && subtitle) sub.textContent = subtitle;
         const steps = document.querySelector('.loading-steps');
         if (steps) {
-            steps.innerHTML = `<button id="retry-btn" style="margin-top:16px;padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Tekrar Dene</button>`;
+            steps.innerHTML = `
+                <button id="retry-btn" style="margin-top:16px;padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Tekrar Dene</button>
+                <div id="error-history" style="margin-top:24px;width:100%;max-width:480px;text-align:left">
+                    <p style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Geçmiş Analizler</p>
+                    <div id="error-history-list" style="display:flex;flex-direction:column;gap:6px"><div style="color:#666;font-size:12px">Yükleniyor...</div></div>
+                </div>`;
             const retryBtn = document.getElementById('retry-btn');
             if (retryBtn) retryBtn.addEventListener('click', () => window.location.reload());
+            loadErrorHistory();
+        }
+    }
+
+    async function loadErrorHistory() {
+        const list = document.getElementById('error-history-list');
+        if (!list) return;
+        try {
+            const token = await SupabaseAuth.getToken();
+            if (!token) { list.innerHTML = '<div style="color:#666;font-size:12px">Geçmişi görmek için giriş yapın.</div>'; return; }
+            const res = await fetch(`${BACKEND_URL}/api/analyses?limit=5`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            if (!data.analyses || data.analyses.length === 0) { list.innerHTML = '<div style="color:#666;font-size:12px">Henüz analiz yok.</div>'; return; }
+            list.innerHTML = data.analyses.map(item => {
+                const title = item.video_metadata?.title || 'Başlık yok';
+                const date = new Date(item.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+                return `<a href="?id=${item.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;text-decoration:none;color:#f1f1f1;font-size:12px;gap:8px">
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${sanitizeHTML(title)}</span>
+                    <span style="color:#888;flex-shrink:0">${date}</span>
+                </a>`;
+            }).join('');
+        } catch {
+            list.innerHTML = '<div style="color:#666;font-size:12px">Geçmiş yüklenemedi.</div>';
         }
     }
 
