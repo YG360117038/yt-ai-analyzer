@@ -688,6 +688,30 @@ app.post('/api/generate-script', authMiddleware, usageCheck, analyzeRateLimit, a
     }
 });
 
+// ==================== EMAIL PLAN CHECK (public) ====================
+const planCheckLimit = rateLimit({ windowMs: 60000, max: 10, message: { error: 'Çok fazla istek. 1 dakika bekleyin.' }, standardHeaders: true, legacyHeaders: false });
+
+app.get('/api/check-plan', planCheckLimit, async (req, res) => {
+    try {
+        const email = (req.query.email || '').toLowerCase().trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ error: 'Geçerli bir e-posta adresi girin.' });
+        }
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('plan, subscription_status')
+            .eq('email', email)
+            .single();
+
+        if (error || !data) {
+            return res.json({ plan: 'not_found' });
+        }
+        return res.json({ plan: data.plan || 'free' });
+    } catch (e) {
+        res.status(500).json({ error: 'Doğrulama başarısız.' });
+    }
+});
+
 // ==================== FREE TOOLS (public, no auth) ====================
 const toolsRateLimit = rateLimit({ windowMs: 60000, max: 8, message: { error: 'Çok fazla istek. 1 dakika bekleyin.' }, standardHeaders: true, legacyHeaders: false });
 
