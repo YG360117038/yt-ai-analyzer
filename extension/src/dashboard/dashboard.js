@@ -60,7 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         monetize:    'active-green',
         battle:      'active',
         history:     'active',
-        contentplan: 'active-green'
+        contentplan: 'active-green',
+        titletool:   'active',
+        thumbtool:   'active'
     };
 
     const VIDEO_ONLY_TABS = ['viral', 'clone', 'factory', 'structure', 'script', 'seo', 'monetize', 'battle'];
@@ -97,6 +99,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             if (tabName === 'history') loadHistory();
             if (tabName === 'contentplan') loadContentPlan();
+            if (tabName === 'titletool') loadTitleTool();
+            if (tabName === 'thumbtool') loadThumbTool();
         });
     });
 
@@ -2285,4 +2289,307 @@ document.addEventListener('DOMContentLoaded', async () => {
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2500);
     }
+
+    // ==================== URL ANALYZE MODAL ====================
+    const urlModal = document.getElementById('url-modal');
+    const urlModalClose = document.getElementById('url-modal-close');
+    const urlModalInput = document.getElementById('url-modal-input');
+    const urlModalSubmit = document.getElementById('url-modal-submit');
+    const urlModalError = document.getElementById('url-modal-error');
+    const analyzeUrlBtn = document.getElementById('analyze-url-btn');
+
+    if (analyzeUrlBtn) {
+        analyzeUrlBtn.addEventListener('click', () => {
+            urlModal.classList.add('show');
+            urlModalInput.value = '';
+            urlModalError.style.display = 'none';
+            setTimeout(() => urlModalInput.focus(), 100);
+        });
+    }
+    if (urlModalClose) urlModalClose.addEventListener('click', () => urlModal.classList.remove('show'));
+    if (urlModal) urlModal.addEventListener('click', (e) => { if (e.target === urlModal) urlModal.classList.remove('show'); });
+
+    if (urlModalInput) {
+        urlModalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') urlModalSubmit.click();
+        });
+    }
+
+    if (urlModalSubmit) {
+        urlModalSubmit.addEventListener('click', async () => {
+            const url = urlModalInput.value.trim();
+            if (!url) {
+                urlModalError.textContent = 'Lütfen bir YouTube URL\'si girin.';
+                urlModalError.style.display = 'block';
+                return;
+            }
+            if (!url.includes('youtube.com/watch') && !url.includes('youtu.be/')) {
+                urlModalError.textContent = 'Geçerli bir YouTube video URL\'si girin.';
+                urlModalError.style.display = 'block';
+                return;
+            }
+            urlModalError.style.display = 'none';
+            urlModalSubmit.disabled = true;
+            urlModalSubmit.textContent = 'Analiz ediliyor...';
+
+            try {
+                const token = await SupabaseAuth.getToken();
+                if (!token) throw new Error('Giriş yapmanız gerekiyor.');
+
+                
+                const resp = await fetch(`${BACKEND_URL}/api/analyze-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ url })
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Analiz başarısız.');
+
+                urlModal.classList.remove('show');
+                renderAnalysis(data);
+                showToast('URL analizi tamamlandı!');
+            } catch (err) {
+                urlModalError.textContent = err.message || 'Hata oluştu.';
+                urlModalError.style.display = 'block';
+            } finally {
+                urlModalSubmit.disabled = false;
+                urlModalSubmit.textContent = 'Analiz Et';
+            }
+        });
+    }
+
+    // ==================== TITLE CTR TOOL ====================
+    let titleToolLoaded = false;
+
+    function loadTitleTool() {
+        const container = document.getElementById('titletool-content');
+        if (!container || titleToolLoaded) return;
+        titleToolLoaded = true;
+
+        container.innerHTML = `
+        <div class="tool-page">
+            <h2>🏆 Başlık CTR Tahmin Aracı</h2>
+            <p class="tool-desc">Başlıklarınızın tıklanma potansiyelini yapay zeka ile analiz edin. Ücretsiz, giriş gerektirmez.</p>
+            <div class="tool-form">
+                <label>Başlıklarınız (en fazla 5)</label>
+                <div class="title-inputs" id="title-inputs">
+                    <div class="title-input-row"><input type="text" placeholder="Başlık 1..." maxlength="120"></div>
+                    <div class="title-input-row"><input type="text" placeholder="Başlık 2..." maxlength="120"></div>
+                </div>
+                <button class="add-title-btn" id="add-title-btn">+ Başlık Ekle</button>
+                <br><br>
+                <label>Kanal / Konu (isteğe bağlı)</label>
+                <input class="tool-input" id="title-context-input" type="text" placeholder="ör: teknoloji kanalı, gaming, yemek tarifi..." style="margin-bottom:0">
+                <br><br>
+                <button class="tool-submit-btn" id="title-submit-btn">CTR Tahmin Et</button>
+            </div>
+            <div id="title-results"></div>
+        </div>`;
+
+        document.getElementById('add-title-btn').addEventListener('click', () => {
+            const inputs = document.getElementById('title-inputs');
+            const count = inputs.querySelectorAll('.title-input-row').length;
+            if (count >= 5) return;
+            const row = document.createElement('div');
+            row.className = 'title-input-row';
+            row.innerHTML = `<input type="text" placeholder="Başlık ${count + 1}..." maxlength="120">`;
+            inputs.appendChild(row);
+            if (count + 1 >= 5) document.getElementById('add-title-btn').style.display = 'none';
+            row.querySelector('input').focus();
+        });
+
+        document.getElementById('title-submit-btn').addEventListener('click', async () => {
+            const titles = Array.from(document.querySelectorAll('#title-inputs input'))
+                .map(i => i.value.trim()).filter(Boolean);
+            if (titles.length === 0) { showToast('En az bir başlık girin.'); return; }
+            const context = document.getElementById('title-context-input').value.trim();
+            const btn = document.getElementById('title-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Analiz ediliyor...';
+
+            try {
+                
+                const resp = await fetch(`${BACKEND_URL}/api/predict-title`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ titles, context })
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Analiz başarısız.');
+                renderTitleResults(data.results || data);
+            } catch (err) {
+                document.getElementById('title-results').innerHTML =
+                    `<div style="color:var(--accent);padding:16px">${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'CTR Tahmin Et';
+            }
+        });
+    }
+
+    function renderTitleResults(results) {
+        const container = document.getElementById('title-results');
+        if (!results || !results.length) {
+            container.innerHTML = '<div style="color:var(--text-muted);padding:16px">Sonuç bulunamadı.</div>';
+            return;
+        }
+        const sorted = [...results].sort((a, b) => (b.ctr_score || 0) - (a.ctr_score || 0));
+        container.innerHTML = `<div class="tool-results">${sorted.map(r => {
+            const score = Math.min(100, Math.max(0, parseInt(r.ctr_score) || 0));
+            const cls = score >= 70 ? 'title-score-high' : score >= 45 ? 'title-score-mid' : 'title-score-low';
+            const barColor = score >= 70 ? 'var(--green)' : score >= 45 ? 'var(--orange)' : 'var(--accent)';
+            return `<div class="title-result-card">
+                <div class="title-score-badge ${cls}">${score}</div>
+                <div class="title-result-body">
+                    <div class="title-result-text">${r.title || ''}</div>
+                    <div class="title-result-why">${r.reasoning || r.feedback || ''}</div>
+                    <div class="title-bar-wrap">
+                        <div class="title-bar-track">
+                            <div class="title-bar-fill" style="width:${score}%;background:${barColor}"></div>
+                        </div>
+                    </div>
+                    ${r.improved_version ? `<div style="font-size:12px;margin-top:8px;color:var(--cyan)">💡 Öneri: ${r.improved_version}</div>` : ''}
+                </div>
+            </div>`;
+        }).join('')}</div>`;
+    }
+
+    // ==================== THUMBNAIL ANALYZER TOOL ====================
+    let thumbToolLoaded = false;
+
+    function loadThumbTool() {
+        const container = document.getElementById('thumbtool-content');
+        if (!container || thumbToolLoaded) return;
+        thumbToolLoaded = true;
+
+        container.innerHTML = `
+        <div class="tool-page">
+            <h2>🖼️ Thumbnail Analiz Aracı</h2>
+            <p class="tool-desc">Thumbnail'inizi yapay zekaya gösterin, CTR potansiyelini ve iyileştirme önerilerini öğrenin. Ücretsiz, giriş gerektirmez.</p>
+            <div class="tool-form">
+                <label>Thumbnail Görseli</label>
+                <div class="drop-zone" id="thumb-drop-zone">
+                    <div class="drop-icon">📁</div>
+                    <div class="drop-text">Görseli buraya sürükleyin veya tıklayın</div>
+                    <div class="drop-sub">PNG, JPG, WEBP — maks 5MB</div>
+                </div>
+                <img id="thumb-preview" class="thumb-preview" alt="Önizleme">
+                <input type="file" id="thumb-file-input" accept="image/*" style="display:none">
+                <button class="tool-submit-btn" id="thumb-submit-btn" disabled>Analiz Et</button>
+            </div>
+            <div id="thumb-results"></div>
+        </div>`;
+
+        const dropZone = document.getElementById('thumb-drop-zone');
+        const fileInput = document.getElementById('thumb-file-input');
+        const preview = document.getElementById('thumb-preview');
+        let selectedFile = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleThumbFile(file);
+        });
+        fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleThumbFile(fileInput.files[0]); });
+
+        function handleThumbFile(file) {
+            if (!file.type.startsWith('image/')) { showToast('Lütfen bir görsel dosyası seçin.'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('Dosya 5MB\'dan büyük olamaz.'); return; }
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                dropZone.querySelector('.drop-text').textContent = file.name;
+                document.getElementById('thumb-submit-btn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('thumb-submit-btn').addEventListener('click', async () => {
+            if (!selectedFile) return;
+            const btn = document.getElementById('thumb-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Analiz ediliyor...';
+
+            try {
+                const base64 = await fileToBase64(selectedFile);
+                const mimeType = selectedFile.type;
+                
+                const resp = await fetch(`${BACKEND_URL}/api/analyze-thumbnail`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageBase64: base64, mimeType })
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Analiz başarısız.');
+                renderThumbResults(data.result || data);
+            } catch (err) {
+                document.getElementById('thumb-results').innerHTML =
+                    `<div style="color:var(--accent);padding:16px">${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Analiz Et';
+            }
+        });
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderThumbResults(result) {
+        const container = document.getElementById('thumb-results');
+        if (!result) { container.innerHTML = '<div style="color:var(--text-muted);padding:16px">Sonuç bulunamadı.</div>'; return; }
+
+        const overall = Math.min(100, Math.max(0, parseInt(result.overall_score || result.score) || 0));
+        const scoreColor = overall >= 70 ? 'var(--green)' : overall >= 45 ? 'var(--orange)' : 'var(--accent)';
+        const scoreLabel = overall >= 70 ? 'Güçlü' : overall >= 45 ? 'Orta' : 'Zayıf';
+
+        const criteria = result.criteria || result.scores || {};
+        const criteriaHtml = Object.entries(criteria).map(([key, val]) => {
+            const s = Math.min(10, Math.max(0, parseInt(val) || 0));
+            const c = s >= 7 ? 'var(--green)' : s >= 5 ? 'var(--orange)' : 'var(--accent)';
+            const name = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return `<div class="thumb-criterion">
+                <div class="thumb-criterion-name">${name}</div>
+                <div class="thumb-criterion-score" style="color:${c}">${s}/10</div>
+            </div>`;
+        }).join('');
+
+        const suggestions = result.suggestions || result.improvements || [];
+        const suggestionsHtml = suggestions.length ? `
+            <div class="thumb-suggestions">
+                <h4>💡 İyileştirme Önerileri</h4>
+                ${suggestions.map(s => `<div class="thumb-suggestion-item">• ${s}</div>`).join('')}
+            </div>` : '';
+
+        container.innerHTML = `
+        <div class="thumb-analysis-card">
+            <div class="thumb-score-row">
+                <div class="thumb-score-circle" style="background:${scoreColor}22;border:2px solid ${scoreColor};color:${scoreColor}">
+                    <div class="thumb-score-num">${overall}</div>
+                    <div class="thumb-score-label">${scoreLabel}</div>
+                </div>
+                <div>
+                    <div style="font-size:16px;font-weight:700;margin-bottom:4px">Thumbnail Puanı: ${overall}/100</div>
+                    <div style="font-size:13px;color:var(--text-dim)">${result.summary || result.verdict || ''}</div>
+                </div>
+            </div>
+            ${criteriaHtml ? `<div class="thumb-criteria-grid">${criteriaHtml}</div>` : ''}
+            ${suggestionsHtml}
+            ${result.color_analysis ? `<div style="margin-top:12px;font-size:13px;color:var(--text-dim)">🎨 Renk: ${result.color_analysis}</div>` : ''}
+            ${result.text_readability ? `<div style="margin-top:6px;font-size:13px;color:var(--text-dim)">📝 Okunabilirlik: ${result.text_readability}</div>` : ''}
+        </div>`;
+    }
+
 });

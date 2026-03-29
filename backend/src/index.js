@@ -55,17 +55,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS - sadece izinli originler
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+// CORS
 app.use(cors({
-    origin: (origin, callback) => {
-        // Chrome extension origin'leri (chrome-extension://...) ve server-to-server (no origin)
-        if (!origin || origin.startsWith('chrome-extension://') || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('CORS policy: Origin not allowed'));
-        }
-    },
+    origin: true, // Tüm originlere izin ver (JWT auth ile güvenli)
     methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -693,6 +685,85 @@ app.post('/api/generate-script', authMiddleware, usageCheck, analyzeRateLimit, a
     } catch (error) {
         console.error('Script generator error:', error.message);
         res.status(500).json({ error: error.message || 'Senaryo oluşturulurken hata oluştu.' });
+    }
+});
+
+// ==================== FREE TOOLS (public, no auth) ====================
+const toolsRateLimit = rateLimit({ windowMs: 60000, max: 8, message: { error: 'Çok fazla istek. 1 dakika bekleyin.' }, standardHeaders: true, legacyHeaders: false });
+
+app.post('/api/predict-title', toolsRateLimit, async (req, res) => {
+    try {
+        const { titles, context, language } = req.body;
+        if (!Array.isArray(titles) || titles.length < 1 || titles.length > 5)
+            return res.status(400).json({ error: '1-5 arası başlık girin.' });
+        const clean = titles.map(t => String(t).slice(0, 200)).filter(t => t.length > 2);
+        if (!clean.length) return res.status(400).json({ error: 'Geçerli başlık yok.' });
+        const { predictTitleCTR } = require('./services/aiService');
+        res.json(await predictTitleCTR(clean, context || '', language || 'tr'));
+    } catch (e) {
+        res.status(500).json({ error: e.message || 'Başlık analizi başarısız.' });
+    }
+});
+
+app.post('/api/analyze-thumbnail', toolsRateLimit, async (req, res) => {
+    try {
+        const { imageBase64, mimeType, language } = req.body;
+        if (!imageBase64 || typeof imageBase64 !== 'string')
+            return res.status(400).json({ error: 'Görsel verisi gerekli.' });
+        if (imageBase64.length > 5000000)
+            return res.status(400).json({ error: 'Görsel çok büyük (maks ~3.5MB).' });
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        const { analyzeThumbnailImage } = require('./services/aiService');
+        res.json(await analyzeThumbnailImage(imageBase64, allowed.includes(mimeType) ? mimeType : 'image/jpeg', language || 'tr'));
+    } catch (e) {
+        res.status(500).json({ error: e.message || 'Thumbnail analizi başarısız.' });
+    }
+});
+
+app.post('/api/analyze-url', authMiddleware, usageCheck, analyzeRateLimit, async (req, res) => {
+    try {
+        const { url, language } = req.body;
+        if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL gerekli.' });
+        const match = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+        if (!match) return res.status(400).json({ error: 'Geçerli bir YouTube video URL\'si girin.' });
+        const videoId = match[1];
+
+        const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+        if (!oembedRes.ok) return res.status(400).json({ error: 'Video bilgileri alınamadı. URL\'yi kontrol edin veya video erişilebilir değil.' });
+        const oembed = await oembedRes.json();
+
+        const videoData = {
+            videoId, title: oembed.title || '', description: '',
+            channelName: oembed.author_name || '', subscriberCount: '', viewCount: '',
+            publishDate: '', likeCount: '', duration: '', tags: [], hashtags: [], comments: [],
+            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            channelAvatar: '', url: `https://www.youtube.com/watch?v=${videoId}`,
+            language: language === 'en' ? 'en' : 'tr', scrapedAt: new Date().toISOString()
+        };
+
+        const { analyzeVideo } = require('./services/aiService');
+        const isPro = req.profile.plan === 'pro';
+        const analysis = await analyzeVideo(videoData, { isPro, language: videoData.language });
+
+        const { data, error } = await supabase.from('analyses').insert([{
+            video_id: videoId, video_metadata: videoData,
+            analysis_results: analysis, user_id: req.user.id
+        }]).select();
+        if (error) throw new Error('Analiz kaydedilemedi.');
+
+        await supabase.from('profiles').update({ analysis_count: req.profile.analysis_count + 1, updated_at: new Date().toISOString() }).eq('id', req.user.id);
+
+        if (!isPro) {
+            const freeResults = {};
+            for (const k of ['viral_score', 'hook_analysis', 'viral_patterns']) {
+                if (analysis[k] !== undefined) freeResults[k] = analysis[k];
+            }
+            return res.json({ ...data[0], analysis_results: freeResults, is_limited: true, upgrade_message: 'Tam analiz için Pro\'ya geçin.' });
+        }
+        res.json(data[0]);
+    } catch (e) {
+        console.error('URL analyze error:', e.message);
+        res.status(500).json({ error: e.message || 'Analiz başarısız.' });
     }
 });
 

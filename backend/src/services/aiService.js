@@ -1080,4 +1080,96 @@ Format:
     }
 }
 
-module.exports = { analyzeVideo, analyzeChannel, generateScript, generateContentPlan };
+// ==================== TITLE CTR PREDICTOR ====================
+async function predictTitleCTR(titles, context = '', language = 'tr') {
+    const isEn = language === 'en';
+    const titleList = titles.map((t, i) => `${i + 1}. "${t}"`).join('\n');
+    const prompt = isEn
+        ? `You are a YouTube CTR expert. Analyze these title options and predict their click-through performance.
+Context: ${context || 'General YouTube content'}
+
+Titles:
+${titleList}
+
+For each title give:
+- ctr_score: 0-100
+- verdict: "WINNER" | "GOOD" | "AVERAGE" | "WEAK"
+- why: 1-sentence reason
+- improvement: a better rewrite
+
+JSON only:
+{"predictions":[{"title":"","ctr_score":0,"verdict":"","why":"","improvement":""}],"winner_index":0,"key_insight":""}`
+        : `Sen bir YouTube CTR uzmanısın. Bu başlıkları analiz et.
+Bağlam: ${context || 'Genel YouTube içeriği'}
+
+Başlıklar:
+${titleList}
+
+Her başlık için:
+- ctr_score: 0-100
+- verdict: "KAZANAN" | "İYİ" | "ORTA" | "ZAYIF"
+- why: 1 cümle neden
+- improvement: daha iyi versiyon
+
+Sadece JSON:
+{"predictions":[{"title":"","ctr_score":0,"verdict":"","why":"","improvement":""}],"winner_index":0,"key_insight":""}`;
+
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const result = await withTimeout(model.generateContent(prompt), 30000);
+        const parsed = parseAIResponse(result.response.text());
+        if (!parsed) throw new Error('Yanıt ayrıştırılamadı');
+        return parsed;
+    } catch (e) {
+        throw new Error('Başlık analizi yapılamadı: ' + e.message);
+    }
+}
+
+// ==================== THUMBNAIL ANALYZER ====================
+async function analyzeThumbnailImage(imageBase64, mimeType = 'image/jpeg', language = 'tr') {
+    const isEn = language === 'en';
+    const prompt = isEn
+        ? `Analyze this YouTube thumbnail for CTR optimization.
+Score each dimension 0-100:
+- hook_score: curiosity/emotion created
+- text_readability: clear text on mobile
+- color_impact: stands out in YouTube feed
+- face_emotion: emotion visible (empty string if no face)
+- strengths: 3 things that work (array)
+- weaknesses: 3 things that don't (array)
+- improvements: 3 specific changes to make (array)
+- overall_score: overall CTR potential
+- verdict: one-line summary
+
+JSON only:
+{"hook_score":0,"text_readability":0,"color_impact":0,"face_emotion":"","strengths":[],"weaknesses":[],"improvements":[],"overall_score":0,"verdict":""}`
+        : `Bu YouTube thumbnail'ini CTR optimizasyonu için analiz et.
+Her boyutu 0-100 arası puanla:
+- hook_score: merak/duygu gücü
+- text_readability: mobilde okunabilirlik
+- color_impact: YouTube akışında öne çıkma
+- face_emotion: görünen yüz ifadesi (yoksa boş string)
+- strengths: işe yarayan 3 şey (dizi)
+- weaknesses: işe yaramayan 3 şey (dizi)
+- improvements: yapılması gereken 3 spesifik değişiklik (dizi)
+- overall_score: genel CTR potansiyeli
+- verdict: tek cümle özet
+
+Sadece JSON:
+{"hook_score":0,"text_readability":0,"color_impact":0,"face_emotion":"","strengths":[],"weaknesses":[],"improvements":[],"overall_score":0,"verdict":""}`;
+
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const result = await withTimeout(
+            model.generateContent([{ inlineData: { mimeType, data: imageBase64 } }, { text: prompt }]),
+            45000
+        );
+        const parsed = parseAIResponse(result.response.text());
+        if (!parsed) throw new Error('Yanıt ayrıştırılamadı');
+        return parsed;
+    } catch (e) {
+        throw new Error('Thumbnail analizi yapılamadı: ' + e.message);
+    }
+}
+
+module.exports = { analyzeVideo, analyzeChannel, generateScript, generateContentPlan, predictTitleCTR, analyzeThumbnailImage };

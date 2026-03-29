@@ -643,6 +643,49 @@
         </div>
     </section>
 
+    <!-- FREE TOOLS -->
+    <section class="section" id="free-tools" style="background:rgba(255,255,255,0.01);border-top:1px solid var(--border)">
+        <div class="section-header">
+            <h2>🆓 Ücretsiz Araçlar</h2>
+            <p>Uzantı gerekmez — hemen deneyin</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:32px;align-items:start">
+
+            <!-- Title CTR Tool -->
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px">
+                <div style="font-size:24px;margin-bottom:12px">🏆</div>
+                <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Başlık CTR Tahmin Aracı</h3>
+                <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px">Başlıklarınızın tıklanma potansiyelini AI ile analiz edin. 5'e kadar başlık karşılaştırın.</p>
+                <div id="lp-title-inputs" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+                    <input class="lp-tool-input" type="text" placeholder="Başlık 1..." maxlength="120" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit">
+                    <input class="lp-tool-input" type="text" placeholder="Başlık 2..." maxlength="120" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit">
+                </div>
+                <button onclick="addLpTitleInput()" style="background:none;border:1px dashed var(--border);border-radius:8px;color:#888;font-size:12px;padding:7px 14px;cursor:pointer;margin-bottom:14px">+ Başlık Ekle</button>
+                <br>
+                <input id="lp-title-context" type="text" placeholder="Kanal konusu (isteğe bağlı)" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit;margin-bottom:14px">
+                <button id="lp-title-btn" onclick="runLpTitleTool()" style="width:100%;background:#ff4444;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer">CTR Tahmin Et</button>
+                <div id="lp-title-results" style="margin-top:16px"></div>
+            </div>
+
+            <!-- Thumbnail Analyzer -->
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px">
+                <div style="font-size:24px;margin-bottom:12px">🖼️</div>
+                <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Thumbnail Analiz Aracı</h3>
+                <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px">Thumbnail görselinizi yükleyin, AI ile puan alın ve iyileştirme önerileri görün.</p>
+                <div id="lp-drop-zone" onclick="document.getElementById('lp-file-input').click()" style="border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:14px">
+                    <div style="font-size:32px;margin-bottom:8px">📁</div>
+                    <div style="font-size:13px;color:var(--text-dim)">Görseli sürükleyin veya tıklayın</div>
+                    <div style="font-size:11px;color:#666;margin-top:4px">PNG, JPG, WEBP — maks 5MB</div>
+                </div>
+                <input type="file" id="lp-file-input" accept="image/*" style="display:none" onchange="handleLpThumbFile(this.files[0])">
+                <img id="lp-thumb-preview" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;display:none;margin-bottom:14px" alt="Önizleme">
+                <button id="lp-thumb-btn" onclick="runLpThumbTool()" disabled style="width:100%;background:#ff4444;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;opacity:0.5">Analiz Et</button>
+                <div id="lp-thumb-results" style="margin-top:16px"></div>
+            </div>
+
+        </div>
+    </section>
+
     <!-- CTA -->
     <section class="section" id="install" style="text-align:center;padding-bottom:120px">
         <h2 style="font-size:40px;font-weight:900;margin-bottom:16px" data-i18n="cta_title"></h2>
@@ -840,6 +883,143 @@
             currentLang = currentLang === 'tr' ? 'en' : 'tr';
             applyLang(currentLang);
         });
+    </script>
+    <script>
+        // ===== FREE TOOLS =====
+        const LP_API = 'https://yt-ai-analyzer-production.up.railway.app';
+
+        // Drag-over effect for landing drop zone
+        const lpDropZone = document.getElementById('lp-drop-zone');
+        if (lpDropZone) {
+            lpDropZone.addEventListener('dragover', (e) => { e.preventDefault(); lpDropZone.style.borderColor = '#ff4444'; });
+            lpDropZone.addEventListener('dragleave', () => { lpDropZone.style.borderColor = ''; });
+            lpDropZone.addEventListener('drop', (e) => {
+                e.preventDefault(); lpDropZone.style.borderColor = '';
+                const file = e.dataTransfer.files[0];
+                if (file) handleLpThumbFile(file);
+            });
+        }
+
+        function addLpTitleInput() {
+            const container = document.getElementById('lp-title-inputs');
+            const count = container.querySelectorAll('input').length;
+            if (count >= 5) return;
+            const inp = document.createElement('input');
+            inp.className = 'lp-tool-input';
+            inp.type = 'text';
+            inp.placeholder = `Başlık ${count + 1}...`;
+            inp.maxLength = 120;
+            inp.style.cssText = 'width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit';
+            container.appendChild(inp);
+            inp.focus();
+        }
+
+        async function runLpTitleTool() {
+            const titles = Array.from(document.querySelectorAll('#lp-title-inputs input'))
+                .map(i => i.value.trim()).filter(Boolean);
+            if (!titles.length) { alert('En az bir başlık girin.'); return; }
+            const context = document.getElementById('lp-title-context').value.trim();
+            const btn = document.getElementById('lp-title-btn');
+            btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
+            const res = document.getElementById('lp-title-results');
+            res.innerHTML = '<div style="color:#888;font-size:13px">Yükleniyor...</div>';
+
+            try {
+                const r = await fetch(`${LP_API}/api/predict-title`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ titles, context })
+                });
+                const data = await r.json();
+                if (!r.ok) throw new Error(data.error || 'Hata');
+                const results = data.results || data;
+                if (!results || !results.length) throw new Error('Sonuç yok');
+                const sorted = [...results].sort((a, b) => (b.ctr_score || 0) - (a.ctr_score || 0));
+                res.innerHTML = sorted.map(item => {
+                    const score = Math.min(100, Math.max(0, parseInt(item.ctr_score) || 0));
+                    const color = score >= 70 ? '#00c851' : score >= 45 ? '#f59e0b' : '#ff4444';
+                    return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:8px">
+                        <div style="width:46px;height:46px;border-radius:50%;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:${color};flex-shrink:0">${score}</div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:13px;font-weight:600;margin-bottom:4px">${item.title || ''}</div>
+                            <div style="font-size:12px;color:#aaa">${item.reasoning || item.feedback || ''}</div>
+                            ${item.improved_version ? `<div style="font-size:12px;color:#06b6d4;margin-top:4px">💡 ${item.improved_version}</div>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                res.innerHTML = `<div style="color:#ff4444;font-size:13px">${err.message}</div>`;
+            } finally {
+                btn.disabled = false; btn.textContent = 'CTR Tahmin Et';
+            }
+        }
+
+        let lpThumbFile = null;
+        function handleLpThumbFile(file) {
+            if (!file || !file.type.startsWith('image/')) { alert('Lütfen bir görsel seçin.'); return; }
+            if (file.size > 5 * 1024 * 1024) { alert('Dosya 5MB\'dan büyük olamaz.'); return; }
+            lpThumbFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('lp-thumb-preview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                document.getElementById('lp-drop-zone').querySelector('div:nth-child(2)').textContent = file.name;
+                const btn = document.getElementById('lp-thumb-btn');
+                btn.disabled = false; btn.style.opacity = '1';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function runLpThumbTool() {
+            if (!lpThumbFile) return;
+            const btn = document.getElementById('lp-thumb-btn');
+            btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
+            const res = document.getElementById('lp-thumb-results');
+            res.innerHTML = '<div style="color:#888;font-size:13px">Yükleniyor...</div>';
+
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(lpThumbFile);
+                });
+                const r = await fetch(`${LP_API}/api/analyze-thumbnail`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageBase64: base64, mimeType: lpThumbFile.type })
+                });
+                const data = await r.json();
+                if (!r.ok) throw new Error(data.error || 'Hata');
+                const result = data.result || data;
+                const overall = Math.min(100, Math.max(0, parseInt(result.overall_score || result.score) || 0));
+                const color = overall >= 70 ? '#00c851' : overall >= 45 ? '#f59e0b' : '#ff4444';
+                const label = overall >= 70 ? 'Güçlü' : overall >= 45 ? 'Orta' : 'Zayıf';
+                const suggestions = result.suggestions || result.improvements || [];
+                res.innerHTML = `
+                    <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:16px">
+                        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+                            <div style="width:60px;height:60px;border-radius:50%;border:2px solid ${color};background:${color}22;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+                                <span style="font-size:18px;font-weight:800;color:${color}">${overall}</span>
+                                <span style="font-size:10px;color:${color};opacity:0.8">${label}</span>
+                            </div>
+                            <div>
+                                <div style="font-size:15px;font-weight:700;margin-bottom:4px">Thumbnail Puanı: ${overall}/100</div>
+                                <div style="font-size:12px;color:#aaa">${result.summary || result.verdict || ''}</div>
+                            </div>
+                        </div>
+                        ${suggestions.length ? `<div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:12px">
+                            <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">İyileştirme Önerileri</div>
+                            ${suggestions.map(s => `<div style="font-size:13px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">• ${s}</div>`).join('')}
+                        </div>` : ''}
+                    </div>`;
+            } catch (err) {
+                res.innerHTML = `<div style="color:#ff4444;font-size:13px">${err.message}</div>`;
+            } finally {
+                btn.disabled = false; btn.textContent = 'Analiz Et';
+            }
+        }
     </script>
 </body>
 </html>

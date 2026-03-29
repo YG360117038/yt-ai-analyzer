@@ -1595,6 +1595,55 @@
             .gauge-grid { grid-template-columns: repeat(2, 1fr); }
             .channel-score-grid { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* ===== FREE TOOLS ===== */
+        .tool-page { padding: 24px; max-width: 800px; }
+        .tool-page h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+        .tool-page .tool-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+        .tool-form { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+        .tool-form label { display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .tool-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: var(--radius-sm); color: var(--text); padding: 10px 14px; font-size: 13px; font-family: inherit; margin-bottom: 12px; }
+        .tool-input:focus { outline: none; border-color: var(--accent); }
+        .title-inputs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .title-input-row { display: flex; gap: 8px; align-items: center; }
+        .title-input-row input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: var(--radius-sm); color: var(--text); padding: 9px 12px; font-size: 13px; font-family: inherit; }
+        .title-input-row input:focus { outline: none; border-color: var(--accent); }
+        .add-title-btn { background: none; border: 1px dashed var(--card-border); border-radius: var(--radius-sm); color: var(--text-muted); font-size: 12px; padding: 8px 16px; cursor: pointer; transition: all 0.15s; }
+        .add-title-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .tool-submit-btn { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 10px 24px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+        .tool-submit-btn:hover { background: var(--accent-hover); }
+        .tool-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tool-results { display: flex; flex-direction: column; gap: 12px; }
+        .title-result-card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
+        .title-score-badge { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; flex-shrink: 0; }
+        .title-score-high { background: rgba(0,200,81,0.15); color: var(--green); border: 2px solid var(--green); }
+        .title-score-mid  { background: rgba(245,158,11,0.15); color: var(--orange); border: 2px solid var(--orange); }
+        .title-score-low  { background: rgba(255,68,68,0.15);  color: var(--accent); border: 2px solid var(--accent); }
+        .title-result-body { flex: 1; min-width: 0; }
+        .title-result-text { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+        .title-result-why { font-size: 12px; color: var(--text-dim); }
+        .title-bar-wrap { margin-top: 8px; }
+        .title-bar-track { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+        .title-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+        .drop-zone { border: 2px dashed var(--card-border); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: var(--accent-dim); }
+        .drop-zone .drop-icon { font-size: 36px; margin-bottom: 10px; }
+        .drop-zone .drop-text { font-size: 14px; color: var(--text-dim); }
+        .drop-zone .drop-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        .thumb-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: var(--radius-sm); margin-bottom: 12px; display: none; }
+        .thumb-analysis-card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; }
+        .thumb-score-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+        .thumb-score-circle { width: 72px; height: 72px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+        .thumb-score-num { font-size: 22px; line-height: 1; }
+        .thumb-score-label { font-size: 10px; opacity: 0.7; }
+        .thumb-criteria-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+        .thumb-criterion { background: rgba(255,255,255,0.04); border-radius: var(--radius-sm); padding: 10px 12px; }
+        .thumb-criterion-name { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+        .thumb-criterion-score { font-size: 16px; font-weight: 700; }
+        .thumb-suggestions { margin-top: 16px; }
+        .thumb-suggestions h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-dim); }
+        .thumb-suggestion-item { font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--card-border); color: var(--text); }
+        .thumb-suggestion-item:last-child { border-bottom: none; }
     </style>
     <script src="../lib/mermaid.min.js"></script>
 </head>
@@ -1688,6 +1737,16 @@
             <span>Monetizasyon</span>
         </div>
 
+        <div class="sidebar-section">Ücretsiz Araçlar</div>
+        <div class="nav-item" data-tab="titletool">
+            <span class="nav-icon">🏆</span>
+            <span>Başlık Test</span>
+        </div>
+        <div class="nav-item" data-tab="thumbtool">
+            <span class="nav-icon">🖼️</span>
+            <span>Thumbnail Analiz</span>
+        </div>
+
         <div class="sidebar-section">Diğer</div>
         <div class="nav-item" data-tab="history">
             <span class="nav-icon">&#128196;</span>
@@ -1730,6 +1789,7 @@
                 </div>
             </div>
             <div class="topbar-actions">
+                <button class="action-btn" id="analyze-url-btn" title="URL ile analiz et">🔗 URL Analiz</button>
                 <button class="action-btn" id="export-txt">&#8595; TXT</button>
                 <button class="action-btn" id="export-json">&#8595; JSON</button>
                 <button class="action-btn" id="export-pdf">&#128196; PDF</button>
@@ -1794,11 +1854,35 @@
                 <div id="history-content"></div>
             </div>
 
+            <!-- Tab: Title CTR Tool -->
+            <div id="tab-titletool" class="tab-pane">
+                <div id="titletool-content"></div>
+            </div>
+
+            <!-- Tab: Thumbnail Analyzer -->
+            <div id="tab-thumbtool" class="tab-pane">
+                <div id="thumbtool-content"></div>
+            </div>
+
             <!-- Tab: Content Plan -->
             <div id="tab-contentplan" class="tab-pane">
                 <div id="contentplan-content"></div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- URL Analyze Modal -->
+    <div class="share-modal" id="url-modal">
+        <div class="share-modal-box">
+            <button class="share-modal-close" id="url-modal-close">&times;</button>
+            <div class="share-modal-title">🔗 URL ile Analiz Et</div>
+            <div class="share-modal-sub">Herhangi bir YouTube video URL'si yapıştırın</div>
+            <div class="share-url-row">
+                <input class="share-url-input" id="url-modal-input" type="text" placeholder="https://www.youtube.com/watch?v=..." style="font-family:inherit">
+                <button class="action-btn action-btn-primary" id="url-modal-submit">Analiz Et</button>
+            </div>
+            <div id="url-modal-error" style="color:var(--accent);font-size:12px;margin-top:4px;display:none"></div>
         </div>
     </div>
 
