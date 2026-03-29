@@ -227,10 +227,21 @@ app.post('/api/analyze', authMiddleware, usageCheck, analyzeRateLimit, async (re
         const { analyzeVideo } = require('./services/aiService');
         const isPro = req.profile.plan === 'pro';
         const language = videoData.language === 'en' ? 'en' : 'tr';
+
+        // Extract and validate frames (Pro only, max 3 frames, max 200KB each base64)
+        let frames = null;
+        if (isPro && Array.isArray(videoData.frames) && videoData.frames.length > 0) {
+            frames = videoData.frames
+                .slice(0, 3)
+                .filter(f => typeof f === 'string' && f.length < 300000);
+        }
+        delete videoData.frames;
+
         const analysis = await analyzeVideo(videoData, {
             isPro,
             enableVideoAnalysis: isPro && videoData.enableVideoAnalysis !== false,
-            language
+            language,
+            frames
         });
 
         // Save to DB
@@ -682,6 +693,38 @@ app.post('/api/generate-script', authMiddleware, usageCheck, analyzeRateLimit, a
     } catch (error) {
         console.error('Script generator error:', error.message);
         res.status(500).json({ error: error.message || 'Senaryo oluşturulurken hata oluştu.' });
+    }
+});
+
+// ==================== CONTENT PLAN ====================
+app.post('/api/content-plan', authMiddleware, async (req, res) => {
+    try {
+        if (req.profile.plan !== 'pro') {
+            return res.status(403).json({ error: 'İçerik planı Pro üyelere özeldir.', requiresUpgrade: true });
+        }
+
+        const { analysisId, language } = req.body;
+        if (!analysisId) return res.status(400).json({ error: 'analysisId gerekli.' });
+
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(analysisId)) return res.status(400).json({ error: 'Geçersiz analiz ID.' });
+
+        const { data: analysis, error: fetchError } = await supabase
+            .from('analyses')
+            .select('id, video_metadata, analysis_results')
+            .eq('id', analysisId)
+            .eq('user_id', req.user.id)
+            .single();
+
+        if (fetchError || !analysis) return res.status(404).json({ error: 'Analiz bulunamadı.' });
+
+        const { generateContentPlan } = require('./services/aiService');
+        const plan = await generateContentPlan(analysis, language || 'tr');
+
+        res.json({ plan });
+    } catch (error) {
+        console.error('Content plan error:', error.message);
+        res.status(500).json({ error: error.message || 'İçerik planı oluşturulamadı.' });
     }
 });
 

@@ -21,7 +21,7 @@ function withTimeout(promise, ms) {
 
 // ==================== VIDEO ANALYSIS ====================
 async function analyzeVideo(videoData, options = {}) {
-    const { isPro = false, enableVideoAnalysis = false, language = 'tr' } = options;
+    const { isPro = false, enableVideoAnalysis = false, language = 'tr', frames = null } = options;
 
     let transcript = null;
     try {
@@ -67,14 +67,19 @@ async function analyzeVideo(videoData, options = {}) {
         );
     }
 
+    let visionResult = null;
+    if (isPro && frames && frames.length > 0) {
+        parallelTasks.push(
+            analyzeWithVisionFrames(frames, videoData, language).then(r => { visionResult = r; }).catch(() => {})
+        );
+    }
+
     await Promise.allSettled(parallelTasks);
 
     if (geminiResult) {
         geminiResult._analysisType = transcript ? 'transcript' : 'metadata';
-        // Merge Claude creative enhancements if available
-        if (claudeCreativeResult) {
-            geminiResult.claude_creative = claudeCreativeResult;
-        }
+        if (claudeCreativeResult) geminiResult.claude_creative = claudeCreativeResult;
+        if (visionResult) geminiResult.vision_analysis = visionResult;
         return geminiResult;
     }
 
@@ -868,6 +873,142 @@ function parseAIResponse(text) {
     return null;
 }
 
+// ==================== VISION FRAME ANALYSIS ====================
+async function analyzeWithVisionFrames(frames, videoData, language = 'tr') {
+    if (!frames || frames.length === 0) return null;
+    const isEnglish = language === 'en';
+
+    const prompt = isEnglish
+        ? `Analyze these YouTube video frames for visual style and production quality.
+VIDEO: "${videoData.title}"
+CHANNEL: ${videoData.channelName}
+
+Analyze:
+1. Thumbnail quality & hook strength (visual appeal, curiosity)
+2. Visual style (color palette, graphics, overlays)
+3. Production quality (lighting, camera, stability)
+4. Editing style (text usage, graphics density)
+5. Viewer expectation from visuals
+
+Respond in JSON only:
+{"thumbnail_score":0,"thumbnail_analysis":"","visual_style":"","color_palette":[],"production_quality":"","editing_style":"","visual_hooks":[],"recreation_tips":[]}`
+        : `Bu YouTube videosu karelerini görsel stil ve prodüksiyon kalitesi açısından analiz et.
+VİDEO: "${videoData.title}"
+KANAL: ${videoData.channelName}
+
+Analiz et:
+1. Thumbnail kalitesi ve hook gücü (görsel çekicilik, merak)
+2. Görsel stil (renk paleti, grafikler, overlay'ler)
+3. Prodüksiyon kalitesi (ışık, kamera, stabilite)
+4. Editing stili (metin yoğunluğu, grafik kullanımı)
+5. Bu görsellerden izleyici beklentisi
+
+Sadece JSON yanıt ver:
+{"thumbnail_score":0,"thumbnail_analysis":"","visual_style":"","color_palette":[],"production_quality":"","editing_style":"","visual_hooks":[],"recreation_tips":[]}`;
+
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+        parts.push({ text: prompt });
+        const result = await withTimeout(model.generateContent(parts), 60000);
+        const text = result.response.text();
+        return parseAIResponse(text);
+    } catch (e) {
+        console.warn('Vision frame analysis failed (non-fatal):', e.message);
+        return null;
+    }
+}
+
+// ==================== CONTENT PLAN GENERATOR ====================
+async function generateContentPlan(analysisData, language = 'tr') {
+    const meta = analysisData.video_metadata || {};
+    const r = analysisData.analysis_results || {};
+    const viral = r.viral_score || {};
+    const seo = r.seo_section || {};
+    const ideas = r.video_ideas || r.next_video_ideas || [];
+    const trends = r.trend_signal || r.viral_patterns || {};
+    const isEnglish = language === 'en';
+
+    const prompt = isEnglish
+        ? `You are a YouTube content strategist. Create a 4-week video production calendar.
+
+CHANNEL: ${meta.channelName || ''}
+VIDEO: "${meta.title || ''}"
+VIRAL SCORE: ${viral.score || '?'}/100
+TOP VIDEO IDEAS: ${JSON.stringify(Array.isArray(ideas) ? ideas.slice(0, 5) : [])}
+TRENDS: ${JSON.stringify(trends)}
+
+Create a personalized 4-week content calendar. Each week has 2 video ideas.
+
+JSON only:
+{
+  "strategy_summary": "",
+  "weeks": [
+    {
+      "week": 1,
+      "theme": "",
+      "videos": [
+        {"title_idea": "", "hook": "", "estimated_viral_score": 0, "type": "", "why_now": "", "best_day": ""}
+      ]
+    }
+  ],
+  "trend_signals": [],
+  "avoid_topics": [],
+  "best_posting_times": {"best_day": "", "best_hour": ""}
+}`
+        : `Sen bir YouTube içerik stratejistisin. 4 haftalık video üretim takvimi oluştur.
+
+KANAL: ${meta.channelName || ''}
+VİDEO: "${meta.title || ''}"
+VİRAL SKOR: ${viral.score || '?'}/100
+VİDEO FİKİRLERİ: ${JSON.stringify(Array.isArray(ideas) ? ideas.slice(0, 5) : [])}
+TREND VERİSİ: ${JSON.stringify(trends)}
+
+Bu kanala özel kişiselleştirilmiş 4 haftalık içerik takvimi oluştur. Her haftada 2 video fikri olsun.
+
+Sadece JSON yanıt ver:
+{
+  "strategy_summary": "",
+  "weeks": [
+    {
+      "week": 1,
+      "theme": "",
+      "videos": [
+        {"title_idea": "", "hook": "", "estimated_viral_score": 0, "type": "", "why_now": "", "best_day": ""}
+      ]
+    }
+  ],
+  "trend_signals": [],
+  "avoid_topics": [],
+  "best_posting_times": {"best_day": "", "best_hour": ""}
+}`;
+
+    if (anthropic) {
+        try {
+            const response = await withTimeout(
+                anthropic.messages.create({
+                    model: 'claude-sonnet-4-6',
+                    max_tokens: 4096,
+                    messages: [{ role: 'user', content: prompt }]
+                }),
+                90000
+            );
+            const text = response.content[0]?.text || '';
+            const parsed = parseAIResponse(text);
+            if (parsed) return parsed;
+        } catch (e) {
+            console.error('Claude content plan failed, falling back to Gemini:', e.message);
+        }
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await withTimeout(model.generateContent(prompt), 120000);
+    const text = result.response.text();
+    const parsed = parseAIResponse(text);
+    if (!parsed) throw new Error('İçerik planı oluşturulamadı.');
+    return parsed;
+}
+
 // ==================== SCRIPT GENERATOR ====================
 async function generateScript(analysisData, language = 'tr') {
     const meta = analysisData.video_metadata || {};
@@ -939,4 +1080,4 @@ Format:
     }
 }
 
-module.exports = { analyzeVideo, analyzeChannel, generateScript };
+module.exports = { analyzeVideo, analyzeChannel, generateScript, generateContentPlan };

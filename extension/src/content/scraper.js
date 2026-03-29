@@ -53,6 +53,8 @@ function extractVideoData() {
         || document.querySelector('ytd-video-owner-renderer img')?.src
         || "";
 
+    const frames = captureVideoFrames();
+
     return {
         videoId,
         title,
@@ -68,9 +70,43 @@ function extractVideoData() {
         comments,
         thumbnail,
         channelAvatar,
+        frames,
         url: window.location.href,
         scrapedAt: new Date().toISOString()
     };
+}
+
+// Capture 2 frames from the video element at current position
+function captureVideoFrames() {
+    try {
+        const video = document.querySelector('video.html5-main-video') || document.querySelector('video');
+        if (!video || video.readyState < 2) return [];
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 480;
+        canvas.height = 270;
+        const ctx = canvas.getContext('2d');
+        const frames = [];
+
+        // Frame 1: current position
+        ctx.drawImage(video, 0, 0, 480, 270);
+        const f1 = canvas.toDataURL('image/jpeg', 0.65).split(',')[1];
+        if (f1) frames.push(f1);
+
+        // Frame 2: seek to 20% of duration if possible
+        if (video.duration && video.duration > 10) {
+            const savedTime = video.currentTime;
+            video.currentTime = video.duration * 0.2;
+            ctx.drawImage(video, 0, 0, 480, 270);
+            const f2 = canvas.toDataURL('image/jpeg', 0.65).split(',')[1];
+            if (f2) frames.push(f2);
+            video.currentTime = savedTime;
+        }
+
+        return frames;
+    } catch (e) {
+        return [];
+    }
 }
 
 // Scroll for comments

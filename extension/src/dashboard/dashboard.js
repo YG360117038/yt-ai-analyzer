@@ -50,16 +50,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tabPanes = document.querySelectorAll('.tab-pane');
 
     const NAV_ACTIVE_CLASS = {
-        viral:     'active',
-        clone:     'active-clone',
-        factory:   'active-purple',
-        structure: 'active-purple',
-        script:    'active-purple',
-        seo:       'active-purple',
-        channel:   'active-green',
-        monetize:  'active-green',
-        battle:    'active',
-        history:   'active'
+        viral:       'active',
+        clone:       'active-clone',
+        factory:     'active-purple',
+        structure:   'active-purple',
+        script:      'active-purple',
+        seo:         'active-purple',
+        channel:     'active-green',
+        monetize:    'active-green',
+        battle:      'active',
+        history:     'active',
+        contentplan: 'active-green'
     };
 
     const VIDEO_ONLY_TABS = ['viral', 'clone', 'factory', 'structure', 'script', 'seo', 'monetize', 'battle'];
@@ -95,6 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (p.id === `tab-${tabName}`) p.classList.add('active');
             });
             if (tabName === 'history') loadHistory();
+            if (tabName === 'contentplan') loadContentPlan();
         });
     });
 
@@ -438,6 +440,126 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // ==================== CONTENT PLAN ====================
+    let contentPlanLoaded = false;
+
+    async function loadContentPlan() {
+        if (contentPlanLoaded) return;
+        const container = document.getElementById('contentplan-content');
+        if (!container) return;
+
+        const currentId = new URLSearchParams(window.location.search).get('id');
+        if (!currentId) {
+            container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-dim)">
+                <div style="font-size:32px;margin-bottom:12px">📅</div>
+                <h3 style="margin-bottom:8px">Bir analiz açın</h3>
+                <p style="font-size:13px">İçerik planı oluşturmak için önce bir video analizi yapın.</p>
+            </div>`;
+            return;
+        }
+
+        container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-dim)">
+            <div style="font-size:24px;margin-bottom:12px">⏳</div>
+            <p>4 haftalık içerik planı hazırlanıyor... (30-60 sn)</p>
+        </div>`;
+
+        try {
+            const res = await fetchWithTimeout(
+                authFetch(`${BACKEND_URL}/api/content-plan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ analysisId: currentId, language: 'tr' })
+                }),
+                120000
+            );
+
+            if (res.status === 403) {
+                const err = await res.json().catch(() => ({}));
+                if (err.requiresUpgrade) { showPaywall(); return; }
+                container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-dim)"><p>${sanitizeHTML(err.error || 'Erişim reddedildi.')}</p></div>`;
+                return;
+            }
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Hata');
+
+            const { plan } = await res.json();
+            contentPlanLoaded = true;
+            renderContentPlan(container, plan);
+        } catch (err) {
+            container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-dim)">
+                <div style="font-size:24px;margin-bottom:12px">⚠️</div>
+                <p style="margin-bottom:16px">${sanitizeHTML(err.message)}</p>
+                <button onclick="contentPlanLoaded=false;loadContentPlan()" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer">Tekrar Dene</button>
+            </div>`;
+        }
+    }
+
+    function renderContentPlan(container, plan) {
+        if (!plan) { container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim)">Plan verisi yok.</div>'; return; }
+
+        const weeks = plan.weeks || [];
+        const trends = plan.trend_signals || [];
+        const avoid = plan.avoid_topics || [];
+        const posting = plan.best_posting_times || {};
+
+        const typeEmoji = { tutorial: '🎓', reaction: '😱', story: '📖', review: '⭐', vlog: '🎥' };
+        const scoreColor = s => s >= 80 ? '#00c851' : s >= 60 ? '#f59e0b' : '#ff4444';
+
+        container.innerHTML = `
+        <div style="padding:24px;display:flex;flex-direction:column;gap:24px">
+
+            ${plan.strategy_summary ? `
+            <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:18px">
+                <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Strateji Özeti</div>
+                <p style="font-size:14px;line-height:1.6;color:#f1f1f1">${sanitizeHTML(plan.strategy_summary)}</p>
+            </div>` : ''}
+
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+                ${weeks.map(w => `
+                <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:16px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                        <span style="font-size:13px;font-weight:700;color:#f1f1f1">Hafta ${w.week}</span>
+                        <span style="font-size:11px;color:var(--accent);background:rgba(255,68,68,0.1);padding:3px 8px;border-radius:20px">${sanitizeHTML(w.theme || '')}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                        ${(w.videos || []).map(v => `
+                        <div style="background:#111;border:1px solid #333;border-radius:8px;padding:12px">
+                            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+                                <span style="font-size:12px;font-weight:600;color:#f1f1f1;line-height:1.4">${typeEmoji[v.type] || '🎬'} ${sanitizeHTML(v.title_idea || '')}</span>
+                                <span style="font-size:11px;font-weight:700;color:${scoreColor(v.estimated_viral_score || 0)};flex-shrink:0">${v.estimated_viral_score || 0}</span>
+                            </div>
+                            ${v.hook ? `<div style="font-size:11px;color:#aaa;margin-bottom:6px;font-style:italic">"${sanitizeHTML(v.hook)}"</div>` : ''}
+                            <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#666">
+                                ${v.best_day ? `<span>📆 ${sanitizeHTML(v.best_day)}</span>` : ''}
+                                ${v.why_now ? `<span style="color:#888">· ${sanitizeHTML(v.why_now)}</span>` : ''}
+                            </div>
+                        </div>`).join('')}
+                    </div>
+                </div>`).join('')}
+            </div>
+
+            ${(trends.length > 0 || avoid.length > 0 || posting.best_day) ? `
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                ${trends.length > 0 ? `
+                <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:16px">
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📈 Trend Sinyalleri</div>
+                    ${trends.map(t => `<div style="font-size:12px;color:#f1f1f1;padding:4px 0;border-bottom:1px solid #222">• ${sanitizeHTML(t)}</div>`).join('')}
+                </div>` : ''}
+                ${avoid.length > 0 ? `
+                <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:16px">
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🚫 Kaçın</div>
+                    ${avoid.map(t => `<div style="font-size:12px;color:#f1f1f1;padding:4px 0;border-bottom:1px solid #222">• ${sanitizeHTML(t)}</div>`).join('')}
+                </div>` : ''}
+                ${posting.best_day ? `
+                <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:16px">
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">⏰ En İyi Yayın Zamanı</div>
+                    <div style="font-size:20px;font-weight:700;color:#00c851;margin-bottom:4px">${sanitizeHTML(posting.best_day)}</div>
+                    ${posting.best_hour ? `<div style="font-size:13px;color:#aaa">${sanitizeHTML(posting.best_hour)}</div>` : ''}
+                </div>` : ''}
+            </div>` : ''}
+
+        </div>`;
+    }
+
     function showPaywall() {
         if (loadingScreen) loadingScreen.style.display = 'none';
         const overlay = document.getElementById('paywall-overlay');
@@ -641,6 +763,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Score banner (new: 4 scores from viral_score)
         if (r.viral_score) renderScoreBanner(r.viral_score);
 
+        // Reset content plan on new analysis
+        contentPlanLoaded = false;
+
         // Clear containers
         const containers = ['viral-content', 'clone-content', 'factory-content', 'structure-content', 'script-content', 'seo-content', 'channel-content', 'monetize-content', 'battle-content'];
         containers.forEach(id => {
@@ -650,6 +775,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Render tabs
         renderTabViral(r);
+        if (r.vision_analysis) renderVisionCard(r.vision_analysis);
         renderTabClone(r);
         renderTabFactory(r);
         renderTabStructure(r);
@@ -720,6 +846,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             verdictDiv.textContent = vs.why;
             banner.appendChild(verdictDiv);
         }
+    }
+
+    // ==================== VISION ANALYSIS CARD ====================
+    function renderVisionCard(v) {
+        const container = document.getElementById('viral-content');
+        if (!container || !v) return;
+        const qualityColor = { professional: '#00c851', 'semi-pro': '#f59e0b', amateur: '#ff4444' };
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.cssText = 'margin-bottom:0;border-color:#7b68ee40;background:linear-gradient(135deg,#1a1a2e,#1a1a1a)';
+        card.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <h3 style="font-size:13px;font-weight:700;color:#7b68ee">🎬 Görsel Analiz (AI Vision)</h3>
+                ${v.thumbnail_score ? `<span style="font-size:20px;font-weight:800;color:${qualityColor[v.production_quality] || '#7b68ee'}">${v.thumbnail_score}/100</span>` : ''}
+            </div>
+            ${v.thumbnail_analysis ? `<p style="font-size:13px;color:#ccc;margin-bottom:12px">${sanitizeHTML(v.thumbnail_analysis)}</p>` : ''}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                ${v.visual_style ? `<div style="background:#111;border-radius:8px;padding:10px"><div style="font-size:10px;color:#666;margin-bottom:4px">VİZÜEL STİL</div><div style="font-size:12px;color:#f1f1f1">${sanitizeHTML(v.visual_style)}</div></div>` : ''}
+                ${v.editing_style ? `<div style="background:#111;border-radius:8px;padding:10px"><div style="font-size:10px;color:#666;margin-bottom:4px">EDİTİNG</div><div style="font-size:12px;color:#f1f1f1">${sanitizeHTML(v.editing_style)}</div></div>` : ''}
+            </div>
+            ${v.color_palette && v.color_palette.length > 0 ? `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <span style="font-size:10px;color:#666">RENK PALETİ</span>
+                ${v.color_palette.map(c => `<div style="width:20px;height:20px;border-radius:4px;background:${sanitizeHTML(c)};border:1px solid #333" title="${sanitizeHTML(c)}"></div>`).join('')}
+            </div>` : ''}
+            ${v.recreation_tips && v.recreation_tips.length > 0 ? `
+            <div><div style="font-size:10px;color:#666;margin-bottom:6px">ÇEKIM İPUÇLARI</div>
+            ${v.recreation_tips.map(t => `<div style="font-size:12px;color:#ccc;padding:3px 0;border-bottom:1px solid #222">• ${sanitizeHTML(t)}</div>`).join('')}</div>` : ''}
+        `;
+        container.insertBefore(card, container.firstChild);
     }
 
     // ==================== TAB: VIRAL SCORE ====================
