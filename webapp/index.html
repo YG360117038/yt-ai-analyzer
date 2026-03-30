@@ -586,13 +586,17 @@
             Google ile Giriş Yap
         </button>
 
+        <button id="guest-btn" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);padding:12px;font-size:14px;cursor:pointer;font-family:inherit;margin-top:10px;transition:border-color 0.15s">
+            Giriş yapmadan devam et →
+        </button>
+
         <div class="login-divider">özellikler</div>
 
         <div class="login-features">
-            <div class="login-feature"><span>🔗</span><span>URL ile video analizi (Pro)</span></div>
-            <div class="login-feature"><span>🏆</span><span>Başlık CTR tahmini</span></div>
-            <div class="login-feature"><span>🖼️</span><span>Thumbnail analizi</span></div>
-            <div class="login-feature"><span>📊</span><span>30+ analiz bölümü (Pro)</span></div>
+            <div class="login-feature"><span>🔗</span><span>URL ile video analizi <span style="color:var(--accent);font-size:11px">Pro + Giriş</span></span></div>
+            <div class="login-feature"><span>🏆</span><span>Başlık CTR tahmini <span style="color:var(--green);font-size:11px">Ücretsiz</span></span></div>
+            <div class="login-feature"><span>🖼️</span><span>Thumbnail analizi <span style="color:var(--green);font-size:11px">Ücretsiz</span></span></div>
+            <div class="login-feature"><span>📋</span><span>Analiz geçmişi <span style="color:var(--text-muted);font-size:11px">Giriş gerekir</span></span></div>
         </div>
     </div>
 </div>
@@ -607,12 +611,19 @@
             <div class="plan-badge" id="plan-badge"></div>
         </div>
         <div class="topbar-right">
-            <div class="user-chip">
-                <img id="user-avatar" class="user-avatar" src="" alt="" style="display:none">
-                <div id="user-avatar-placeholder" class="user-avatar-placeholder">👤</div>
-                <span id="user-name"></span>
+            <!-- Guest mode -->
+            <button id="topbar-login-btn" style="display:none;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+                Giriş Yap
+            </button>
+            <!-- Logged in -->
+            <div id="topbar-user" style="display:none;align-items:center;gap:12px">
+                <div class="user-chip">
+                    <img id="user-avatar" class="user-avatar" src="" alt="" style="display:none">
+                    <div id="user-avatar-placeholder" class="user-avatar-placeholder">👤</div>
+                    <span id="user-name"></span>
+                </div>
+                <button class="btn-sm" id="logout-btn">Çıkış</button>
             </div>
-            <button class="btn-sm" id="logout-btn">Çıkış</button>
         </div>
     </div>
 
@@ -729,13 +740,37 @@ document.getElementById('google-login-btn').addEventListener('click', async () =
     }
 });
 
+document.getElementById('guest-btn').addEventListener('click', () => {
+    sessionStorage.setItem('guest_mode', '1');
+    enterGuestMode();
+});
+
+document.getElementById('topbar-login-btn').addEventListener('click', () => {
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+});
+
 document.getElementById('logout-btn').addEventListener('click', async () => {
     await sb.auth.signOut();
     _token = null;
     _plan = 'free';
-    document.getElementById('app-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
+    enterGuestMode();
 });
+
+function enterGuestMode() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('plan-badge').textContent = '👤 Misafir';
+    document.getElementById('plan-badge').className = 'plan-badge free';
+    document.getElementById('topbar-login-btn').style.display = 'block';
+    document.getElementById('topbar-user').style.display = 'none';
+    // Show analyze paywall, hide form
+    document.getElementById('analyze-paywall').style.display = 'block';
+    document.getElementById('analyze-form').style.display = 'none';
+    // Hide history tab for guests
+    document.querySelector('[data-tab="history"]').style.opacity = '0.4';
+    document.querySelector('[data-tab="history"]').title = 'Geçmişi görmek için giriş yapın';
+}
 
 sb.auth.onAuthStateChange(async (event, session) => {
     if (session) {
@@ -748,13 +783,24 @@ sb.auth.getSession().then(({ data }) => {
     if (data.session) {
         _token = data.session.access_token;
         loadUser(data.session.user);
+    } else {
+        // No session → show app directly in guest mode (skip login screen)
+        // But still show login screen on first visit
+        // Check if user dismissed login before
+        if (sessionStorage.getItem('guest_mode')) {
+            enterGuestMode();
+        }
+        // else: login screen stays visible (default)
     }
 });
 
 async function loadUser(user) {
-    // Update UI
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('topbar-login-btn').style.display = 'none';
+    document.getElementById('topbar-user').style.display = 'flex';
+    document.querySelector('[data-tab="history"]').style.opacity = '1';
+    document.querySelector('[data-tab="history"]').title = '';
 
     const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanıcı';
     const avatar = user.user_metadata?.avatar_url;
@@ -805,7 +851,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`tab-${tab}`).classList.add('active');
-        if (tab === 'history') loadHistory();
+        if (tab === 'history') {
+            if (!_token) {
+                document.getElementById('history-content').innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><div class="empty-title">Geçmişi görmek için giriş yapın</div><div class="empty-sub" style="margin-top:12px"><button onclick="document.getElementById('topbar-login-btn').click()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer">Giriş Yap</button></div></div>`;
+            } else {
+                loadHistory();
+            }
+        }
     });
 });
 
