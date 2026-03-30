@@ -643,121 +643,47 @@
         </div>
     </section>
 
-    <!-- FREE TOOLS -->
+    <!-- WEB APP CTA -->
     <section style="background:rgba(255,255,255,0.01);border-top:1px solid var(--border);padding:80px 0" id="free-tools">
-        <div style="max-width:900px;margin:0 auto;padding:0 24px">
-
-            <!-- Section header -->
+        <div style="max-width:860px;margin:0 auto;padding:0 24px;text-align:center">
             <div class="section-header">
-                <h2>🆓 Ücretsiz Web Araçları</h2>
-                <p>Uzantı gerekmez — e-postanızla giriş yapın, hesabınıza göre özellikler açılır</p>
+                <h2>🌐 Web Uygulaması</h2>
+                <p>Uzantı gerekmez — tarayıcıdan Google ile giriş yapın, hemen kullanın</p>
             </div>
 
-            <!-- EMAIL GATE -->
-            <div id="lp-email-gate" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:500px;margin:0 auto 48px">
-                <div style="text-align:center;margin-bottom:24px">
-                    <div style="font-size:36px;margin-bottom:10px">🔐</div>
-                    <div style="font-size:17px;font-weight:700;margin-bottom:6px">Hesabınızı Doğrulayın</div>
-                    <div style="font-size:13px;color:#aaa">Gmail adresinizi girin, Pro ise tüm özellikler açılır</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:40px;text-align:left">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+                    <div style="font-size:28px;margin-bottom:8px">🔗</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:4px">URL ile Video Analizi</div>
+                    <div style="font-size:12px;color:var(--text-dim)">Herhangi bir YouTube URL'sini yapıştır, 30+ bölüm analiz al</div>
+                    <div style="margin-top:8px;font-size:11px;color:#ff4444;font-weight:600">Pro</div>
                 </div>
-                <input id="lp-email-input" type="email" placeholder="ornek@gmail.com"
-                    style="width:100%;background:rgba(255,255,255,0.07);border:1px solid var(--border);border-radius:10px;color:#f1f1f1;padding:12px 16px;font-size:14px;font-family:inherit;margin-bottom:12px">
-                <div id="lp-email-error" style="color:#ff4444;font-size:12px;margin-bottom:10px;display:none"></div>
-                <button id="lp-email-btn" onclick="checkLpEmail()"
-                    style="width:100%;background:#ff4444;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">
-                    Doğrula →
-                </button>
-                <div style="text-align:center;margin-top:14px;font-size:12px;color:#666">
-                    Hesap yok? <a href="#install" style="color:#ff4444;text-decoration:none">Ücretsiz kaydol</a>
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+                    <div style="font-size:28px;margin-bottom:8px">🏆</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:4px">Başlık CTR Tahmini</div>
+                    <div style="font-size:12px;color:var(--text-dim)">5'e kadar başlık karşılaştır, AI ile puan ve öneri al</div>
+                    <div style="margin-top:8px;font-size:11px;color:#00c851;font-weight:600">Ücretsiz</div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+                    <div style="font-size:28px;margin-bottom:8px">🖼️</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:4px">Thumbnail Analizi</div>
+                    <div style="font-size:12px;color:var(--text-dim)">Görsel yükle, CTR potansiyelini ve iyileştirme önerilerini gör</div>
+                    <div style="margin-top:8px;font-size:11px;color:#00c851;font-weight:600">Ücretsiz</div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+                    <div style="font-size:28px;margin-bottom:8px">📋</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:4px">Analiz Geçmişi</div>
+                    <div style="font-size:12px;color:var(--text-dim)">Tüm geçmiş analizlere tek yerden eriş</div>
+                    <div style="margin-top:8px;font-size:11px;color:#00c851;font-weight:600">Ücretsiz</div>
                 </div>
             </div>
 
-            <!-- STATUS BAR (hidden until verified) -->
-            <div id="lp-user-bar" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 20px;max-width:500px;margin:0 auto 40px;align-items:center;justify-content:space-between;gap:12px">
-                <div style="display:flex;align-items:center;gap:10px">
-                    <div id="lp-plan-badge" style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700"></div>
-                    <div id="lp-user-email-label" style="font-size:13px;color:#aaa"></div>
-                </div>
-                <button onclick="resetLpAuth()" style="background:none;border:1px solid #333;border-radius:8px;color:#888;font-size:12px;padding:5px 12px;cursor:pointer">Çıkış</button>
-            </div>
-
-            <!-- PRO: GOOGLE SIGN-IN (shown when email is Pro but no token yet) -->
-            <div id="lp-oauth-block" style="display:none;background:linear-gradient(135deg,rgba(255,68,68,0.08),rgba(123,104,238,0.08));border:1px solid rgba(255,68,68,0.25);border-radius:16px;padding:28px;max-width:500px;margin:0 auto 40px;text-align:center">
-                <div style="font-size:28px;margin-bottom:10px">🎉</div>
-                <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:#f1f1f1">Pro hesabınız doğrulandı!</div>
-                <div style="font-size:13px;color:#aaa;margin-bottom:20px">Tüm özellikleri kullanmak için Google ile giriş yapın</div>
-                <button id="lp-google-btn" onclick="startLpGoogleAuth()"
-                    style="display:inline-flex;align-items:center;gap:10px;background:#fff;color:#333;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer">
-                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.1 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-3.6-13.47-9.19l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                    Google ile Giriş Yap
-                </button>
-            </div>
-
-            <!-- PRO: URL ANALYZE (shown after Google auth) -->
-            <div id="lp-pro-analyze" style="display:none;background:linear-gradient(135deg,rgba(255,68,68,0.06),rgba(123,104,238,0.06));border:1px solid rgba(255,68,68,0.2);border-radius:16px;padding:28px;margin-bottom:40px">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-                    <span style="background:#ff4444;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">PRO</span>
-                    <h3 style="font-size:18px;font-weight:700">🔗 URL ile Video Analizi</h3>
-                </div>
-                <p style="font-size:13px;color:#aaa;margin-bottom:20px">Herhangi bir YouTube video URL'sini analiz edin. Tüm 30+ bölüm dahil.</p>
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
-                    <input id="lp-url-input" type="text" placeholder="https://www.youtube.com/watch?v=..."
-                        style="flex:1;min-width:200px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#f1f1f1;padding:12px 16px;font-size:13px;font-family:inherit">
-                    <button id="lp-url-btn" onclick="runLpUrlAnalyze()"
-                        style="background:#ff4444;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">
-                        Analiz Et
-                    </button>
-                </div>
-                <div id="lp-url-error" style="color:#ff4444;font-size:12px;margin-top:8px;display:none"></div>
-                <div id="lp-url-results" style="margin-top:20px"></div>
-            </div>
-
-            <!-- FREE TOOLS (always visible once verified) -->
-            <div id="lp-free-tools-grid" style="display:none;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:32px;align-items:start">
-
-                <!-- Title CTR Tool -->
-                <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px">
-                    <div style="font-size:24px;margin-bottom:12px">🏆</div>
-                    <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Başlık CTR Tahmin Aracı</h3>
-                    <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px">Başlıklarınızın tıklanma potansiyelini AI ile analiz edin. 5'e kadar başlık karşılaştırın.</p>
-                    <div id="lp-title-inputs" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
-                        <input class="lp-tool-input" type="text" placeholder="Başlık 1..." maxlength="120" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit">
-                        <input class="lp-tool-input" type="text" placeholder="Başlık 2..." maxlength="120" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit">
-                    </div>
-                    <button onclick="addLpTitleInput()" style="background:none;border:1px dashed var(--border);border-radius:8px;color:#888;font-size:12px;padding:7px 14px;cursor:pointer;margin-bottom:14px">+ Başlık Ekle</button><br>
-                    <input id="lp-title-context" type="text" placeholder="Kanal konusu (isteğe bağlı)" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit;margin-bottom:14px">
-                    <button id="lp-title-btn" onclick="runLpTitleTool()" style="width:100%;background:#ff4444;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer">CTR Tahmin Et</button>
-                    <div id="lp-title-results" style="margin-top:16px"></div>
-                </div>
-
-                <!-- Thumbnail Analyzer -->
-                <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px">
-                    <div style="font-size:24px;margin-bottom:12px">🖼️</div>
-                    <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Thumbnail Analiz Aracı</h3>
-                    <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px">Thumbnail görselinizi yükleyin, AI ile puan alın ve iyileştirme önerileri görün.</p>
-                    <div id="lp-drop-zone" onclick="document.getElementById('lp-file-input').click()" style="border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:14px">
-                        <div style="font-size:32px;margin-bottom:8px">📁</div>
-                        <div id="lp-drop-text" style="font-size:13px;color:var(--text-dim)">Görseli sürükleyin veya tıklayın</div>
-                        <div style="font-size:11px;color:#666;margin-top:4px">PNG, JPG, WEBP — maks 5MB</div>
-                    </div>
-                    <input type="file" id="lp-file-input" accept="image/*" style="display:none" onchange="handleLpThumbFile(this.files[0])">
-                    <img id="lp-thumb-preview" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;display:none;margin-bottom:14px" alt="Önizleme">
-                    <button id="lp-thumb-btn" onclick="runLpThumbTool()" disabled style="width:100%;background:#ff4444;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;opacity:0.5">Analiz Et</button>
-                    <div id="lp-thumb-results" style="margin-top:16px"></div>
-                </div>
-
-            </div>
-
-            <!-- FREE upgrade nudge (shown for non-pro users) -->
-            <div id="lp-upgrade-nudge" style="display:none;text-align:center;margin-top:32px;padding:24px;background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.15);border-radius:14px">
-                <div style="font-size:15px;font-weight:600;margin-bottom:6px">🚀 URL Analizi ve 30+ bölüm için Pro'ya geçin</div>
-                <div style="font-size:13px;color:#aaa;margin-bottom:16px">Şu an ücretsiz hesap kullanıyorsunuz. Pro ile tüm özellikler açılır.</div>
-                <a href="https://www.skool.com/omnicore-8861" target="_blank" rel="noopener"
-                    style="display:inline-block;background:#ff4444;color:#fff;text-decoration:none;padding:10px 28px;border-radius:10px;font-size:14px;font-weight:600">
-                    Pro'ya Geç →
-                </a>
-            </div>
-
+            <a href="./webapp/index.html"
+               style="display:inline-flex;align-items:center;gap:10px;background:#ff4444;color:#fff;text-decoration:none;border-radius:12px;padding:15px 36px;font-size:16px;font-weight:700;transition:transform 0.1s"
+               onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                🚀 Web Uygulamasını Aç
+            </a>
+            <div style="margin-top:12px;font-size:13px;color:var(--text-dim)">Google hesabınızla ücretsiz giriş yapın</div>
         </div>
     </section>
 
@@ -958,351 +884,6 @@
             currentLang = currentLang === 'tr' ? 'en' : 'tr';
             applyLang(currentLang);
         });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script>
-        // ===== FREE TOOLS =====
-        const LP_API = 'https://yt-ai-analyzer-production.up.railway.app';
-        const SUPABASE_URL = 'https://sxlyfxqepyrjevfrjkwz.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bHlmeHFlcHlyamV2ZnJqa3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NzcxNjUsImV4cCI6MjA4NzM1MzE2NX0.Up0fV-_5vc8L7F2DdJoqwaP_sGCtPuFN6NxxorPrhfI';
-        const lpSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let lpUserPlan = null;     // 'pro' | 'free' | null
-        let lpAccessToken = null;  // Supabase session token
-
-        // ===== AUTH STATE: check if already logged in =====
-        lpSupabase.auth.getSession().then(({ data }) => {
-            if (data.session) {
-                lpAccessToken = data.session.access_token;
-                const email = data.session.user.email;
-                // Verify plan from backend
-                fetch(`${LP_API}/api/check-plan?email=${encodeURIComponent(email)}`)
-                    .then(r => r.json())
-                    .then(d => showLpUI(email, d.plan || 'free'))
-                    .catch(() => showLpUI(email, 'free'));
-            }
-        });
-
-        // ===== EMAIL CHECK =====
-        document.getElementById('lp-email-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') checkLpEmail();
-        });
-
-        async function checkLpEmail() {
-            const email = document.getElementById('lp-email-input').value.trim();
-            const errEl = document.getElementById('lp-email-error');
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                errEl.textContent = 'Geçerli bir e-posta adresi girin.';
-                errEl.style.display = 'block';
-                return;
-            }
-            errEl.style.display = 'none';
-            const btn = document.getElementById('lp-email-btn');
-            btn.disabled = true; btn.textContent = 'Kontrol ediliyor...';
-            try {
-                const r = await fetch(`${LP_API}/api/check-plan?email=${encodeURIComponent(email)}`);
-                const d = await r.json();
-                const plan = d.plan || 'not_found';
-                if (plan === 'pro') {
-                    // Pro kullanıcı: önce OAuth ile giriş gerekli
-                    lpUserPlan = 'pro';
-                    showLpOAuthBlock(email);
-                } else if (plan === 'free') {
-                    showLpUI(email, 'free');
-                } else {
-                    // Hesap yok: ücretsiz araçları göster + üye ol CTA
-                    showLpUI(email, 'free', true);
-                }
-            } catch (e) {
-                errEl.textContent = 'Bağlantı hatası. Lütfen tekrar deneyin.';
-                errEl.style.display = 'block';
-            } finally {
-                btn.disabled = false; btn.textContent = 'Doğrula →';
-            }
-        }
-
-        function showLpOAuthBlock(email) {
-            document.getElementById('lp-email-gate').style.display = 'none';
-            document.getElementById('lp-oauth-block').style.display = 'block';
-            // Store email for after auth
-            sessionStorage.setItem('lp_pending_email', email);
-        }
-
-        async function startLpGoogleAuth() {
-            const btn = document.getElementById('lp-google-btn');
-            btn.disabled = true; btn.textContent = 'Yönlendiriliyor...';
-            const { error } = await lpSupabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.href.split('#')[0] + '#free-tools',
-                    queryParams: { prompt: 'select_account' }
-                }
-            });
-            if (error) {
-                btn.disabled = false; btn.textContent = 'Google ile Giriş Yap';
-                alert('Giriş hatası: ' + error.message);
-            }
-        }
-
-        // Handle redirect back from Google OAuth
-        lpSupabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-                lpAccessToken = session.access_token;
-                const email = session.user.email;
-                const r = await fetch(`${LP_API}/api/check-plan?email=${encodeURIComponent(email)}`);
-                const d = await r.json();
-                showLpUI(email, d.plan || 'free');
-            }
-        });
-
-        function showLpUI(email, plan, notFound = false) {
-            lpUserPlan = plan;
-            // Hide gate & oauth block
-            document.getElementById('lp-email-gate').style.display = 'none';
-            document.getElementById('lp-oauth-block').style.display = 'none';
-            // Show user bar
-            const bar = document.getElementById('lp-user-bar');
-            bar.style.cssText = bar.style.cssText.replace('display:none', '') ;
-            bar.style.display = 'flex';
-            const badge = document.getElementById('lp-plan-badge');
-            if (plan === 'pro') {
-                badge.textContent = '⭐ PRO';
-                badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(255,68,68,0.15);color:#ff4444;border:1px solid rgba(255,68,68,0.3)';
-            } else {
-                badge.textContent = '🆓 ÜCRETSİZ';
-                badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(255,255,255,0.07);color:#aaa;border:1px solid #333';
-            }
-            document.getElementById('lp-user-email-label').textContent = email;
-            // Show pro analyze block
-            if (plan === 'pro' && lpAccessToken) {
-                document.getElementById('lp-pro-analyze').style.display = 'block';
-            }
-            // Show free tools grid
-            const grid = document.getElementById('lp-free-tools-grid');
-            grid.style.display = 'grid';
-            // Show upgrade nudge for non-pro
-            if (plan !== 'pro') {
-                document.getElementById('lp-upgrade-nudge').style.display = 'block';
-            }
-            // Setup drag-drop
-            setupLpDropZone();
-        }
-
-        function resetLpAuth() {
-            lpUserPlan = null; lpAccessToken = null;
-            lpSupabase.auth.signOut();
-            document.getElementById('lp-email-gate').style.display = 'block';
-            document.getElementById('lp-oauth-block').style.display = 'none';
-            document.getElementById('lp-user-bar').style.display = 'none';
-            document.getElementById('lp-pro-analyze').style.display = 'none';
-            document.getElementById('lp-free-tools-grid').style.display = 'none';
-            document.getElementById('lp-upgrade-nudge').style.display = 'none';
-            document.getElementById('lp-email-input').value = '';
-        }
-
-        // ===== PRO: URL ANALYZE =====
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlInput = document.getElementById('lp-url-input');
-            if (urlInput) urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runLpUrlAnalyze(); });
-        });
-
-        async function runLpUrlAnalyze() {
-            const url = document.getElementById('lp-url-input').value.trim();
-            const errEl = document.getElementById('lp-url-error');
-            if (!url) { errEl.textContent = 'URL girin.'; errEl.style.display = 'block'; return; }
-            if (!url.includes('youtube.com/watch') && !url.includes('youtu.be/')) {
-                errEl.textContent = 'Geçerli bir YouTube video URL\'si girin.'; errEl.style.display = 'block'; return;
-            }
-            errEl.style.display = 'none';
-            const btn = document.getElementById('lp-url-btn');
-            btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
-            const res = document.getElementById('lp-url-results');
-            res.innerHTML = '<div style="color:#888;font-size:13px;padding:8px 0">⏳ Video analiz ediliyor, bu 30-60 saniye sürebilir...</div>';
-            try {
-                const r = await fetch(`${LP_API}/api/analyze-url`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lpAccessToken}` },
-                    body: JSON.stringify({ url })
-                });
-                const data = await r.json();
-                if (!r.ok) throw new Error(data.error || 'Analiz başarısız.');
-                renderLpUrlResult(data);
-            } catch (err) {
-                errEl.textContent = err.message; errEl.style.display = 'block';
-                res.innerHTML = '';
-            } finally {
-                btn.disabled = false; btn.textContent = 'Analiz Et';
-            }
-        }
-
-        function renderLpUrlResult(data) {
-            const res = document.getElementById('lp-url-results');
-            const meta = data.video_metadata || {};
-            const r = data.analysis_results || {};
-            const viral = r.viral_score_analysis || {};
-            const seo = r.seo_analysis || {};
-
-            const score = viral.overall_score || viral.viral_score || '-';
-            const scoreColor = parseInt(score) >= 70 ? '#00c851' : parseInt(score) >= 45 ? '#f59e0b' : '#ff4444';
-
-            const titles = (seo.improved_titles || []).slice(0, 3);
-            const strengths = (viral.strengths || []).slice(0, 3);
-            const weaknesses = (viral.weaknesses || []).slice(0, 3);
-
-            res.innerHTML = `
-            <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,0.08)">
-                <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
-                    ${meta.thumbnail ? `<img src="${meta.thumbnail}" style="width:100px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">` : ''}
-                    <div style="flex:1;min-width:0">
-                        <div style="font-size:14px;font-weight:600;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${meta.title || 'Video'}</div>
-                        <div style="font-size:12px;color:#aaa">${meta.channelName || ''}</div>
-                    </div>
-                    <div style="text-align:center;flex-shrink:0">
-                        <div style="font-size:26px;font-weight:800;color:${scoreColor}">${score}</div>
-                        <div style="font-size:11px;color:#888">Viral Skoru</div>
-                    </div>
-                </div>
-                ${strengths.length ? `<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:#00c851;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">✅ Güçlü Yönler</div>${strengths.map(s => `<div style="font-size:13px;color:#ccc;padding:3px 0">• ${s}</div>`).join('')}</div>` : ''}
-                ${weaknesses.length ? `<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">⚠️ Zayıf Yönler</div>${weaknesses.map(s => `<div style="font-size:13px;color:#ccc;padding:3px 0">• ${s}</div>`).join('')}</div>` : ''}
-                ${titles.length ? `<div><div style="font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">🎯 Önerilen Başlıklar</div>${titles.map(t => `<div style="font-size:13px;color:#ccc;padding:3px 0">• ${t.title || t}</div>`).join('')}</div>` : ''}
-                <div style="margin-top:14px;text-align:center;font-size:12px;color:#666">Tam analiz için uzantıyı indirin</div>
-            </div>`;
-        }
-
-        function setupLpDropZone() {
-            const lpDropZone = document.getElementById('lp-drop-zone');
-            if (!lpDropZone || lpDropZone._hasListener) return;
-            lpDropZone._hasListener = true;
-            lpDropZone.addEventListener('dragover', (e) => { e.preventDefault(); lpDropZone.style.borderColor = '#ff4444'; });
-            lpDropZone.addEventListener('dragleave', () => { lpDropZone.style.borderColor = ''; });
-            lpDropZone.addEventListener('drop', (e) => {
-                e.preventDefault(); lpDropZone.style.borderColor = '';
-                const file = e.dataTransfer.files[0];
-                if (file) handleLpThumbFile(file);
-            });
-        }
-
-        function addLpTitleInput() {
-            const container = document.getElementById('lp-title-inputs');
-            const count = container.querySelectorAll('input').length;
-            if (count >= 5) return;
-            const inp = document.createElement('input');
-            inp.className = 'lp-tool-input';
-            inp.type = 'text';
-            inp.placeholder = `Başlık ${count + 1}...`;
-            inp.maxLength = 120;
-            inp.style.cssText = 'width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:#f1f1f1;padding:10px 14px;font-size:13px;font-family:inherit';
-            container.appendChild(inp);
-            inp.focus();
-        }
-
-        async function runLpTitleTool() {
-            const titles = Array.from(document.querySelectorAll('#lp-title-inputs input'))
-                .map(i => i.value.trim()).filter(Boolean);
-            if (!titles.length) { alert('En az bir başlık girin.'); return; }
-            const context = document.getElementById('lp-title-context').value.trim();
-            const btn = document.getElementById('lp-title-btn');
-            btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
-            const res = document.getElementById('lp-title-results');
-            res.innerHTML = '<div style="color:#888;font-size:13px">Yükleniyor...</div>';
-
-            try {
-                const r = await fetch(`${LP_API}/api/predict-title`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ titles, context })
-                });
-                const data = await r.json();
-                if (!r.ok) throw new Error(data.error || 'Hata');
-                const results = data.results || data;
-                if (!results || !results.length) throw new Error('Sonuç yok');
-                const sorted = [...results].sort((a, b) => (b.ctr_score || 0) - (a.ctr_score || 0));
-                res.innerHTML = sorted.map(item => {
-                    const score = Math.min(100, Math.max(0, parseInt(item.ctr_score) || 0));
-                    const color = score >= 70 ? '#00c851' : score >= 45 ? '#f59e0b' : '#ff4444';
-                    return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:8px">
-                        <div style="width:46px;height:46px;border-radius:50%;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:${color};flex-shrink:0">${score}</div>
-                        <div style="flex:1;min-width:0">
-                            <div style="font-size:13px;font-weight:600;margin-bottom:4px">${item.title || ''}</div>
-                            <div style="font-size:12px;color:#aaa">${item.reasoning || item.feedback || ''}</div>
-                            ${item.improved_version ? `<div style="font-size:12px;color:#06b6d4;margin-top:4px">💡 ${item.improved_version}</div>` : ''}
-                        </div>
-                    </div>`;
-                }).join('');
-            } catch (err) {
-                res.innerHTML = `<div style="color:#ff4444;font-size:13px">${err.message}</div>`;
-            } finally {
-                btn.disabled = false; btn.textContent = 'CTR Tahmin Et';
-            }
-        }
-
-        let lpThumbFile = null;
-        function handleLpThumbFile(file) {
-            if (!file || !file.type.startsWith('image/')) { alert('Lütfen bir görsel seçin.'); return; }
-            if (file.size > 5 * 1024 * 1024) { alert('Dosya 5MB\'dan büyük olamaz.'); return; }
-            lpThumbFile = file;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.getElementById('lp-thumb-preview');
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                const dropText = document.getElementById('lp-drop-text');
-                if (dropText) dropText.textContent = file.name;
-                const btn = document.getElementById('lp-thumb-btn');
-                btn.disabled = false; btn.style.opacity = '1';
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function runLpThumbTool() {
-            if (!lpThumbFile) return;
-            const btn = document.getElementById('lp-thumb-btn');
-            btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
-            const res = document.getElementById('lp-thumb-results');
-            res.innerHTML = '<div style="color:#888;font-size:13px">Yükleniyor...</div>';
-
-            try {
-                const base64 = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(lpThumbFile);
-                });
-                const r = await fetch(`${LP_API}/api/analyze-thumbnail`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imageBase64: base64, mimeType: lpThumbFile.type })
-                });
-                const data = await r.json();
-                if (!r.ok) throw new Error(data.error || 'Hata');
-                const result = data.result || data;
-                const overall = Math.min(100, Math.max(0, parseInt(result.overall_score || result.score) || 0));
-                const color = overall >= 70 ? '#00c851' : overall >= 45 ? '#f59e0b' : '#ff4444';
-                const label = overall >= 70 ? 'Güçlü' : overall >= 45 ? 'Orta' : 'Zayıf';
-                const suggestions = result.suggestions || result.improvements || [];
-                res.innerHTML = `
-                    <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:16px">
-                        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-                            <div style="width:60px;height:60px;border-radius:50%;border:2px solid ${color};background:${color}22;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
-                                <span style="font-size:18px;font-weight:800;color:${color}">${overall}</span>
-                                <span style="font-size:10px;color:${color};opacity:0.8">${label}</span>
-                            </div>
-                            <div>
-                                <div style="font-size:15px;font-weight:700;margin-bottom:4px">Thumbnail Puanı: ${overall}/100</div>
-                                <div style="font-size:12px;color:#aaa">${result.summary || result.verdict || ''}</div>
-                            </div>
-                        </div>
-                        ${suggestions.length ? `<div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:12px">
-                            <div style="font-size:12px;font-weight:600;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">İyileştirme Önerileri</div>
-                            ${suggestions.map(s => `<div style="font-size:13px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">• ${s}</div>`).join('')}
-                        </div>` : ''}
-                    </div>`;
-            } catch (err) {
-                res.innerHTML = `<div style="color:#ff4444;font-size:13px">${err.message}</div>`;
-            } finally {
-                btn.disabled = false; btn.textContent = 'Analiz Et';
-            }
-        }
     </script>
 </body>
 </html>

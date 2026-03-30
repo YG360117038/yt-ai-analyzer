@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dion – YouTube AI Analyzer</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #111;
+            --card: #161616;
+            --border: #222;
+            --border-hover: #333;
+            --accent: #ff4444;
+            --accent-dim: rgba(255,68,68,0.12);
+            --purple: #7b68ee;
+            --green: #00c851;
+            --orange: #f59e0b;
+            --blue: #3b82f6;
+            --cyan: #06b6d4;
+            --text: #f0f0f0;
+            --text-dim: #999;
+            --text-muted: #555;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            min-height: 100vh;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+
+        /* ── LOGIN SCREEN ── */
+        #login-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(255,68,68,0.08) 0%, transparent 70%);
+        }
+
+        .login-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 380px;
+            text-align: center;
+        }
+
+        .login-logo {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .login-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #fff 40%, #ff4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-sub {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: #fff;
+            color: #222;
+            border: none;
+            border-radius: var(--radius);
+            padding: 13px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.15s;
+            font-family: inherit;
+        }
+
+        .google-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255,255,255,0.12);
+        }
+
+        .google-btn:active { transform: translateY(0); }
+
+        .login-divider {
+            margin: 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .login-features {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+        }
+
+        .login-feature {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .login-feature span:first-child { font-size: 16px; }
+
+        /* ── APP SHELL ── */
+        #app-screen { display: none; min-height: 100vh; }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,10,10,0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-logo { font-size: 20px; font-weight: 800; }
+        .topbar-logo span { color: var(--accent); }
+
+        .plan-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .plan-badge.pro {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(255,68,68,0.25);
+        }
+
+        .plan-badge.free {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+
+        .user-avatar-placeholder {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .btn-sm {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-dim);
+            font-size: 12px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+
+        .btn-sm:hover { border-color: var(--border-hover); color: var(--text); }
+
+        /* ── TABS ── */
+        .tabs-bar {
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            gap: 4px;
+            background: var(--surface);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 14px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover { color: var(--text-dim); }
+        .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+        .tab-btn.pro-locked { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── MAIN CONTENT ── */
+        .main-content {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 32px 24px 80px;
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── INPUTS ── */
+        .inp {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+
+        .inp:focus { outline: none; border-color: var(--accent); }
+        .inp::placeholder { color: var(--text-muted); }
+
+        .inp-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .inp-row .inp { flex: 1; min-width: 200px; }
+
+        /* ── BUTTONS ── */
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .btn:hover { background: #cc2222; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.05);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── PAYWALL BANNER ── */
+        .paywall {
+            background: linear-gradient(135deg, rgba(255,68,68,0.08), rgba(123,104,238,0.08));
+            border: 1px solid rgba(255,68,68,0.2);
+            border-radius: var(--radius);
+            padding: 28px;
+            text-align: center;
+        }
+
+        .paywall h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+        .paywall p { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; }
+
+        .btn-pro {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 11px 28px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* ── LOADING ── */
+        .loading-msg {
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        /* ── URL ANALYSIS RESULT ── */
+        .analysis-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .analysis-thumb {
+            width: 112px;
+            height: 63px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .analysis-meta-info { flex: 1; min-width: 150px; }
+        .analysis-meta-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .analysis-meta-channel { font-size: 12px; color: var(--text-dim); }
+
+        .score-big {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .score-big-label { font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 2px; }
+
+        .analysis-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 600px) { .analysis-sections { grid-template-columns: 1fr; } }
+
+        .analysis-section { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 14px 16px; }
+        .analysis-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+        .analysis-list-item { font-size: 13px; color: #ccc; padding: 4px 0; line-height: 1.5; }
+
+        /* ── TITLE TOOL ── */
+        .title-inputs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+
+        .title-result-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        .score-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            flex-shrink: 0;
+            border: 2px solid;
+        }
+
+        .score-circle.high { border-color: var(--green); color: var(--green); background: rgba(0,200,81,0.1); }
+        .score-circle.mid  { border-color: var(--orange); color: var(--orange); background: rgba(245,158,11,0.1); }
+        .score-circle.low  { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+        .title-result-body { flex: 1; min-width: 0; }
+        .title-result-text { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .title-result-why { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+        .title-result-suggestion { font-size: 12px; color: var(--cyan); }
+
+        .bar-track { height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+        /* ── THUMBNAIL TOOL ── */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 16px;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .drop-zone-icon { font-size: 36px; margin-bottom: 10px; }
+        .drop-zone-text { font-size: 14px; color: var(--text-dim); }
+        .drop-zone-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        .thumb-preview {
+            width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        .thumb-result-card { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 20px; }
+
+        .thumb-score-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+
+        .thumb-score-circle {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .thumb-criteria-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+        .thumb-criterion { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; }
+        .thumb-criterion-name { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+        .thumb-criterion-score { font-size: 16px; font-weight: 700; }
+
+        .suggestions-list { margin-top: 14px; }
+        .suggestions-list h4 { font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+        .suggestion-item { font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--text); }
+        .suggestion-item:last-child { border-bottom: none; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #222;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s;
+            z-index: 999;
+        }
+
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── UPGRADE NUDGE ── */
+        .upgrade-nudge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: rgba(255,68,68,0.06);
+            border: 1px solid rgba(255,68,68,0.15);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .upgrade-nudge-text { font-size: 13px; color: var(--text-dim); }
+        .upgrade-nudge-text strong { color: var(--text); }
+
+        /* ── EMPTY STATE ── */
+        .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-icon { font-size: 40px; margin-bottom: 14px; }
+        .empty-title { font-size: 16px; color: var(--text-dim); margin-bottom: 6px; }
+        .empty-sub { font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="login-screen">
+    <div class="login-box">
+        <div class="login-logo">🎬</div>
+        <div class="login-title">Dion Analyzer</div>
+        <p class="login-sub">YouTube videolarınızı AI ile analiz edin.<br>SEO, viral potansiyel ve içerik stratejisi.</p>
+
+        <button class="google-btn" id="google-login-btn">
+            <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.1 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-3.6-13.47-9.19l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Google ile Giriş Yap
+        </button>
+
+        <div class="login-divider">özellikler</div>
+
+        <div class="login-features">
+            <div class="login-feature"><span>🔗</span><span>URL ile video analizi (Pro)</span></div>
+            <div class="login-feature"><span>🏆</span><span>Başlık CTR tahmini</span></div>
+            <div class="login-feature"><span>🖼️</span><span>Thumbnail analizi</span></div>
+            <div class="login-feature"><span>📊</span><span>30+ analiz bölümü (Pro)</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== APP SCREEN ===================== -->
+<div id="app-screen">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-logo">Dion <span>AI</span></div>
+            <div class="plan-badge" id="plan-badge"></div>
+        </div>
+        <div class="topbar-right">
+            <div class="user-chip">
+                <img id="user-avatar" class="user-avatar" src="" alt="" style="display:none">
+                <div id="user-avatar-placeholder" class="user-avatar-placeholder">👤</div>
+                <span id="user-name"></span>
+            </div>
+            <button class="btn-sm" id="logout-btn">Çıkış</button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="analyze">🔗 Video Analizi</button>
+        <button class="tab-btn" data-tab="titles">🏆 Başlık Test</button>
+        <button class="tab-btn" data-tab="thumbnail">🖼️ Thumbnail Analiz</button>
+        <button class="tab-btn" data-tab="history">📋 Geçmiş</button>
+    </div>
+
+    <!-- Content -->
+    <div class="main-content">
+
+        <!-- ── TAB: VIDEO ANALİZİ ── -->
+        <div id="tab-analyze" class="tab-pane active">
+            <!-- Pro gate -->
+            <div id="analyze-paywall" class="paywall" style="display:none">
+                <h3>🔒 Pro Özellik</h3>
+                <p>URL ile video analizi Pro plana özeldir. Skool topluluğumuza katılarak Pro erişim kazanın.</p>
+                <a href="https://www.skool.com/omnicore-8861" target="_blank" rel="noopener" class="btn-pro">Pro'ya Geç →</a>
+            </div>
+
+            <!-- Analyze form (Pro) -->
+            <div id="analyze-form" style="display:none">
+                <div class="card">
+                    <div class="card-title">🔗 YouTube Video Analizi</div>
+                    <div class="inp-row">
+                        <input class="inp" id="video-url-input" type="text" placeholder="https://www.youtube.com/watch?v=...">
+                        <button class="btn" id="analyze-btn">Analiz Et</button>
+                    </div>
+                    <div id="analyze-error" style="color:var(--accent);font-size:12px;margin-top:8px;display:none"></div>
+                </div>
+                <div id="analyze-result"></div>
+            </div>
+        </div>
+
+        <!-- ── TAB: BAŞLIK TEST ── -->
+        <div id="tab-titles" class="tab-pane">
+            <div class="card">
+                <div class="card-title">🏆 Başlık CTR Tahmin Aracı</div>
+                <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Başlıklarınızın tıklanma oranını AI ile tahmin edin. 5'e kadar başlık karşılaştırın.</p>
+                <div class="title-inputs" id="title-inputs">
+                    <input class="inp" type="text" placeholder="Başlık 1..." maxlength="120">
+                    <input class="inp" type="text" placeholder="Başlık 2..." maxlength="120">
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+                    <button class="btn-ghost" id="add-title-btn">+ Başlık Ekle</button>
+                </div>
+                <input class="inp" id="title-context" type="text" placeholder="Kanal konusu / niche (isteğe bağlı)" style="margin-bottom:14px">
+                <button class="btn" id="title-submit-btn">CTR Tahmin Et</button>
+            </div>
+            <div id="title-results"></div>
+        </div>
+
+        <!-- ── TAB: THUMBNAIL ANALİZ ── -->
+        <div id="tab-thumbnail" class="tab-pane">
+            <div class="card">
+                <div class="card-title">🖼️ Thumbnail Analiz Aracı</div>
+                <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Thumbnail görselinizi yükleyin. AI ile CTR potansiyeli, renk analizi ve iyileştirme önerileri alın.</p>
+                <div class="drop-zone" id="drop-zone">
+                    <div class="drop-zone-icon">📁</div>
+                    <div class="drop-zone-text">Görseli buraya sürükleyin veya tıklayın</div>
+                    <div class="drop-zone-sub">PNG, JPG, WEBP — maks 5MB</div>
+                </div>
+                <input type="file" id="thumb-file" accept="image/*" style="display:none">
+                <img id="thumb-preview" class="thumb-preview" alt="Önizleme">
+                <button class="btn" id="thumb-submit-btn" disabled>Analiz Et</button>
+            </div>
+            <div id="thumb-results"></div>
+        </div>
+
+        <!-- ── TAB: GEÇMİŞ ── -->
+        <div id="tab-history" class="tab-pane">
+            <div id="history-content">
+                <div class="empty">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-title">Geçmiş yükleniyor...</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const API = 'https://yt-ai-analyzer-production.up.railway.app';
+const SUPABASE_URL = 'https://sxlyfxqepyrjevfrjkwz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bHlmeHFlcHlyamV2ZnJqa3d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NzcxNjUsImV4cCI6MjA4NzM1MzE2NX0.Up0fV-_5vc8L7F2DdJoqwaP_sGCtPuFN6NxxorPrhfI';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let _token = null;
+let _plan = 'free';
+
+// ==================== AUTH ====================
+
+document.getElementById('google-login-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('google-login-btn');
+    btn.disabled = true;
+    btn.textContent = 'Yönlendiriliyor...';
+    const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.href,
+            queryParams: { prompt: 'select_account' }
+        }
+    });
+    if (error) {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.1 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-3.6-13.47-9.19l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Google ile Giriş Yap`;
+    }
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    _token = null;
+    _plan = 'free';
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+});
+
+sb.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+        _token = session.access_token;
+        await loadUser(session.user);
+    }
+});
+
+sb.auth.getSession().then(({ data }) => {
+    if (data.session) {
+        _token = data.session.access_token;
+        loadUser(data.session.user);
+    }
+});
+
+async function loadUser(user) {
+    // Update UI
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+
+    const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanıcı';
+    const avatar = user.user_metadata?.avatar_url;
+    document.getElementById('user-name').textContent = name;
+
+    if (avatar) {
+        const img = document.getElementById('user-avatar');
+        img.src = avatar;
+        img.style.display = 'block';
+        document.getElementById('user-avatar-placeholder').style.display = 'none';
+    }
+
+    // Fetch plan
+    try {
+        const r = await fetch(`${API}/api/user/profile`, {
+            headers: { 'Authorization': `Bearer ${_token}` }
+        });
+        const data = await r.json();
+        _plan = data.plan || 'free';
+    } catch (e) {
+        _plan = 'free';
+    }
+
+    applyPlan();
+}
+
+function applyPlan() {
+    const badge = document.getElementById('plan-badge');
+    if (_plan === 'pro') {
+        badge.textContent = '⭐ PRO';
+        badge.className = 'plan-badge pro';
+        document.getElementById('analyze-paywall').style.display = 'none';
+        document.getElementById('analyze-form').style.display = 'block';
+    } else {
+        badge.textContent = '🆓 ÜCRETSİZ';
+        badge.className = 'plan-badge free';
+        document.getElementById('analyze-paywall').style.display = 'block';
+        document.getElementById('analyze-form').style.display = 'none';
+    }
+}
+
+// ==================== TABS ====================
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        if (tab === 'history') loadHistory();
+    });
+});
+
+// ==================== VIDEO ANALYZE ====================
+
+document.getElementById('video-url-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('analyze-btn').click();
+});
+
+document.getElementById('analyze-btn').addEventListener('click', async () => {
+    const url = document.getElementById('video-url-input').value.trim();
+    const errEl = document.getElementById('analyze-error');
+    const btn = document.getElementById('analyze-btn');
+    const resEl = document.getElementById('analyze-result');
+
+    if (!url) { errEl.textContent = 'URL girin.'; errEl.style.display = 'block'; return; }
+    if (!url.includes('youtube.com/watch') && !url.includes('youtu.be/')) {
+        errEl.textContent = 'Geçerli bir YouTube video URL\'si girin.';
+        errEl.style.display = 'block'; return;
+    }
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
+    resEl.innerHTML = `<div class="loading-msg"><div class="spinner"></div> Video analiz ediliyor, 30-60 saniye sürebilir...</div>`;
+
+    try {
+        const r = await fetch(`${API}/api/analyze-url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_token}` },
+            body: JSON.stringify({ url })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Analiz başarısız.');
+        renderAnalysisResult(data);
+        showToast('Analiz tamamlandı!');
+    } catch (err) {
+        resEl.innerHTML = '';
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+    } finally {
+        btn.disabled = false; btn.textContent = 'Analiz Et';
+    }
+});
+
+function renderAnalysisResult(data) {
+    const res = document.getElementById('analyze-result');
+    const meta = data.video_metadata || {};
+    const r = data.analysis_results || {};
+    const viral = r.viral_score_analysis || r.viral_analysis || {};
+    const seo = r.seo_analysis || {};
+    const clone = r.clone_this_video || {};
+    const monetize = r.monetization_analysis || {};
+
+    const score = parseInt(viral.overall_score || viral.viral_score || 0);
+    const scoreColor = score >= 70 ? 'var(--green)' : score >= 45 ? 'var(--orange)' : 'var(--accent)';
+
+    const strengths = (viral.strengths || []).slice(0, 4);
+    const weaknesses = (viral.weaknesses || viral.improvement_areas || []).slice(0, 4);
+    const titles = (seo.improved_titles || []).slice(0, 5);
+    const tags = (seo.optimized_tags || seo.tags || []).slice(0, 10);
+    const monetizeInsights = (monetize.revenue_opportunities || monetize.opportunities || []).slice(0, 3);
+
+    res.innerHTML = `
+    <div class="card">
+        <div class="analysis-meta">
+            ${meta.thumbnail ? `<img src="${meta.thumbnail}" class="analysis-thumb" onerror="this.style.display='none'" alt="">` : ''}
+            <div class="analysis-meta-info">
+                <div class="analysis-meta-title">${meta.title || 'Video'}</div>
+                <div class="analysis-meta-channel">${meta.channelName || ''} ${meta.viewCount ? '· ' + formatNumber(meta.viewCount) + ' izlenme' : ''}</div>
+            </div>
+            <div>
+                <div class="score-big" style="color:${scoreColor}">${score || '–'}</div>
+                <div class="score-big-label">Viral Skoru</div>
+            </div>
+        </div>
+
+        <div class="analysis-sections">
+            ${strengths.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--green)">✅ Güçlü Yönler</div>
+                ${strengths.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
+            </div>` : ''}
+
+            ${weaknesses.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--orange)">⚠️ İyileştirme</div>
+                ${weaknesses.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
+            </div>` : ''}
+
+            ${titles.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--blue)">🎯 Başlık Önerileri</div>
+                ${titles.map(t => `<div class="analysis-list-item">• ${t.title || t}</div>`).join('')}
+            </div>` : ''}
+
+            ${tags.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--purple)">🏷️ SEO Etiketleri</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                    ${tags.map(t => `<span style="background:rgba(123,104,238,0.15);color:var(--purple);border-radius:6px;padding:3px 8px;font-size:12px">${t}</span>`).join('')}
+                </div>
+            </div>` : ''}
+
+            ${monetizeInsights.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--gold, #fbbf24)">💰 Monetizasyon</div>
+                ${monetizeInsights.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
+            </div>` : ''}
+
+            ${clone.new_video_idea ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--cyan)">🎬 Video Fikri</div>
+                <div class="analysis-list-item">${clone.new_video_idea}</div>
+            </div>` : ''}
+        </div>
+
+        ${viral.hook_quality ? `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:13px;color:var(--text-dim)">🎣 Hook Kalitesi: <span style="color:var(--text)">${viral.hook_quality}</span></div>` : ''}
+        ${data.id ? `<div style="margin-top:10px;font-size:12px;color:var(--text-muted)">Analiz ID: ${data.id}</div>` : ''}
+    </div>`;
+}
+
+function formatNumber(n) {
+    if (!n) return '';
+    const num = parseInt(String(n).replace(/\D/g, ''));
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
+    return String(num);
+}
+
+// ==================== TITLE CTR TOOL ====================
+
+document.getElementById('add-title-btn').addEventListener('click', () => {
+    const container = document.getElementById('title-inputs');
+    const count = container.querySelectorAll('input').length;
+    if (count >= 5) { showToast('En fazla 5 başlık ekleyebilirsiniz.'); return; }
+    const inp = document.createElement('input');
+    inp.className = 'inp';
+    inp.type = 'text';
+    inp.placeholder = `Başlık ${count + 1}...`;
+    inp.maxLength = 120;
+    container.appendChild(inp);
+    inp.focus();
+    if (count + 1 >= 5) document.getElementById('add-title-btn').style.display = 'none';
+});
+
+document.getElementById('title-submit-btn').addEventListener('click', async () => {
+    const titles = Array.from(document.querySelectorAll('#title-inputs input'))
+        .map(i => i.value.trim()).filter(Boolean);
+    if (!titles.length) { showToast('En az bir başlık girin.'); return; }
+    const context = document.getElementById('title-context').value.trim();
+    const btn = document.getElementById('title-submit-btn');
+    btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
+    document.getElementById('title-results').innerHTML = `<div class="loading-msg"><div class="spinner"></div> Başlıklar analiz ediliyor...</div>`;
+
+    try {
+        const r = await fetch(`${API}/api/predict-title`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titles, context })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Hata');
+        renderTitleResults(data.results || data);
+    } catch (err) {
+        document.getElementById('title-results').innerHTML = `<div style="color:var(--accent);padding:12px">${err.message}</div>`;
+    } finally {
+        btn.disabled = false; btn.textContent = 'CTR Tahmin Et';
+    }
+});
+
+function renderTitleResults(results) {
+    if (!results?.length) {
+        document.getElementById('title-results').innerHTML = '<div style="color:var(--text-muted);padding:12px">Sonuç bulunamadı.</div>';
+        return;
+    }
+    const sorted = [...results].sort((a, b) => (b.ctr_score || 0) - (a.ctr_score || 0));
+    document.getElementById('title-results').innerHTML = sorted.map(r => {
+        const score = Math.min(100, Math.max(0, parseInt(r.ctr_score) || 0));
+        const cls = score >= 70 ? 'high' : score >= 45 ? 'mid' : 'low';
+        const barColor = score >= 70 ? 'var(--green)' : score >= 45 ? 'var(--orange)' : 'var(--accent)';
+        return `<div class="title-result-card">
+            <div class="score-circle ${cls}">${score}</div>
+            <div class="title-result-body">
+                <div class="title-result-text">${r.title || ''}</div>
+                <div class="title-result-why">${r.reasoning || r.feedback || ''}</div>
+                ${r.improved_version ? `<div class="title-result-suggestion">💡 ${r.improved_version}</div>` : ''}
+                <div class="bar-track" style="margin-top:8px">
+                    <div class="bar-fill" style="width:${score}%;background:${barColor}"></div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ==================== THUMBNAIL TOOL ====================
+
+const dropZone = document.getElementById('drop-zone');
+const thumbFile = document.getElementById('thumb-file');
+let selectedThumbFile = null;
+
+dropZone.addEventListener('click', () => thumbFile.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleThumbFile(e.dataTransfer.files[0]);
+});
+thumbFile.addEventListener('change', () => { if (thumbFile.files[0]) handleThumbFile(thumbFile.files[0]); });
+
+function handleThumbFile(file) {
+    if (!file.type.startsWith('image/')) { showToast('Lütfen bir görsel dosyası seçin.'); return; }
+    if (file.size > 5 * 1024 * 1024) { showToast('Dosya 5MB\'dan büyük olamaz.'); return; }
+    selectedThumbFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const preview = document.getElementById('thumb-preview');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        dropZone.querySelector('.drop-zone-text').textContent = file.name;
+        document.getElementById('thumb-submit-btn').disabled = false;
+    };
+    reader.readAsDataURL(file);
+}
+
+document.getElementById('thumb-submit-btn').addEventListener('click', async () => {
+    if (!selectedThumbFile) return;
+    const btn = document.getElementById('thumb-submit-btn');
+    btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
+    document.getElementById('thumb-results').innerHTML = `<div class="loading-msg"><div class="spinner"></div> Thumbnail analiz ediliyor...</div>`;
+
+    try {
+        const base64 = await new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = e => res(e.target.result.split(',')[1]);
+            reader.onerror = rej;
+            reader.readAsDataURL(selectedThumbFile);
+        });
+        const r = await fetch(`${API}/api/analyze-thumbnail`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64, mimeType: selectedThumbFile.type })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Hata');
+        renderThumbResults(data.result || data);
+    } catch (err) {
+        document.getElementById('thumb-results').innerHTML = `<div style="color:var(--accent);padding:12px">${err.message}</div>`;
+    } finally {
+        btn.disabled = false; btn.textContent = 'Analiz Et';
+    }
+});
+
+function renderThumbResults(result) {
+    if (!result) { document.getElementById('thumb-results').innerHTML = '<div style="color:var(--text-muted);padding:12px">Sonuç bulunamadı.</div>'; return; }
+
+    const overall = Math.min(100, Math.max(0, parseInt(result.overall_score || result.score) || 0));
+    const scoreColor = overall >= 70 ? 'var(--green)' : overall >= 45 ? 'var(--orange)' : 'var(--accent)';
+    const label = overall >= 70 ? 'Güçlü' : overall >= 45 ? 'Orta' : 'Zayıf';
+
+    const criteria = result.criteria || result.scores || {};
+    const criteriaHtml = Object.entries(criteria).map(([key, val]) => {
+        const s = Math.min(10, Math.max(0, parseInt(val) || 0));
+        const c = s >= 7 ? 'var(--green)' : s >= 5 ? 'var(--orange)' : 'var(--accent)';
+        const name = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return `<div class="thumb-criterion">
+            <div class="thumb-criterion-name">${name}</div>
+            <div class="thumb-criterion-score" style="color:${c}">${s}/10</div>
+        </div>`;
+    }).join('');
+
+    const suggestions = result.suggestions || result.improvements || [];
+
+    document.getElementById('thumb-results').innerHTML = `
+    <div class="thumb-result-card">
+        <div class="thumb-score-row">
+            <div class="thumb-score-circle" style="border:2px solid ${scoreColor};background:${scoreColor}22;color:${scoreColor}">
+                <div style="font-size:22px;line-height:1">${overall}</div>
+                <div style="font-size:10px;opacity:0.7">${label}</div>
+            </div>
+            <div>
+                <div style="font-size:16px;font-weight:700;margin-bottom:4px">Thumbnail Puanı: ${overall}/100</div>
+                <div style="font-size:13px;color:var(--text-dim)">${result.summary || result.verdict || ''}</div>
+            </div>
+        </div>
+        ${criteriaHtml ? `<div class="thumb-criteria-grid">${criteriaHtml}</div>` : ''}
+        ${suggestions.length ? `
+        <div class="suggestions-list">
+            <h4>💡 İyileştirme Önerileri</h4>
+            ${suggestions.map(s => `<div class="suggestion-item">• ${s}</div>`).join('')}
+        </div>` : ''}
+        ${result.color_analysis ? `<div style="margin-top:12px;font-size:13px;color:var(--text-dim)">🎨 ${result.color_analysis}</div>` : ''}
+    </div>`;
+}
+
+// ==================== HISTORY ====================
+
+async function loadHistory() {
+    const el = document.getElementById('history-content');
+    el.innerHTML = `<div class="loading-msg"><div class="spinner"></div> Yükleniyor...</div>`;
+    try {
+        const r = await fetch(`${API}/api/analyses?limit=20`, {
+            headers: { 'Authorization': `Bearer ${_token}` }
+        });
+        const data = await r.json();
+        const list = Array.isArray(data) ? data : (data.analyses || data.data || []);
+        if (!list.length) {
+            el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Henüz analiz yok</div><div class="empty-sub">URL analizi sekmesinden bir video analiz edin.</div></div>`;
+            return;
+        }
+        el.innerHTML = list.map(item => {
+            const meta = item.video_metadata || {};
+            const r = item.analysis_results || {};
+            const score = r.viral_score_analysis?.overall_score || r.viral_analysis?.viral_score || '–';
+            const date = new Date(item.created_at).toLocaleDateString('tr-TR');
+            return `<div class="card" style="cursor:pointer;transition:border-color 0.15s" onmouseenter="this.style.borderColor='var(--border-hover)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="openHistoryItem('${item.id}')">
+                <div style="display:flex;align-items:center;gap:14px">
+                    ${meta.thumbnail ? `<img src="${meta.thumbnail}" style="width:80px;height:45px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'" alt="">` : ''}
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px">${meta.title || 'Video Analizi'}</div>
+                        <div style="font-size:12px;color:var(--text-dim)">${meta.channelName || ''} · ${date}</div>
+                    </div>
+                    <div style="font-size:20px;font-weight:800;color:${parseInt(score) >= 70 ? 'var(--green)' : parseInt(score) >= 45 ? 'var(--orange)' : 'var(--accent)'};flex-shrink:0">${score}</div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        el.innerHTML = `<div style="color:var(--accent);padding:12px">Geçmiş yüklenemedi: ${err.message}</div>`;
+    }
+}
+
+async function openHistoryItem(id) {
+    // Switch to analyze tab and show result
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-tab="analyze"]').classList.add('active');
+    document.getElementById('tab-analyze').classList.add('active');
+
+    const resEl = document.getElementById('analyze-result');
+    resEl.innerHTML = `<div class="loading-msg"><div class="spinner"></div> Yükleniyor...</div>`;
+
+    try {
+        const r = await fetch(`${API}/api/analysis/${id}`, {
+            headers: { 'Authorization': `Bearer ${_token}` }
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Yüklenemedi');
+        renderAnalysisResult(data);
+    } catch (err) {
+        resEl.innerHTML = `<div style="color:var(--accent);padding:12px">${err.message}</div>`;
+    }
+}
+
+// ==================== TOAST ====================
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
