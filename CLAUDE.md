@@ -86,9 +86,47 @@ analysis.title_thumbnail.improved_titles[]  // Başlık önerileri
 - Extension'da `CONFIG.BACKEND_URL` kullanılıyor (`extension/src/dashboard/config.js`)
 - Gemini response alanları: `viral_score` (NOT `viral_score_analysis`), `title_thumbnail` (NOT `seo_analysis`)
 
-## Son Yapılan İşler
+## Son Session Özeti (2026-03-31)
 
-- Webapp: Giriş yapmadan açılır, 1 demo hakkı (localStorage), login modal
-- Landing: Kurumsal yeniden tasarım — eski video üretim özellikleri kaldırıldı
-- Backend: Preview endpoint alan adları düzeltildi (`viral_score`, `title_thumbnail`)
-- Root `index.html` → `landing/` redirect (GitHub Pages uyumluluğu)
+### Yapılanlar
+1. **Webapp auth akışı** — Login full-page → modal'a dönüştürüldü
+   - Sayfa direkt açılır, giriş zorunlu değil
+   - `localStorage.dion_demo_used` ile 1 demo hakkı takibi
+   - `openLoginModal()` / `closeLoginModal()` fonksiyonları
+   - `onAuthStateChange SIGNED_IN` → modal otomatik kapanır
+
+2. **Backend fix** — Preview endpoint yanlış alan adları kullanıyordu
+   - YANLIŞ: `viral_score_analysis`, `seo_analysis`
+   - DOĞRU: `viral_score`, `title_thumbnail`, `viral_patterns`
+
+3. **Landing page** — Tam yeniden tasarım
+   - Sora/Runway/Pika/video üretim özellikleri kaldırıldı
+   - Gerçek özellikler: Viral Skor, Clone This Video, Başlık & Senaryo, SEO, Content Factory, Monetizasyon, Başlık Savaşı, İçerik Planı
+   - 3 tier pricing: Misafir / Ücretsiz Hesap / Pro
+   - Kurumsal tasarım, URL analiz widget
+
+4. **GitHub Pages** — Root `index.html` → `landing/` redirect
+   - Source: master / root (ZORUNLU — landing/ yaparsa webapp 404 verir)
+   - Landing: `https://yg360117038.github.io/yt-ai-analyzer/`
+   - Webapp: `https://yg360117038.github.io/yt-ai-analyzer/webapp/`
+
+5. **Webapp Pro analiz render** — Extension dashboard ile aynı bölümler
+   - 4 skor (Viral/CTR/Retention/Büyüme) + progress bar
+   - Hook Analizi, Viral Kalıplar, Başlık Önerileri (kopyala butonu)
+   - SEO Etiketleri (tümünü kopyala), Clone This Video (hook kopyala)
+   - Video Yapısı, Content Factory, Senaryo Şablonu, Monetizasyon
+
+### Bekleyen Görevler
+- [ ] Supabase Redirect URL ekle: `https://yg360117038.github.io/yt-ai-analyzer/webapp/index.html`
+- [ ] GitHub Pages source: master / root (eğer değiştirilmediyse)
+- [ ] Pro analiz render'ı gerçek veriyle test et
+
+### Son Commit'ler
+```
+27413a0 feat: webapp full analysis render — all sections like extension dashboard
+e7e012d docs: add CLAUDE.md
+ae26204 feat: landing page full redesign
+25b82c4 chore: root redirect for GitHub Pages
+bf0f5ea fix: preview endpoint field names
+c0e175f feat: webapp guest mode + demo tracking + login modal
+```
