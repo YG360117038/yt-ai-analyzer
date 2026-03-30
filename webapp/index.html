@@ -936,81 +936,192 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
     }
 });
 
+function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Kopyalandı!';
+        setTimeout(() => btn.textContent = orig, 1800);
+    });
+}
+
 function renderAnalysisResult(data) {
     const res = document.getElementById('analyze-result');
     const meta = data.video_metadata || {};
     const r = data.analysis_results || {};
-    const viral = r.viral_score_analysis || r.viral_analysis || {};
-    const seo = r.seo_analysis || {};
+
+    // Correct field names matching Gemini schema
+    const vs = r.viral_score || {};
+    const ha = r.hook_analysis || {};
+    const patterns = r.viral_patterns || [];
+    const tt = r.title_thumbnail || {};
     const clone = r.clone_this_video || {};
-    const monetize = r.monetization_analysis || {};
+    const factory = r.content_factory || {};
+    const structure = r.video_structure || {};
+    const script = r.script_extraction || {};
+    const monetize = r.monetization || {};
 
-    const score = parseInt(viral.overall_score || viral.viral_score || 0);
+    const score = parseInt(vs.score) || 0;
     const scoreColor = score >= 70 ? 'var(--green)' : score >= 45 ? 'var(--orange)' : 'var(--accent)';
+    const titles = (tt.improved_titles || []);
+    const tags = (clone.seo_tags || []);
+    const videoIdeas = (factory.video_ideas || []);
 
-    const strengths = (viral.strengths || []).slice(0, 4);
-    const weaknesses = (viral.weaknesses || viral.improvement_areas || []).slice(0, 4);
-    const titles = (seo.improved_titles || []).slice(0, 5);
-    const tags = (seo.optimized_tags || seo.tags || []).slice(0, 10);
-    const monetizeInsights = (monetize.revenue_opportunities || monetize.opportunities || []).slice(0, 3);
+    const cardStyle = 'background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:16px';
+    const titleStyle = 'font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px';
+    const rowStyle = 'margin-bottom:10px';
+    const lblStyle = 'font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;font-weight:600';
+    const valStyle = 'font-size:13px;color:var(--text-dim);line-height:1.6';
 
-    res.innerHTML = `
-    <div class="card">
-        <div class="analysis-meta">
-            ${meta.thumbnail ? `<img src="${meta.thumbnail}" class="analysis-thumb" onerror="this.style.display='none'" alt="">` : ''}
-            <div class="analysis-meta-info">
-                <div class="analysis-meta-title">${meta.title || 'Video'}</div>
-                <div class="analysis-meta-channel">${meta.channelName || ''} ${meta.viewCount ? '· ' + formatNumber(meta.viewCount) + ' izlenme' : ''}</div>
-            </div>
-            <div>
-                <div class="score-big" style="color:${scoreColor}">${score || '–'}</div>
-                <div class="score-big-label">Viral Skoru</div>
+    let html = '';
+
+    // ── VIDEO META ──
+    html += `<div style="${cardStyle}">
+        <div style="display:flex;gap:14px;align-items:center">
+            ${meta.thumbnail ? `<img src="${meta.thumbnail}" style="width:120px;height:68px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.src='https://img.youtube.com/vi/${meta.videoId}/hqdefault.jpg'" alt="">` : ''}
+            <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(meta.title || 'Video')}</div>
+                <div style="font-size:13px;color:var(--text-dim)">${esc(meta.channelName || '')}</div>
+                <a href="${esc(meta.url || '')}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none;margin-top:4px;display:inline-block">YouTube'da Aç ↗</a>
             </div>
         </div>
-
-        <div class="analysis-sections">
-            ${strengths.length ? `
-            <div class="analysis-section">
-                <div class="analysis-section-title" style="color:var(--green)">✅ Güçlü Yönler</div>
-                ${strengths.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
-            </div>` : ''}
-
-            ${weaknesses.length ? `
-            <div class="analysis-section">
-                <div class="analysis-section-title" style="color:var(--orange)">⚠️ İyileştirme</div>
-                ${weaknesses.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
-            </div>` : ''}
-
-            ${titles.length ? `
-            <div class="analysis-section">
-                <div class="analysis-section-title" style="color:var(--blue)">🎯 Başlık Önerileri</div>
-                ${titles.map(t => `<div class="analysis-list-item">• ${t.title || t}</div>`).join('')}
-            </div>` : ''}
-
-            ${tags.length ? `
-            <div class="analysis-section">
-                <div class="analysis-section-title" style="color:var(--purple)">🏷️ SEO Etiketleri</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-                    ${tags.map(t => `<span style="background:rgba(123,104,238,0.15);color:var(--purple);border-radius:6px;padding:3px 8px;font-size:12px">${t}</span>`).join('')}
-                </div>
-            </div>` : ''}
-
-            ${monetizeInsights.length ? `
-            <div class="analysis-section">
-                <div class="analysis-section-title" style="color:var(--gold, #fbbf24)">💰 Monetizasyon</div>
-                ${monetizeInsights.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
-            </div>` : ''}
-
-            ${clone.new_video_idea ? `
-            <div class="analysis-section">
-                <div class="analysis-section-title" style="color:var(--cyan)">🎬 Video Fikri</div>
-                <div class="analysis-list-item">${clone.new_video_idea}</div>
-            </div>` : ''}
-        </div>
-
-        ${viral.hook_quality ? `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:13px;color:var(--text-dim)">🎣 Hook Kalitesi: <span style="color:var(--text)">${viral.hook_quality}</span></div>` : ''}
-        ${data.id ? `<div style="margin-top:10px;font-size:12px;color:var(--text-muted)">Analiz ID: ${data.id}</div>` : ''}
     </div>`;
+
+    // ── SCORE BANNER ──
+    if (vs.score !== undefined) {
+        const scores = [
+            { label: 'Viral Skor', val: vs.score, color: '#ff4444' },
+            { label: 'CTR Potansiyeli', val: vs.ctr_potential, color: '#7b68ee' },
+            { label: 'Retention', val: vs.retention_potential, color: '#f59e0b' },
+            { label: 'Büyüme', val: vs.growth_potential, color: '#00c851' }
+        ];
+        const scoreCards = scores.map(s => {
+            const v = parseInt(s.val) || 0;
+            return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+                <div style="font-size:32px;font-weight:800;color:${s.color};line-height:1">${v}</div>
+                <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:4px;margin:8px 0 6px">
+                    <div style="height:100%;width:${v}%;background:${s.color};border-radius:4px;transition:width 0.8s ease"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);font-weight:500">${s.label}</div>
+            </div>`;
+        }).join('');
+        html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">${scoreCards}</div>`;
+        if (vs.why) html += `<div style="${cardStyle};background:rgba(255,68,68,0.05);border-color:rgba(255,68,68,0.2);font-size:13px;color:var(--text-dim);line-height:1.65">💡 ${esc(vs.why)}</div>`;
+    }
+
+    // ── HOOK ANALİZİ ──
+    if (ha.why_it_works || ha.type) {
+        const typeColor = { curiosity:'#7b68ee', shock:'#ff4444', story:'#f59e0b', promise:'#00c851', controversy:'#ec4899', question:'#06b6d4' };
+        const tc = typeColor[ha.type] || 'var(--accent)';
+        html += `<div style="${cardStyle}">
+            <div style="${titleStyle}">🎣 Hook Analizi ${ha.type ? `<span style="background:${tc}22;color:${tc};padding:2px 10px;border-radius:100px;font-size:11px;font-weight:700;text-transform:uppercase">${esc(ha.type)}</span>` : ''}</div>
+            ${ha.why_it_works ? `<div style="${rowStyle}"><div style="${lblStyle}">Neden İşe Yarıyor</div><div style="${valStyle}">${esc(ha.why_it_works)}</div></div>` : ''}
+            ${ha.first_10_seconds ? `<div style="${rowStyle}"><div style="${lblStyle}">İlk 10 Saniye</div><div style="${valStyle};font-style:italic">"${esc(ha.first_10_seconds)}"</div></div>` : ''}
+        </div>`;
+    }
+
+    // ── VİRAL KALIPLAR ──
+    if (patterns.length) {
+        const pHtml = patterns.map((p, i) => `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:rgba(255,68,68,0.04);border:1px solid rgba(255,68,68,0.1);border-radius:8px;margin-bottom:8px">
+            <span style="background:var(--accent);color:#fff;width:22px;height:22px;min-width:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">${i+1}</span>
+            <span style="font-size:13px;color:var(--text-dim);line-height:1.55">${esc(String(p))}</span>
+        </div>`).join('');
+        html += `<div style="${cardStyle}"><div style="${titleStyle}">⚡ Viral Kalıplar</div>${pHtml}</div>`;
+    }
+
+    // ── BAŞLIK ÖNERİLERİ ──
+    if (titles.length) {
+        const tHtml = titles.map((t, i) => {
+            const title = t.title || t;
+            const ctrScore = t.ctr_score;
+            const angle = t.angle || '';
+            return `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:800;color:var(--text-muted);min-width:18px">${i+1}</span>
+                <span style="flex:1;font-size:13px;color:var(--text);line-height:1.5">${esc(title)}</span>
+                ${ctrScore ? `<span style="font-size:12px;font-weight:700;color:var(--green);min-width:30px;text-align:right">${ctrScore}</span>` : ''}
+                ${angle ? `<span style="font-size:10px;color:var(--text-muted);background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:4px">${esc(angle)}</span>` : ''}
+                <button onclick="copyText('${esc(title).replace(/'/g,"\\'")}', this)" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:4px 8px;cursor:pointer;white-space:nowrap;font-family:inherit">Kopyala</button>
+            </div>`;
+        }).join('');
+        html += `<div style="${cardStyle}"><div style="${titleStyle}">🎯 Başlık Önerileri</div>${tHtml}</div>`;
+    }
+
+    // ── SEO ETİKETLERİ ──
+    if (tags.length) {
+        const tagHtml = tags.map(t => `<span style="background:rgba(123,104,238,0.12);color:#a78bfa;border-radius:6px;padding:4px 10px;font-size:12px">${esc(t)}</span>`).join('');
+        html += `<div style="${cardStyle}">
+            <div style="${titleStyle};justify-content:space-between">
+                <span>🏷️ SEO Etiketleri</span>
+                <button onclick="copyText('${tags.map(t=>t).join(', ')}', this)" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit">Tümünü Kopyala</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">${tagHtml}</div>
+        </div>`;
+    }
+
+    // ── CLONE THIS VIDEO ──
+    if (clone.new_video_idea || clone.full_hook) {
+        html += `<div style="${cardStyle};border-color:rgba(6,182,212,0.2);background:rgba(6,182,212,0.03)">
+            <div style="${titleStyle};color:var(--cyan)">🎬 Clone This Video</div>
+            ${clone.new_video_idea ? `<div style="${rowStyle}"><div style="${lblStyle}">Yeni Video Fikri</div><div style="font-size:14px;font-weight:600;color:var(--text);line-height:1.5">${esc(clone.new_video_idea)}</div></div>` : ''}
+            ${clone.full_hook ? `<div style="margin-top:14px;padding:14px 16px;background:rgba(6,182,212,0.06);border-left:3px solid var(--cyan);border-radius:0 8px 8px 0">
+                <div style="${lblStyle};color:var(--cyan)">Tam Hook — Hemen Kullan</div>
+                <div style="font-size:14px;color:var(--text);font-style:italic;line-height:1.6;margin-bottom:10px">"${esc(clone.full_hook)}"</div>
+                <button onclick="copyText('${esc(clone.full_hook).replace(/'/g,"\\'")}', this)" style="background:var(--cyan);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Hook'u Kopyala</button>
+            </div>` : ''}
+            ${clone.script_outline ? `<div style="margin-top:14px;${rowStyle}"><div style="${lblStyle}">Senaryo Taslağı</div><div style="${valStyle};white-space:pre-line">${esc(clone.script_outline)}</div></div>` : ''}
+        </div>`;
+    }
+
+    // ── VİDEO YAPISI ──
+    if (structure.hook || structure.setup) {
+        const parts = [
+            { key: 'hook', label: 'Hook', color: '#ff4444' },
+            { key: 'setup', label: 'Setup', color: '#f59e0b' },
+            { key: 'buildup', label: 'Buildup', color: '#7b68ee' },
+            { key: 'payoff', label: 'Payoff', color: '#00c851' },
+            { key: 'cta', label: 'CTA', color: '#06b6d4' }
+        ];
+        const partsHtml = parts.filter(p => structure[p.key]).map(p => `
+            <div style="padding:10px 14px;border-left:3px solid ${p.color};background:rgba(255,255,255,0.02);border-radius:0 8px 8px 0;margin-bottom:8px">
+                <div style="font-size:10px;font-weight:700;color:${p.color};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${p.label}</div>
+                <div style="${valStyle}">${esc(structure[p.key])}</div>
+            </div>`).join('');
+        html += `<div style="${cardStyle}"><div style="${titleStyle}">🏗️ Video Yapısı</div>${partsHtml}</div>`;
+    }
+
+    // ── CONTENT FACTORY ──
+    if (videoIdeas.length) {
+        const ideasHtml = videoIdeas.slice(0, 6).map((v, i) => `
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:6px">${i+1}. ${esc(v.title || v)}</div>
+                ${v.hook ? `<div style="font-size:12px;color:var(--text-muted);font-style:italic;margin-bottom:4px">"${esc(v.hook)}"</div>` : ''}
+                ${v.why ? `<div style="font-size:11px;color:var(--green)">↑ ${esc(v.why)}</div>` : ''}
+            </div>`).join('');
+        html += `<div style="${cardStyle}"><div style="${titleStyle}">💡 Content Factory</div>${ideasHtml}</div>`;
+    }
+
+    // ── SENARYO ──
+    if (script.opening || (script.key_points && script.key_points.length)) {
+        html += `<div style="${cardStyle}">
+            <div style="${titleStyle}">✍️ Senaryo Şablonu</div>
+            ${script.opening ? `<div style="${rowStyle}"><div style="${lblStyle}">Açılış</div><div style="${valStyle}">${esc(script.opening)}</div></div>` : ''}
+            ${script.key_points && script.key_points.length ? `<div style="${rowStyle}"><div style="${lblStyle}">Ana Noktalar</div>${script.key_points.map(p => `<div style="${valStyle};padding:4px 0;border-bottom:1px solid var(--border)">• ${esc(p)}</div>`).join('')}</div>` : ''}
+            ${script.ending ? `<div style="${rowStyle};margin-top:10px"><div style="${lblStyle}">Kapanış</div><div style="${valStyle}">${esc(script.ending)}</div></div>` : ''}
+        </div>`;
+    }
+
+    // ── MONETİZASYON ──
+    const monetizeItems = monetize.strategies || monetize.opportunities || monetize.revenue_opportunities || [];
+    if (monetizeItems.length) {
+        const mHtml = monetizeItems.map(s => `<div style="${valStyle};padding:8px 0;border-bottom:1px solid var(--border)">💰 ${esc(s)}</div>`).join('');
+        html += `<div style="${cardStyle}"><div style="${titleStyle}">💰 Monetizasyon</div>${mHtml}</div>`;
+    }
+
+    res.innerHTML = html;
 }
 
 function formatNumber(n) {
