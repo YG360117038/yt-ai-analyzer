@@ -640,24 +640,30 @@
 
         <!-- ── TAB: VIDEO ANALİZİ ── -->
         <div id="tab-analyze" class="tab-pane active">
-            <!-- Pro gate -->
-            <div id="analyze-paywall" class="paywall" style="display:none">
-                <h3>🔒 Pro Özellik</h3>
-                <p>URL ile video analizi Pro plana özeldir. Skool topluluğumuza katılarak Pro erişim kazanın.</p>
-                <a href="https://www.skool.com/omnicore-8861" target="_blank" rel="noopener" class="btn-pro">Pro'ya Geç →</a>
+
+            <!-- Input form (everyone sees this) -->
+            <div class="card">
+                <div class="card-title">🔗 YouTube Video Analizi</div>
+                <div id="preview-notice" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--orange);margin-bottom:14px">
+                    ⚡ Önizleme modu — saatte 3 ücretsiz analiz. <a href="#" onclick="document.getElementById('topbar-login-btn').click();return false" style="color:var(--accent);font-weight:600">Giriş yapın</a> veya <a href="https://www.skool.com/omnicore-8861" target="_blank" style="color:var(--accent);font-weight:600">Pro olun</a> tam sonuç için.
+                </div>
+                <div class="inp-row">
+                    <input class="inp" id="video-url-input" type="text" placeholder="https://www.youtube.com/watch?v=...">
+                    <button class="btn" id="analyze-btn">Analiz Et</button>
+                </div>
+                <div id="analyze-error" style="color:var(--accent);font-size:12px;margin-top:8px;display:none"></div>
             </div>
 
-            <!-- Analyze form (Pro) -->
-            <div id="analyze-form" style="display:none">
-                <div class="card">
-                    <div class="card-title">🔗 YouTube Video Analizi</div>
-                    <div class="inp-row">
-                        <input class="inp" id="video-url-input" type="text" placeholder="https://www.youtube.com/watch?v=...">
-                        <button class="btn" id="analyze-btn">Analiz Et</button>
-                    </div>
-                    <div id="analyze-error" style="color:var(--accent);font-size:12px;margin-top:8px;display:none"></div>
+            <div id="analyze-result"></div>
+
+            <!-- Pro upsell (shown after preview result) -->
+            <div id="analyze-upsell" style="display:none" class="paywall">
+                <h3>📊 30+ Bölümün Tamamını Görün</h3>
+                <p>Senaryo analizi, SEO optimizasyonu, monetizasyon fırsatları, içerik planı ve çok daha fazlası.</p>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                    <a href="https://www.skool.com/omnicore-8861" target="_blank" rel="noopener" class="btn-pro">⭐ Pro'ya Geç</a>
+                    <button onclick="document.getElementById('topbar-login-btn').click()" style="background:rgba(255,255,255,0.07);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer">Giriş Yap</button>
                 </div>
-                <div id="analyze-result"></div>
             </div>
         </div>
 
@@ -730,7 +736,7 @@ document.getElementById('google-login-btn').addEventListener('click', async () =
     const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: window.location.href,
+            redirectTo: window.location.origin + window.location.pathname,
             queryParams: { prompt: 'select_account' }
         }
     });
@@ -764,10 +770,7 @@ function enterGuestMode() {
     document.getElementById('plan-badge').className = 'plan-badge free';
     document.getElementById('topbar-login-btn').style.display = 'block';
     document.getElementById('topbar-user').style.display = 'none';
-    // Show analyze paywall, hide form
-    document.getElementById('analyze-paywall').style.display = 'block';
-    document.getElementById('analyze-form').style.display = 'none';
-    // Hide history tab for guests
+    document.getElementById('preview-notice').style.display = 'block';
     document.querySelector('[data-tab="history"]').style.opacity = '0.4';
     document.querySelector('[data-tab="history"]').title = 'Geçmişi görmek için giriş yapın';
 }
@@ -832,13 +835,11 @@ function applyPlan() {
     if (_plan === 'pro') {
         badge.textContent = '⭐ PRO';
         badge.className = 'plan-badge pro';
-        document.getElementById('analyze-paywall').style.display = 'none';
-        document.getElementById('analyze-form').style.display = 'block';
+        document.getElementById('preview-notice').style.display = 'none';
     } else {
         badge.textContent = '🆓 ÜCRETSİZ';
         badge.className = 'plan-badge free';
-        document.getElementById('analyze-paywall').style.display = 'block';
-        document.getElementById('analyze-form').style.display = 'none';
+        document.getElementById('preview-notice').style.display = 'block';
     }
 }
 
@@ -880,18 +881,34 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
     }
     errEl.style.display = 'none';
     btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
-    resEl.innerHTML = `<div class="loading-msg"><div class="spinner"></div> Video analiz ediliyor, 30-60 saniye sürebilir...</div>`;
+    const isPro = _token && _plan === 'pro';
+    resEl.innerHTML = `<div class="loading-msg"><div class="spinner"></div> ${isPro ? 'Video analiz ediliyor, 30-60 saniye sürebilir...' : 'Önizleme analizi yapılıyor...'}</div>`;
+    document.getElementById('analyze-upsell').style.display = 'none';
 
     try {
-        const r = await fetch(`${API}/api/analyze-url`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_token}` },
-            body: JSON.stringify({ url })
-        });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || 'Analiz başarısız.');
-        renderAnalysisResult(data);
-        showToast('Analiz tamamlandı!');
+        if (isPro) {
+            // Full analysis
+            const r = await fetch(`${API}/api/analyze-url`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_token}` },
+                body: JSON.stringify({ url })
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'Analiz başarısız.');
+            renderAnalysisResult(data);
+            showToast('Analiz tamamlandı!');
+        } else {
+            // Preview analysis (public endpoint)
+            const r = await fetch(`${API}/api/analyze-url-preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'Analiz başarısız.');
+            renderPreviewResult(data);
+            showToast('Önizleme tamamlandı!');
+        }
     } catch (err) {
         resEl.innerHTML = '';
         errEl.textContent = err.message;
@@ -984,6 +1001,57 @@ function formatNumber(n) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
     return String(num);
+}
+
+function renderPreviewResult(data) {
+    const res = document.getElementById('analyze-result');
+    const meta = data.video_metadata || {};
+    const p = data.preview || {};
+    const score = parseInt(p.viral_score) || 0;
+    const scoreColor = score >= 70 ? 'var(--green)' : score >= 45 ? 'var(--orange)' : 'var(--accent)';
+
+    res.innerHTML = `
+    <div class="card" style="position:relative">
+        <div style="position:absolute;top:14px;right:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--orange);font-weight:600">⚡ Önizleme</div>
+        <div class="analysis-meta">
+            ${meta.thumbnail ? `<img src="${meta.thumbnail}" class="analysis-thumb" onerror="this.src='https://img.youtube.com/vi/${meta.videoId}/hqdefault.jpg'" alt="">` : ''}
+            <div class="analysis-meta-info">
+                <div class="analysis-meta-title">${meta.title || 'Video'}</div>
+                <div class="analysis-meta-channel">${meta.channelName || ''}</div>
+            </div>
+            <div>
+                <div class="score-big" style="color:${scoreColor}">${score || '–'}</div>
+                <div class="score-big-label">Viral Skoru</div>
+            </div>
+        </div>
+        ${p.verdict ? `<div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px">${p.verdict}</div>` : ''}
+        <div class="analysis-sections">
+            ${p.strengths?.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--green)">✅ Güçlü Yönler</div>
+                ${p.strengths.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
+            </div>` : ''}
+            ${p.improvements?.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--orange)">⚠️ İyileştirme</div>
+                ${p.improvements.map(s => `<div class="analysis-list-item">• ${s}</div>`).join('')}
+            </div>` : ''}
+            ${p.title_suggestions?.length ? `
+            <div class="analysis-section">
+                <div class="analysis-section-title" style="color:var(--blue)">🎯 Başlık Önerileri</div>
+                ${p.title_suggestions.map(t => `<div class="analysis-list-item">• ${t}</div>`).join('')}
+            </div>` : ''}
+            <div class="analysis-section" style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.15)">
+                <div class="analysis-section-title" style="color:var(--accent)">🔒 Kilitli Bölümler</div>
+                <div class="analysis-list-item" style="color:var(--text-muted)">• SEO optimizasyonu (15 etiket)</div>
+                <div class="analysis-list-item" style="color:var(--text-muted)">• Senaryo & kanca analizi</div>
+                <div class="analysis-list-item" style="color:var(--text-muted)">• Monetizasyon fırsatları</div>
+                <div class="analysis-list-item" style="color:var(--text-muted)">• 25+ bölüm daha...</div>
+            </div>
+        </div>
+    </div>`;
+
+    document.getElementById('analyze-upsell').style.display = 'block';
 }
 
 // ==================== TITLE CTR TOOL ====================

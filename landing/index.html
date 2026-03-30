@@ -407,6 +407,24 @@
             </a>
             <a href="#features" class="btn-hero btn-secondary" data-i18n="btn_features"></a>
         </div>
+
+        <!-- URL ANALYZER BANNER -->
+        <div style="margin-top:40px;max-width:640px;margin-left:auto;margin-right:auto">
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:20px 24px;backdrop-filter:blur(8px)">
+                <div style="font-size:12px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px">⚡ Hemen Dene — Ücretsiz Önizleme</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                    <input id="hero-url-input" type="text" placeholder="YouTube video URL'sini yapıştırın..."
+                        style="flex:1;min-width:200px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#f1f1f1;padding:12px 16px;font-size:14px;font-family:inherit">
+                    <button id="hero-analyze-btn" onclick="runHeroAnalyze()"
+                        style="background:#ff4444;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background 0.15s"
+                        onmouseover="this.style.background='#cc2222'" onmouseout="this.style.background='#ff4444'">
+                        Analiz Et
+                    </button>
+                </div>
+                <div id="hero-analyze-error" style="color:#ff6666;font-size:12px;margin-top:8px;display:none"></div>
+                <div id="hero-analyze-result" style="margin-top:16px"></div>
+            </div>
+        </div>
     </section>
 
     <!-- STATS -->
@@ -884,6 +902,84 @@
             currentLang = currentLang === 'tr' ? 'en' : 'tr';
             applyLang(currentLang);
         });
+    </script>
+    <script>
+    // ===== HERO URL ANALYZER =====
+    const HERO_API = 'https://yt-ai-analyzer-production.up.railway.app';
+
+    document.getElementById('hero-url-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') runHeroAnalyze();
+    });
+
+    async function runHeroAnalyze() {
+        const url = document.getElementById('hero-url-input').value.trim();
+        const errEl = document.getElementById('hero-analyze-error');
+        const btn = document.getElementById('hero-analyze-btn');
+        const resEl = document.getElementById('hero-analyze-result');
+
+        if (!url) { errEl.textContent = 'URL girin.'; errEl.style.display = 'block'; return; }
+        if (!url.includes('youtube.com/watch') && !url.includes('youtu.be/')) {
+            errEl.textContent = 'Geçerli bir YouTube video URL\'si girin.'; errEl.style.display = 'block'; return;
+        }
+        errEl.style.display = 'none';
+        btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
+        resEl.innerHTML = '<div style="color:#888;font-size:13px;padding:8px 0;display:flex;align-items:center;gap:8px"><div style="width:14px;height:14px;border:2px solid #333;border-top-color:#ff4444;border-radius:50%;animation:spin 0.7s linear infinite"></div>Önizleme hazırlanıyor...</div>';
+
+        try {
+            const r = await fetch(`${HERO_API}/api/analyze-url-preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'Analiz başarısız.');
+            renderHeroResult(data);
+        } catch (err) {
+            resEl.innerHTML = '';
+            errEl.textContent = err.message; errEl.style.display = 'block';
+        } finally {
+            btn.disabled = false; btn.textContent = 'Analiz Et';
+        }
+    }
+
+    function renderHeroResult(data) {
+        const resEl = document.getElementById('hero-analyze-result');
+        const meta = data.video_metadata || {};
+        const p = data.preview || {};
+        const score = parseInt(p.viral_score) || 0;
+        const scoreColor = score >= 70 ? '#00c851' : score >= 45 ? '#f59e0b' : '#ff4444';
+
+        resEl.innerHTML = `
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:16px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+                ${meta.thumbnail ? `<img src="${meta.thumbnail}" style="width:80px;height:45px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.src='https://img.youtube.com/vi/${meta.videoId}/hqdefault.jpg'" alt="">` : ''}
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${meta.title || 'Video'}</div>
+                    <div style="font-size:12px;color:#888;margin-top:2px">${meta.channelName || ''}</div>
+                </div>
+                <div style="text-align:center;flex-shrink:0">
+                    <div style="font-size:28px;font-weight:800;color:${scoreColor};line-height:1">${score || '–'}</div>
+                    <div style="font-size:10px;color:#666">Viral Skoru</div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                ${p.strengths?.length ? `<div style="background:rgba(0,200,81,0.08);border-radius:8px;padding:10px 12px">
+                    <div style="font-size:10px;font-weight:700;color:#00c851;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">✅ Güçlü</div>
+                    ${p.strengths.map(s => `<div style="font-size:12px;color:#ccc;padding:2px 0">• ${s}</div>`).join('')}
+                </div>` : ''}
+                ${p.title_suggestions?.length ? `<div style="background:rgba(59,130,246,0.08);border-radius:8px;padding:10px 12px">
+                    <div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">🎯 Başlık</div>
+                    ${p.title_suggestions.slice(0,2).map(t => `<div style="font-size:12px;color:#ccc;padding:2px 0">• ${t}</div>`).join('')}
+                </div>` : ''}
+            </div>
+            <div style="text-align:center">
+                <a href="./webapp/index.html" style="display:inline-flex;align-items:center;gap:8px;background:#ff4444;color:#fff;text-decoration:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600">
+                    📊 Tam Analizi Gör (30+ Bölüm)
+                </a>
+                <div style="font-size:11px;color:#555;margin-top:8px">Giriş yapın veya Pro olun</div>
+            </div>
+        </div>`;
+    }
     </script>
 </body>
 </html>

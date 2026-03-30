@@ -712,6 +712,61 @@ app.get('/api/check-plan', planCheckLimit, async (req, res) => {
     }
 });
 
+// ==================== URL PREVIEW (public, limited) ====================
+const previewRateLimit = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 saat
+    max: 3,
+    keyGenerator: (req) => req.ip,
+    message: { error: 'Saatlik 3 önizleme hakkınızı kullandınız. Daha fazlası için giriş yapın.' },
+    standardHeaders: true, legacyHeaders: false
+});
+
+app.post('/api/analyze-url-preview', previewRateLimit, async (req, res) => {
+    try {
+        const { url } = req.body;
+        if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL gerekli.' });
+        const match = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+        if (!match) return res.status(400).json({ error: 'Geçerli bir YouTube video URL\'si girin.' });
+        const videoId = match[1];
+
+        const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+        if (!oembedRes.ok) return res.status(400).json({ error: 'Video bulunamadı veya erişilemiyor.' });
+        const oembed = await oembedRes.json();
+
+        const videoData = {
+            videoId, title: oembed.title || '', description: '',
+            channelName: oembed.author_name || '', subscriberCount: '', viewCount: '',
+            publishDate: '', likeCount: '', duration: '', tags: [], hashtags: [], comments: [],
+            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            language: 'tr', scrapedAt: new Date().toISOString()
+        };
+
+        const { analyzeVideo } = require('./services/aiService');
+        const analysis = await analyzeVideo(videoData, { isPro: false, language: 'tr' });
+
+        // Return only preview fields
+        const viral = analysis.viral_score_analysis || analysis.viral_analysis || {};
+        const seo = analysis.seo_analysis || {};
+        const preview = {
+            video_metadata: videoData,
+            preview: {
+                viral_score: viral.overall_score || viral.viral_score || null,
+                verdict: viral.verdict || viral.summary || null,
+                strengths: (viral.strengths || []).slice(0, 3),
+                improvements: (viral.weaknesses || viral.improvement_areas || []).slice(0, 2),
+                title_suggestions: (seo.improved_titles || []).slice(0, 3).map(t => t.title || t),
+            },
+            is_preview: true,
+            upgrade_message: 'Tüm 30+ analiz bölümü için Pro\'ya geçin veya giriş yapın.'
+        };
+        res.json(preview);
+    } catch (e) {
+        console.error('Preview analyze error:', e.message);
+        res.status(500).json({ error: e.message || 'Analiz başarısız.' });
+    }
+});
+
 // ==================== FREE TOOLS (public, no auth) ====================
 const toolsRateLimit = rateLimit({ windowMs: 60000, max: 8, message: { error: 'Çok fazla istek. 1 dakika bekleyin.' }, standardHeaders: true, legacyHeaders: false });
 
