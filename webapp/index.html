@@ -137,7 +137,7 @@
         .login-feature span:first-child { font-size: 16px; }
 
         /* ── APP SHELL ── */
-        #app-screen { display: none; min-height: 100vh; }
+        #app-screen { min-height: 100vh; }
 
         .topbar {
             position: sticky;
@@ -570,11 +570,13 @@
 <body>
 
 <!-- ===================== LOGIN SCREEN ===================== -->
-<div id="login-screen">
-    <div class="login-box">
+<!-- LOGIN MODAL -->
+<div id="login-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+    <div class="login-box" style="position:relative">
+        <button id="login-modal-close" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1">&times;</button>
         <div class="login-logo">🎬</div>
-        <div class="login-title">Dion Analyzer</div>
-        <p class="login-sub">YouTube videolarınızı AI ile analiz edin.<br>SEO, viral potansiyel ve içerik stratejisi.</p>
+        <div class="login-title" id="login-modal-title">Daha Fazlası İçin Giriş Yap</div>
+        <p class="login-sub" id="login-modal-sub">Pro hesabınızla 30+ bölüm tam analiz, geçmiş ve sınırsız kullanım.</p>
 
         <button class="google-btn" id="google-login-btn">
             <svg width="18" height="18" viewBox="0 0 48 48">
@@ -586,17 +588,12 @@
             Google ile Giriş Yap
         </button>
 
-        <button id="guest-btn" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);padding:12px;font-size:14px;cursor:pointer;font-family:inherit;margin-top:10px;transition:border-color 0.15s">
-            Giriş yapmadan devam et →
-        </button>
-
-        <div class="login-divider">özellikler</div>
-
+        <div class="login-divider">veya</div>
         <div class="login-features">
-            <div class="login-feature"><span>🔗</span><span>URL ile video analizi <span style="color:var(--accent);font-size:11px">Pro + Giriş</span></span></div>
-            <div class="login-feature"><span>🏆</span><span>Başlık CTR tahmini <span style="color:var(--green);font-size:11px">Ücretsiz</span></span></div>
+            <div class="login-feature"><span>🔗</span><span>URL video analizi <span style="color:var(--accent);font-size:11px">Pro</span></span></div>
+            <div class="login-feature"><span>🏆</span><span>Başlık CTR <span style="color:var(--green);font-size:11px">Ücretsiz</span></span></div>
             <div class="login-feature"><span>🖼️</span><span>Thumbnail analizi <span style="color:var(--green);font-size:11px">Ücretsiz</span></span></div>
-            <div class="login-feature"><span>📋</span><span>Analiz geçmişi <span style="color:var(--text-muted);font-size:11px">Giriş gerekir</span></span></div>
+            <div class="login-feature"><span>⚡</span><span>Demo: 1 ücretsiz analiz <span style="color:var(--text-muted);font-size:11px">Giriş gerekmez</span></span></div>
         </div>
     </div>
 </div>
@@ -645,7 +642,7 @@
             <div class="card">
                 <div class="card-title">🔗 YouTube Video Analizi</div>
                 <div id="preview-notice" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--orange);margin-bottom:14px">
-                    ⚡ Önizleme modu — saatte 3 ücretsiz analiz. <a href="#" onclick="document.getElementById('topbar-login-btn').click();return false" style="color:var(--accent);font-weight:600">Giriş yapın</a> veya <a href="https://www.skool.com/omnicore-8861" target="_blank" style="color:var(--accent);font-weight:600">Pro olun</a> tam sonuç için.
+                    ⚡ Önizleme modu — <span id="demo-notice-text">1 demo analiz hakkınız var.</span> <a href="#" onclick="openLoginModal();return false" style="color:var(--accent);font-weight:600">Giriş yapın</a> veya <a href="https://www.skool.com/omnicore-8861" target="_blank" style="color:var(--accent);font-weight:600">Pro olun</a> tam sonuç için.
                 </div>
                 <div class="inp-row">
                     <input class="inp" id="video-url-input" type="text" placeholder="https://www.youtube.com/watch?v=...">
@@ -662,7 +659,7 @@
                 <p>Senaryo analizi, SEO optimizasyonu, monetizasyon fırsatları, içerik planı ve çok daha fazlası.</p>
                 <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
                     <a href="https://www.skool.com/omnicore-8861" target="_blank" rel="noopener" class="btn-pro">⭐ Pro'ya Geç</a>
-                    <button onclick="document.getElementById('topbar-login-btn').click()" style="background:rgba(255,255,255,0.07);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer">Giriş Yap</button>
+                    <button onclick="openLoginModal()" style="background:rgba(255,255,255,0.07);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer">Giriş Yap</button>
                 </div>
             </div>
         </div>
@@ -746,14 +743,24 @@ document.getElementById('google-login-btn').addEventListener('click', async () =
     }
 });
 
-document.getElementById('guest-btn').addEventListener('click', () => {
-    sessionStorage.setItem('guest_mode', '1');
-    enterGuestMode();
+function openLoginModal(title, sub) {
+    if (title) document.getElementById('login-modal-title').textContent = title;
+    if (sub) document.getElementById('login-modal-sub').textContent = sub;
+    const modal = document.getElementById('login-modal');
+    modal.style.display = 'flex';
+}
+
+function closeLoginModal() {
+    document.getElementById('login-modal').style.display = 'none';
+}
+
+document.getElementById('login-modal-close').addEventListener('click', closeLoginModal);
+document.getElementById('login-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('login-modal')) closeLoginModal();
 });
 
 document.getElementById('topbar-login-btn').addEventListener('click', () => {
-    document.getElementById('app-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
+    openLoginModal('Giriş Yap', 'Pro hesabınızla tam analiz, geçmiş ve sınırsız kullanım.');
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -764,21 +771,27 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 });
 
 function enterGuestMode() {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'block';
     document.getElementById('plan-badge').textContent = '👤 Misafir';
     document.getElementById('plan-badge').className = 'plan-badge free';
     document.getElementById('topbar-login-btn').style.display = 'block';
     document.getElementById('topbar-user').style.display = 'none';
     document.getElementById('preview-notice').style.display = 'block';
+    const demoUsed = localStorage.getItem('dion_demo_used');
+    const noticeEl = document.getElementById('demo-notice-text');
+    if (noticeEl) noticeEl.textContent = demoUsed ? 'Demo hakkınızı kullandınız.' : '1 demo analiz hakkınız var.';
     document.querySelector('[data-tab="history"]').style.opacity = '0.4';
     document.querySelector('[data-tab="history"]').title = 'Geçmişi görmek için giriş yapın';
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-    if (session) {
+    if (event === 'SIGNED_IN' && session) {
+        closeLoginModal();
         _token = session.access_token;
         await loadUser(session.user);
+    } else if (event === 'SIGNED_OUT') {
+        _token = null;
+        _plan = 'free';
+        enterGuestMode();
     }
 });
 
@@ -787,19 +800,13 @@ sb.auth.getSession().then(({ data }) => {
         _token = data.session.access_token;
         loadUser(data.session.user);
     } else {
-        // No session → show app directly in guest mode (skip login screen)
-        // But still show login screen on first visit
-        // Check if user dismissed login before
-        if (sessionStorage.getItem('guest_mode')) {
-            enterGuestMode();
-        }
-        // else: login screen stays visible (default)
+        // No session → open directly in guest mode
+        enterGuestMode();
     }
 });
 
 async function loadUser(user) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'block';
+    closeLoginModal();
     document.getElementById('topbar-login-btn').style.display = 'none';
     document.getElementById('topbar-user').style.display = 'flex';
     document.querySelector('[data-tab="history"]').style.opacity = '1';
@@ -854,7 +861,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.getElementById(`tab-${tab}`).classList.add('active');
         if (tab === 'history') {
             if (!_token) {
-                document.getElementById('history-content').innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><div class="empty-title">Geçmişi görmek için giriş yapın</div><div class="empty-sub" style="margin-top:12px"><button onclick="document.getElementById('topbar-login-btn').click()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer">Giriş Yap</button></div></div>`;
+                document.getElementById('history-content').innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><div class="empty-title">Geçmişi görmek için giriş yapın</div><div class="empty-sub" style="margin-top:12px"><button onclick="openLoginModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer">Giriş Yap</button></div></div>`;
             } else {
                 loadHistory();
             }
@@ -880,8 +887,17 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
         errEl.style.display = 'block'; return;
     }
     errEl.style.display = 'none';
-    btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
     const isPro = _token && _plan === 'pro';
+    const isLoggedIn = !!_token;
+    const demoUsed = localStorage.getItem('dion_demo_used');
+
+    // Guest (not logged in) with demo already used → block with login modal
+    if (!isLoggedIn && demoUsed) {
+        openLoginModal('Demo Hakkınızı Kullandınız', 'Sınırsız analiz için giriş yapın veya Pro\'ya geçin.');
+        return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Analiz ediliyor...';
     resEl.innerHTML = `<div class="loading-msg"><div class="spinner"></div> ${isPro ? 'Video analiz ediliyor, 30-60 saniye sürebilir...' : 'Önizleme analizi yapılıyor...'}</div>`;
     document.getElementById('analyze-upsell').style.display = 'none';
 
@@ -906,6 +922,8 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
             });
             const data = await r.json();
             if (!r.ok) throw new Error(data.error || 'Analiz başarısız.');
+            // Mark demo as used for guests
+            if (!isLoggedIn) localStorage.setItem('dion_demo_used', '1');
             renderPreviewResult(data);
             showToast('Önizleme tamamlandı!');
         }

@@ -1,59 +1,53 @@
-# 🛠️ Kullanıcı Yapılacaklar Listesi (TODO)
+# Kullanıcı Yapılacaklar
 
-Bu dosya, YouTube AI Prompt Analyzer projesini çalıştırmak için senin (kullanıcının) manuel olarak yapman gereken adımları içerir.
+## GitHub Pages Deploy (webapp)
 
-### 1. API Anahtarlarını Hazırla
-Aşağıdaki platformlardan hesap aç ve API anahtarlarını al:
-- **Gemini:** [aistudio.google.com](https://aistudio.google.com/) adresinden  PORT=3000
-  GEMINI_API_KEY=your_gemini_key
-  SUPABASE_URL=https://sxlyfxqepyrjevfrjkwz.supabase.co
-m/) üzerinden yeni bir proje oluştur. 
-    - `Project URL` ve `anon public key` değerlerini al.
-    - Auth ayarlarından Google Provider'ı aktif et (opsiyonel ama önerilir).
-- **Stripe:** [stripe.com](https://stripe.com/) üzerinden bir test hesabı aç ve `Publishable Key` ile `Secret Key` değerlerini al.
-
-### 2. Backend Geliştirme Ortamı (Tamamlandı ✅)
-- Backend klasörüne `.env` dosyası tarafımdan oluşturuldu ve verdiğin anahtarlar eklendi.
-
-### 3. Chrome Extension Kurulumu
-- Chrome'da `chrome://extensions/` adresine git.
-- "Developer mode" (Geliştirici modu) seçeneğini aç.
-- "Load unpacked" (Paketlenmemiş öğe yükle) butonuna bas ve projedeki `extension` klasörünü seç.
-
-### 4. Veritabanı Tablolarını Oluştur
-Supabase SQL Editor kısmına gel ve aşağıdaki SQL kodunu yapıştırıp çalıştır:
-
-```sql
--- Analizler Tablosu
-CREATE TABLE analyses (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id),
-    video_id TEXT,
-    video_metadata JSONB,
-    analysis_results JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- Kullanım Takibi (Opsiyonel)
-CREATE TABLE usage_logs (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id),
-    action TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-```
-
-### 5. Bağımlılıkları Yükle
-Terminal üzerinden şu komutları çalıştır:
+### 1. GitHub Repo'ya Push Et
 ```bash
-# Backend için
-cd backend
-npm install
-
-# Extension için (ileride build tool eklersek)
-# cd extension
-# npm install
+git add -A
+git commit -m "feat: webapp with guest demo mode"
+git push origin master
 ```
+
+### 2. GitHub Pages'i Etkinleştir
+- Repo'ya git → **Settings** → **Pages**
+- Source: **Deploy from a branch**
+- Branch: `master` / `root`
+- **Save** tıkla
+- Birkaç dakika sonra site şu adreste canlı olur:
+  `https://<github-kullanici-adin>.github.io/<repo-adi>/webapp/`
+
+### 3. Supabase'e Redirect URL Ekle
+- [supabase.com](https://supabase.com) → Projen → **Authentication** → **URL Configuration**
+- **Redirect URLs** bölümüne şunu ekle:
+  ```
+  https://<github-kullanici-adin>.github.io/<repo-adi>/webapp/index.html
+  ```
+- **Save** tıkla
+
+### 4. Landing Page URL'ini Güncelle (opsiyonel)
+`landing/index.html` içindeki "Web Uygulamasını Aç" butonunun href'ini güncel GitHub Pages URL'iyle değiştir.
 
 ---
-**Not:** Ben şu an kodları yazmaya başlıyorum. Bu dosyayı tamamladıkça güncelleyeceğim.
+
+## Mevcut Servisler
+
+| Servis | URL |
+|--------|-----|
+| Backend (Railway) | https://yt-ai-analyzer-production.up.railway.app |
+| Supabase | https://sxlyfxqepyrjevfrjkwz.supabase.co |
+| Webapp (GitHub Pages) | https://<github-adin>.github.io/<repo>/webapp/ |
+
+---
+
+## Webapp Özellikleri (tamamlandı)
+
+- Giriş yapmadan direkt açılır (misafir modu)
+- 1 demo analiz hakkı (localStorage ile takip)
+- Demo bitti → login modal açılır
+- Google OAuth ile giriş
+- Free hesap → önizleme analizi (viral skor + öneriler)
+- Pro hesap → tam analiz (30+ bölüm)
+- Başlık CTR testi (ücretsiz)
+- Thumbnail analizi (ücretsiz)
+- Geçmiş (giriş gerektirir)
