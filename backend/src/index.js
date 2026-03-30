@@ -746,16 +746,19 @@ app.post('/api/analyze-url-preview', previewRateLimit, async (req, res) => {
         const analysis = await analyzeVideo(videoData, { isPro: false, language: 'tr' });
 
         // Return only preview fields
-        const viral = analysis.viral_score_analysis || analysis.viral_analysis || {};
-        const seo = analysis.seo_analysis || {};
+        // Actual Gemini schema: viral_score.score, title_thumbnail.improved_titles, viral_patterns[]
+        const viral = analysis.viral_score || {};
+        const titleThumb = analysis.title_thumbnail || {};
+        const patterns = analysis.viral_patterns || [];
+        const hookAnalysis = analysis.hook_analysis || {};
         const preview = {
             video_metadata: videoData,
             preview: {
-                viral_score: viral.overall_score || viral.viral_score || null,
-                verdict: viral.verdict || viral.summary || null,
-                strengths: (viral.strengths || []).slice(0, 3),
-                improvements: (viral.weaknesses || viral.improvement_areas || []).slice(0, 2),
-                title_suggestions: (seo.improved_titles || []).slice(0, 3).map(t => t.title || t),
+                viral_score: viral.score || null,
+                verdict: viral.why || hookAnalysis.why_it_works || null,
+                strengths: patterns.slice(0, 3),
+                improvements: (titleThumb.improved_titles || []).slice(0, 2).map(t => t.title || t),
+                title_suggestions: (titleThumb.improved_titles || []).slice(0, 3).map(t => t.title || t),
             },
             is_preview: true,
             upgrade_message: 'Tüm 30+ analiz bölümü için Pro\'ya geçin veya giriş yapın.'
