@@ -385,8 +385,7 @@
                 <a href="#community" data-i18n="nav_community"></a>
                 <a href="privacy.html" data-i18n="nav_privacy"></a>
                 <button class="lang-btn" id="lang-toggle"></button>
-                <a href="https://drive.google.com/file/d/1wgsKfTNvOKJ7NAfeDiGQxmdp4g9R9qjl/view?usp=sharing"
-                   target="_blank" rel="noopener" class="nav-cta" data-i18n="nav_download"></a>
+                <a href="./webapp/index.html" class="nav-cta" data-i18n="nav_webapp"></a>
             </div>
         </div>
     </nav>
@@ -397,16 +396,19 @@
         <h1 data-i18n-html="hero_h1"></h1>
         <p data-i18n="hero_p"></p>
         <div class="hero-buttons">
+            <a href="./webapp/index.html" class="btn-hero btn-primary">
+                🚀 <span data-i18n="btn_webapp"></span>
+            </a>
             <a href="https://drive.google.com/file/d/1wgsKfTNvOKJ7NAfeDiGQxmdp4g9R9qjl/view?usp=sharing"
-               target="_blank" rel="noopener" class="btn-hero btn-primary">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               target="_blank" rel="noopener" class="btn-hero btn-secondary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
                 <span data-i18n="btn_download"></span>
             </a>
-            <a href="#features" class="btn-hero btn-secondary" data-i18n="btn_features"></a>
         </div>
+        <p style="font-size:12px;color:var(--text-dim);margin-top:12px" data-i18n="hero_no_login"></p>
 
         <!-- URL ANALYZER BANNER -->
         <div style="margin-top:40px;max-width:640px;margin-left:auto;margin-right:auto">
@@ -443,7 +445,7 @@
         </div>
         <div class="stat">
             <div class="stat-value">3</div>
-            <div class="stat-label" data-i18n="stat_free"></div>
+            <div class="stat-label" data-i18n="stat_free_tools"></div>
         </div>
     </div>
 
@@ -507,6 +509,10 @@
         <div class="section-header">
             <h2 data-i18n="how_title"></h2>
             <p data-i18n="how_sub"></p>
+        </div>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:40px">
+            <a href="./webapp/index.html" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.25);color:#ff4444;text-decoration:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600">🌐 Web App (Giriş Gerekmez)</a>
+            <a href="https://drive.google.com/file/d/1wgsKfTNvOKJ7NAfeDiGQxmdp4g9R9qjl/view?usp=sharing" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-dim);text-decoration:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600">🧩 Chrome Uzantısı</a>
         </div>
         <div class="steps">
             <div class="step-card">
@@ -646,7 +652,7 @@
                     </tr>
                     <tr style="border-bottom:1px solid var(--border)">
                         <td style="padding:14px 16px">Ücretsiz Deneme</td>
-                        <td style="text-align:center;color:#00c851;padding:14px">&#10003; 3 Analiz</td>
+                        <td style="text-align:center;color:#00c851;padding:14px">&#10003; 1 demo + ücretsiz araçlar</td>
                         <td style="text-align:center;color:#f59e0b;padding:14px">&#9888; Kısıtlı</td>
                         <td style="text-align:center;color:#f59e0b;padding:14px">&#9888; Kısıtlı</td>
                     </tr>
@@ -701,7 +707,7 @@
                onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                 🚀 Web Uygulamasını Aç
             </a>
-            <div style="margin-top:12px;font-size:13px;color:var(--text-dim)">Google hesabınızla ücretsiz giriş yapın</div>
+            <div style="margin-top:12px;font-size:13px;color:var(--text-dim)" data-i18n="webapp_sub"></div>
         </div>
     </section>
 
@@ -710,14 +716,20 @@
         <h2 style="font-size:40px;font-weight:900;margin-bottom:16px" data-i18n="cta_title"></h2>
         <p style="color:var(--text-dim);font-size:16px;margin-bottom:36px;max-width:440px;margin-left:auto;margin-right:auto"
            data-i18n="cta_sub"></p>
-        <a href="https://drive.google.com/file/d/1wgsKfTNvOKJ7NAfeDiGQxmdp4g9R9qjl/view?usp=sharing"
-           target="_blank" rel="noopener" class="btn-hero btn-primary" style="font-size:18px;padding:18px 48px">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            <span data-i18n="btn_download"></span>
-        </a>
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+            <a href="./webapp/index.html" class="btn-hero btn-primary" style="font-size:17px;padding:16px 40px">
+                🚀 <span data-i18n="btn_webapp"></span>
+            </a>
+            <a href="https://drive.google.com/file/d/1wgsKfTNvOKJ7NAfeDiGQxmdp4g9R9qjl/view?usp=sharing"
+               target="_blank" rel="noopener" class="btn-hero btn-secondary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span data-i18n="btn_download"></span>
+            </a>
+        </div>
+        <p style="font-size:12px;color:var(--text-dim);margin-top:14px" data-i18n="hero_no_login"></p>
     </section>
 
     <!-- FOOTER -->
@@ -739,10 +751,16 @@
                 nav_how:        'Nasıl Çalışır',
                 nav_community:  'Topluluk',
                 nav_privacy:    'Gizlilik',
-                nav_download:   'İndir',
+                nav_download:   'Uzantı İndir',
+                nav_webapp:     'Web App →',
                 lang_toggle:    'EN',
 
-                hero_badge:  'Yeni: AI Video Üretim Paketi',
+                btn_webapp:     'Hemen Dene — Ücretsiz',
+                hero_no_login:  'Giriş gerekmez · 1 demo analiz · Başlık & Thumbnail araçları ücretsiz',
+                webapp_sub:     'Giriş gerekmez — 1 ücretsiz demo hakkıyla hemen başlayın',
+                stat_free_tools: 'Ücretsiz Araç',
+
+                hero_badge:  'Yeni: Web App — Giriş Gerekmez',
                 hero_h1:     'YouTube Videolarını <span>AI ile Analiz Et</span>, Video Üret',
                 hero_p:      'Herhangi bir YouTube videosunu tek tıkla analiz edin. SEO skoru, viral potansiyel, içerik stratejisi ve Sora/Runway/Pika için hazır video üretim paketleri alın.',
                 btn_download: 'Uzantıyı İndir (Ücretsiz)',
@@ -775,14 +793,14 @@
                 how_title: 'Nasıl Çalışır?',
                 how_sub:   '4 adımda analiz ve video üretim paketi',
 
-                step1_title: 'Uzantıyı Yükle',
-                step1_desc:  'Bağlantıdan ücretsiz indirin ve Google ile giriş yapın.',
-                step2_title: "YouTube'a Git",
-                step2_desc:  'Analiz etmek istediğiniz YouTube videosunu açın.',
-                step3_title: 'Analiz Et',
-                step3_desc:  'Uzantı açılır penceresinden "Analizi Başlat" düğmesine tıklayın. AI 30+ bölümde analiz yapar.',
-                step4_title: 'Video Üret',
-                step4_desc:  "Video Üretim Merkezi'nden promptları kopyalayın, Sora/Runway'e yapıştırın.",
+                step1_title: 'Web App veya Uzantı',
+                step1_desc:  'Web App\'i direkt açın (giriş gerekmez) veya Chrome uzantısını indirin.',
+                step2_title: "YouTube URL'si Yapıştır",
+                step2_desc:  'Analiz etmek istediğiniz YouTube video URL\'sini yapıştırın.',
+                step3_title: 'AI Analiz',
+                step3_desc:  '"Analizi Başlat" butonuna tıklayın. AI 30+ bölümde analiz yapar.',
+                step4_title: 'Strateji Uygula',
+                step4_desc:  "Başlık önerilerini, SEO etiketlerini ve içerik stratejisini uygulayın.",
 
                 comm_title: 'Topluluğumuza Katılın',
                 comm_sub:   'Dion Youtube Analyzer topluluğuna katılın, Pro erişim kazanın',
@@ -794,7 +812,7 @@
                 comm_btn:   'Topluluğa Katıl →',
 
                 cta_title:  'Hemen Başlayın',
-                cta_sub:    '3 ücretsiz analiz hakkınızla YouTube içerik üretimini dönüştürün.',
+                cta_sub:    'Giriş gerekmez. 1 ücretsiz demo analizi, Başlık CTR ve Thumbnail araçları tamamen ücretsiz.',
 
                 footer_copy:    '© 2025 Dion Youtube Analyzer. Tüm hakları saklıdır.',
                 footer_privacy: 'Gizlilik Politikası',
@@ -806,10 +824,16 @@
                 nav_how:        'How It Works',
                 nav_community:  'Community',
                 nav_privacy:    'Privacy',
-                nav_download:   'Download',
+                nav_download:   'Extension',
+                nav_webapp:     'Web App →',
                 lang_toggle:    'TR',
 
-                hero_badge:  'New: AI Video Production Pack',
+                btn_webapp:     'Try Now — Free',
+                hero_no_login:  'No login required · 1 demo analysis · Title & Thumbnail tools free',
+                webapp_sub:     'No login required — start with 1 free demo',
+                stat_free_tools: 'Free Tools',
+
+                hero_badge:  'New: Web App — No Login Required',
                 hero_h1:     'Analyze YouTube Videos <span>with AI</span>, Create Content',
                 hero_p:      'Analyze any YouTube video in one click. Get SEO scores, viral potential, content strategy and ready-to-use video production prompts for Sora, Runway, and Pika.',
                 btn_download: 'Download Extension (Free)',
@@ -842,14 +866,14 @@
                 how_title: 'How It Works',
                 how_sub:   'Analysis and video production pack in 4 steps',
 
-                step1_title: 'Install Extension',
-                step1_desc:  'Download for free via the link and sign in with Google.',
-                step2_title: 'Go to YouTube',
-                step2_desc:  'Open the YouTube video you want to analyze.',
-                step3_title: 'Analyze',
-                step3_desc:  'Click "Start Analysis" in the extension popup. AI analyzes 30+ sections.',
-                step4_title: 'Create Video',
-                step4_desc:  'Copy prompts from the Video Production Hub and paste into Sora/Runway.',
+                step1_title: 'Web App or Extension',
+                step1_desc:  'Open the Web App directly (no login required) or install the Chrome extension.',
+                step2_title: 'Paste YouTube URL',
+                step2_desc:  'Paste the YouTube video URL you want to analyze.',
+                step3_title: 'AI Analysis',
+                step3_desc:  'Click "Start Analysis". AI analyzes 30+ sections in seconds.',
+                step4_title: 'Apply Strategy',
+                step4_desc:  'Use title suggestions, SEO tags, and content strategy to grow your channel.',
 
                 comm_title: 'Join Our Community',
                 comm_sub:   'Join the Dion Youtube Analyzer community and get Pro access',
@@ -861,7 +885,7 @@
                 comm_btn:   'Join the Community →',
 
                 cta_title:  'Get Started Now',
-                cta_sub:    'Transform your YouTube content creation with 3 free analyses.',
+                cta_sub:    'No login needed. 1 free demo analysis, Title CTR and Thumbnail tools are completely free.',
 
                 footer_copy:    '© 2025 Dion Youtube Analyzer. All rights reserved.',
                 footer_privacy: 'Privacy Policy',
